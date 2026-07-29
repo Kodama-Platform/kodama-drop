@@ -9,6 +9,7 @@ import {
 import { useEditor, EditorContent, generateJSON } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
+import TextAlign from "@tiptap/extension-text-align";
 import Typography from "@tiptap/extension-typography";
 import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
 import type { Editor } from "@tiptap/react";
@@ -27,7 +28,7 @@ import {
 import {
   KodamaBulletList,
   KodamaTaskItem,
-  TaskList,
+  KodamaTaskList,
 } from "@/lib/kodama-task-list";
 import {
   markdownLikelyHasTaskLists,
@@ -40,7 +41,16 @@ import {
 } from "@/lib/link-safety";
 import { ExternalLinkWarning } from "@/components/external-link-warning";
 import { LinkInsertDialog } from "@/components/link-insert-dialog";
+import { KodamaParagraph, KodamaHeading } from "@/lib/kodama-aligned-blocks";
+import { KodamaHighlight } from "@/lib/kodama-highlight";
+import { KodamaIndent } from "@/lib/kodama-indent";
 import { KodamaLink } from "@/lib/kodama-link";
+import { KodamaMarkdownHtml } from "@/lib/kodama-markdown-html";
+import {
+  KodamaSubscript,
+  KodamaSuperscript,
+  KodamaUnderline,
+} from "@/lib/kodama-marks";
 import {
   resolveHeadingElement,
   scheduleScrollBelowHeader,
@@ -92,10 +102,18 @@ function shouldParsePasteAsMarkdown(text: string): boolean {
     text.includes("\n") ||
     markdownLikelyHasTaskLists(text) ||
     /\[[^\]]+\]\([^)]+\)/.test(text) ||
+    /!\[[^\]]*\]\([^)]+\)/.test(text) ||
     /^#{1,6}\s/m.test(text) ||
     /^\s*[-+*]\s+/m.test(text) ||
     /^\s*\d+\.\s+/m.test(text) ||
-    /```/.test(text)
+    /```/.test(text) ||
+    /^>\s?/m.test(text) ||
+    /^(-{3,}|\*{3,}|_{3,})\s*$/m.test(text) ||
+    /^\|.+\|/m.test(text) ||
+    /~~.+~~/.test(text) ||
+    /==[^=].*==/.test(text) ||
+    /`[^`]+`/.test(text) ||
+    /(\*\*|__).+\1/.test(text)
   );
 }
 
@@ -242,7 +260,9 @@ export const RichEditor = forwardRef<RichEditorHandle, RichEditorProps>(
     const editor = useEditor({
       extensions: [
         StarterKit.configure({
-          heading: { levels: [1, 2, 3] },
+          heading: false,
+          paragraph: false,
+          underline: false,
           link: false,
           bulletList: false,
           codeBlock: {
@@ -250,12 +270,24 @@ export const RichEditor = forwardRef<RichEditorHandle, RichEditorProps>(
             tabSize: 2,
           },
         }),
+        KodamaParagraph,
+        KodamaHeading.configure({ levels: [1, 2, 3] }),
         KodamaBulletList,
-        TaskList,
+        KodamaTaskList,
         KodamaTaskItem.configure({ nested: true }),
         KodamaLink.configure({
           onLinkShortcut: () => openLinkDialogRef.current(),
         }),
+        KodamaUnderline,
+        KodamaSubscript,
+        KodamaSuperscript,
+        KodamaHighlight,
+        TextAlign.configure({
+          types: ["heading", "paragraph"],
+          alignments: ["left", "center", "right"],
+        }),
+        KodamaIndent,
+        KodamaMarkdownHtml,
         Typography,
         Table.configure({ resizable: false }),
         TableRow,
@@ -263,7 +295,7 @@ export const RichEditor = forwardRef<RichEditorHandle, RichEditorProps>(
         TableCell,
         createKodamaImageExtension({ slug, crypto, allowedAttachmentIds }),
         Placeholder.configure({
-          placeholder: "Start writing… Use # for headings, or the format bar.",
+          placeholder: "Start writing… Select text for formatting, or use # for headings.",
         }),
         Markdown.configure({
           html: false,

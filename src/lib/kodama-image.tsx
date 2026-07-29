@@ -5,7 +5,8 @@ import type { NodeViewProps } from "@tiptap/react";
 
 import { fetchAttachmentList } from "@/lib/attachment-list";
 import { decryptAttachmentBytes, attachmentContentType } from "@/lib/attachment-crypto";
-import type { PlaceCryptoSession } from "@/lib/crypto-context";import { downloadAttachmentBlob } from "@/lib/pages";
+import type { PlaceCryptoSession } from "@/lib/crypto-context";
+import { downloadAttachmentBlob } from "@/lib/pages";
 
 export const KODAMA_ATT_PREFIX = "kodama-att:";
 
@@ -105,6 +106,30 @@ export function createKodamaImageExtension(resolverContext: ResolverContext) {
         resolverContext,
         inline: false,
         allowBase64: false,
+      };
+    },
+    addStorage() {
+      return {
+        markdown: {
+          serialize(
+            state: {
+              write: (text: string) => void;
+              closeBlock: (node: unknown) => void;
+              esc: (text: string) => string;
+            },
+            node: { attrs: { alt?: string | null; src?: string | null; title?: string | null } },
+          ) {
+            const alt = state.esc(node.attrs.alt || "");
+            const src = (node.attrs.src || "").replace(/[()]/g, "\\$&");
+            const title = node.attrs.title
+              ? ` "${String(node.attrs.title).replace(/"/g, '\\"')}"`
+              : "";
+            state.write(`![${alt}](${src}${title})`);
+            // Block images must close so the next block (e.g. a table) starts on a new line.
+            state.closeBlock(node);
+          },
+          parse: {},
+        },
       };
     },
     addNodeView() {

@@ -1,5 +1,8 @@
 import { wrappingInputRule } from "@tiptap/core";
 import { BulletList, TaskItem, TaskList } from "@tiptap/extension-list";
+import taskListPlugin from "markdown-it-task-lists";
+
+import { splitMixedTaskListDOM } from "@/lib/split-mixed-task-list-dom";
 
 const TextStyleName = "textStyle";
 
@@ -48,4 +51,26 @@ export const KodamaBulletList = BulletList.extend({
   },
 });
 
-export { TaskList };
+/**
+ * Override tiptap-markdown's taskList DOM prep so mixed bullet/task lists
+ * (one `<ul class="contains-task-list">`) are split into valid TipTap nodes.
+ */
+export const KodamaTaskList = TaskList.extend({
+  addStorage() {
+    return {
+      markdown: {
+        parse: {
+          setup(markdownit: { use: (plugin: unknown) => void }) {
+            markdownit.use(taskListPlugin);
+          },
+          updateDOM(element: HTMLElement) {
+            splitMixedTaskListDOM(element);
+            for (const list of element.querySelectorAll(".contains-task-list")) {
+              list.setAttribute("data-type", "taskList");
+            }
+          },
+        },
+      },
+    };
+  },
+});

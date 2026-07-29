@@ -1295,13 +1295,6 @@ export function Editor({
             onDelete={(id) => void handleDeleteSheet(id)}
             onReorder={handleReorderSheets}
           />
-          {canEdit && !markdownView && !focus && (
-            <EditorFormatToolbar
-              editor={formatEditor}
-              onOpenLink={() => richEditorRef.current?.openLinkDialog()}
-              onInsertImage={(file) => void richEditorRef.current?.insertImageFromFile(file)}
-            />
-          )}
           <div
             data-editor-scroll="true"
             data-note-surface={noteSurfaceFilled ? "filled" : "default"}
@@ -1317,6 +1310,13 @@ export function Editor({
               />
             ) : null}
             <div className={markdownView ? "hidden" : undefined}>
+              {canEdit && !markdownView ? (
+                <EditorFormatToolbar
+                  editor={formatEditor}
+                  onOpenLink={() => richEditorRef.current?.openLinkDialog()}
+                  onInsertImage={(file) => void richEditorRef.current?.insertImageFromFile(file)}
+                />
+              ) : null}
               <RichEditor
                 key={activeSheetId}
                 ref={richEditorRef}

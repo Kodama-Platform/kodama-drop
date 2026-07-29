@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { Editor } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "tiptap-markdown";
-import { KodamaBulletList, KodamaTaskItem, TaskList } from "@/lib/kodama-task-list";
+import { KodamaBulletList, KodamaTaskItem, KodamaTaskList } from "@/lib/kodama-task-list";
 
 function createEditor(content: string) {
   return new Editor({
@@ -13,7 +13,7 @@ function createEditor(content: string) {
         bulletList: false,
       }),
       KodamaBulletList,
-      TaskList,
+      KodamaTaskList,
       KodamaTaskItem.configure({ nested: true }),
       Markdown.configure({ html: false, breaks: true }),
     ],

@@ -4,7 +4,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "tiptap-markdown";
 
 import { handleEditorTabKeydown, selectionInCodeBlock } from "@/lib/list-tab-extension";
-import { KodamaBulletList, KodamaTaskItem, TaskList } from "@/lib/kodama-task-list";
+import { KodamaBulletList, KodamaTaskItem, KodamaTaskList } from "@/lib/kodama-task-list";
 import { normalizeTaskListMarkdown } from "@/lib/normalize-task-markdown";
 function createEditor(content: string) {
   return new Editor({
@@ -16,7 +16,7 @@ function createEditor(content: string) {
         codeBlock: { enableTabIndentation: true, tabSize: 2 },
       }),
       KodamaBulletList,
-      TaskList,
+      KodamaTaskList,
       KodamaTaskItem.configure({ nested: true }),
       Markdown.configure({
         html: false,

@@ -677,9 +677,20 @@ html:not(.dark) .firefly {
 }
 
 .editor-format-toolbar {
-  flex-shrink: 0;
-  border-bottom: 1px solid rgb(var(--border) / 0.45);
-  background: transparent;
+  z-index: 40;
+  max-width: min(calc(100vw - 1.5rem), 42rem);
+  border: 1px solid rgb(var(--border) / 0.55);
+  border-radius: 0.85rem;
+  background: rgb(var(--card) / 0.96);
+  box-shadow:
+    0 10px 30px rgb(0 0 0 / 0.12),
+    0 0 0 1px rgb(var(--border) / 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.editor-format-toolbar--static {
+  position: relative;
+  margin: 0.5rem 0;
 }
 
 .editor-format-toolbar-scroll {
@@ -689,7 +700,7 @@ html:not(.dark) .firefly {
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
-  padding: 0.4rem 0.15rem 0.5rem;
+  padding: 0.35rem 0.4rem;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -1291,6 +1302,86 @@ html:not(.dark) .firefly {
 .tiptap li p,
 .ProseMirror li p {
   margin: 0;
+}
+
+.tiptap s,
+.tiptap del,
+.ProseMirror s,
+.ProseMirror del {
+  text-decoration: line-through;
+  text-decoration-color: rgb(var(--muted-foreground) / 0.7);
+}
+
+.tiptap mark,
+.ProseMirror mark {
+  background: rgb(250 204 21 / 0.42);
+  color: inherit;
+  border-radius: 0.2em;
+  padding: 0.05em 0.15em;
+  box-decoration-break: clone;
+}
+
+.dark .tiptap mark,
+.dark .ProseMirror mark {
+  background: rgb(250 204 21 / 0.28);
+}
+
+.tiptap u,
+.ProseMirror u {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.tiptap sub,
+.ProseMirror sub {
+  font-size: 0.75em;
+  vertical-align: sub;
+}
+
+.tiptap sup,
+.ProseMirror sup {
+  font-size: 0.75em;
+  vertical-align: super;
+}
+
+.tiptap [data-indent="1"],
+.ProseMirror [data-indent="1"] {
+  padding-left: 1.5em;
+}
+.tiptap [data-indent="2"],
+.ProseMirror [data-indent="2"] {
+  padding-left: 3em;
+}
+.tiptap [data-indent="3"],
+.ProseMirror [data-indent="3"] {
+  padding-left: 4.5em;
+}
+.tiptap [data-indent="4"],
+.ProseMirror [data-indent="4"] {
+  padding-left: 6em;
+}
+.tiptap [data-indent="5"],
+.ProseMirror [data-indent="5"] {
+  padding-left: 7.5em;
+}
+.tiptap [data-indent="6"],
+.ProseMirror [data-indent="6"] {
+  padding-left: 9em;
+}
+.tiptap [data-indent="7"],
+.ProseMirror [data-indent="7"] {
+  padding-left: 10.5em;
+}
+.tiptap [data-indent="8"],
+.ProseMirror [data-indent="8"] {
+  padding-left: 12em;
+}
+
+.tiptap hr,
+.ProseMirror hr {
+  border: none;
+  border-top: 1px solid rgb(var(--border) / 0.85);
+  margin: 1.25em 0;
 }
 
 .tiptap blockquote,
