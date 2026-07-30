@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const corePkg = resolve(root, "../kodama-security-protocol/packages/core");
+const corePkg = resolve(root, "../kodama-security-core/packages/core");
 const vendorDir = join(root, "supabase/functions/vendor/ksp-core");
 
 console.log("Building @kodama.page/ksp-core...");

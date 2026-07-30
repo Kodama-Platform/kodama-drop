@@ -9,7 +9,7 @@ import { devTlsOptions } from "./scripts/dev-tls";
 
 const tls = devTlsOptions();
 const repoRoot = path.dirname(fileURLToPath(import.meta.url));
-const kspRoot = path.resolve(repoRoot, "../kodama-security-protocol/packages");
+const kspRoot = path.resolve(repoRoot, "../kodama-security-core/packages");
 
 // Pure SPA build — outputs static assets to dist/ for AWS Amplify.
 export default defineConfig({

@@ -97,12 +97,6 @@ export function SheetTabBar({
   return (
     <>
       <div data-editor-tabs="true" className="note-sheet-tabs" role="tablist" aria-label="Workbook sheets">
-        {multi && (
-          <span className="note-sheet-tabs-label" aria-hidden="true">
-            Sheets
-          </span>
-        )}
-
         <div ref={scrollRef} className="note-sheet-tabs-scroll">
           {multi &&
             sorted.map((sheet) => {

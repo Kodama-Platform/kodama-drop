@@ -6,16 +6,18 @@ import {
   Check,
   CloudOff,
   Copy,
+  FileCode2,
   Flame,
+  Focus,
   Loader2,
-  Lock,
   Menu,
   Pencil,
+  Redo2,
   RotateCcw,
   Save,
   Search,
-  ShieldCheck,
   Timer,
+  Undo2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,29 +25,34 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { KodamaMark } from "@/components/kodama-mark";
 import { NoteShell } from "@/components/site/note-shell";
 import {
-  HEADER_INNER,
-  HEADER_OFFSET,
+  EDITOR_HEADER_INNER,
+  EDITOR_HEADER_OFFSET,
+  editorHeaderShellClass,
   headerLogoClass,
   headerLogoMarkClass,
   headerLogoTextClass,
-  headerShellClass,
-  useHeaderScrolled,
 } from "@/components/site/header-chrome";
-import { AttachmentsPanel } from "@/components/attachments-panel";
-import { EditorFormatToolbar } from "@/components/editor-format-toolbar";
+import { EditorEmptyState } from "@/components/editor-empty-state";
 import { EditorMobileMenu } from "@/components/editor-mobile-menu";
 import { EditorMoreMenu } from "@/components/editor-more-menu";
+import { EditorPageTitle } from "@/components/editor-page-title";
+import { EditorStatusBar } from "@/components/editor-status-bar";
+import { EditorTemplatesOverlay } from "@/components/editor-templates-overlay";
+import { EditorToolbar } from "@/components/editor-toolbar";
 import { FindReplace } from "@/components/find-replace";
+import { KeyboardShortcutsDialog } from "@/components/keyboard-shortcuts-dialog";
 import { MarkdownView } from "@/components/markdown-view";
 import { MigrateToKspBanner } from "@/components/migrate-to-ksp-banner";
-import { Outline } from "@/components/outline";
+import { Outline, OutlineDrawer, type OutlineDrawerPanel } from "@/components/outline";
 import { RichEditor, type RichEditorHandle } from "@/components/rich-editor";
 import type { Editor as TiptapEditor } from "@tiptap/react";
 import { DonateRibbon, useVisitCount } from "@/components/donate-ribbon";
-import { SheetTabBar } from "@/components/sheet-tab-bar";
+import { SheetNav } from "@/components/sheet-nav";
 import { UnsavedChangesDialog } from "@/components/unsaved-changes-dialog";
+import { useExportActions } from "@/components/export-menu";
+import { EDITOR_EVENTS, setEditorCommandContext } from "@/lib/editor-commands";
 import { useAutoLock } from "@/hooks/use-auto-lock";
-import { invalidateAttachmentList, prefetchAttachmentList } from "@/lib/attachment-list";
+import { invalidateAttachmentList } from "@/lib/attachment-list";
 import {
   autoLockLabel,
   autoLockMsFor,
@@ -59,6 +66,18 @@ import {
   kspSessionFromSecrets,
   type PlaceCryptoSession,
 } from "@/lib/crypto-context";
+import {
+  getEditorFontScale,
+  getEditorViewWidth,
+  getEditorZoom,
+  setEditorFontScale,
+  setEditorViewWidth,
+  setEditorZoom,
+  type EditorFontScale,
+  type EditorViewWidth,
+  type EditorZoom,
+} from "@/lib/editor-view-prefs";
+import { savePlaintextWorkbook } from "@/lib/plaintext-mode";
 import type { LockReason } from "@/lib/lock-session";
 import {
   getStoredNoteAppearance,
@@ -67,6 +86,7 @@ import {
   setStoredNoteAppearance,
   type NoteAppearance,
 } from "@/lib/note-appearance";
+import type { NoteTemplate } from "@/lib/note-templates";
 import { pageQueryKey } from "@/lib/page-query";
 import { getSaveMode, setSaveMode, type SaveMode } from "@/lib/save-mode";
 import { getStoredTheme, resolveTheme, watchSystemTheme } from "@/lib/theme";
@@ -75,7 +95,6 @@ import { setSheetHash } from "@/lib/hash-params";
 import { migrateLegacyPlaceToKsp } from "@/lib/ksp-place";
 import { deleteAttachment, savePage, updateExpiry, type BurnMode } from "@/lib/pages";
 import { flushActiveSheetMarkdown } from "@/lib/workbook-flush";
-import { getPlanTier } from "@/lib/plan-tier";
 import {
   buildEditorCapabilityExport,
   buildEditorShareUrl,
@@ -88,7 +107,6 @@ import { hasKspEditorSecrets, readKspSecrets, writeKspSecrets } from "@/lib/ksp-
 import { clearLegacyEditToken, readLegacyEditToken } from "@/lib/legacy-edit";
 import {
   addSheet,
-  addSheetAttachment,
   collectSheetAttachmentRefs,
   deleteSheet,
   getActiveSheetMarkdown,
@@ -146,15 +164,18 @@ export function Editor({
     setCryptoSession(crypto);
   }, [crypto]);
   const isKsp = cryptoSession.kind === "ksp";
+  const isPlaintext = cryptoSession.kind === "plaintext";
   const [migrateBannerDismissed, setMigrateBannerDismissed] = useState(false);
   const [migrateBusy, setMigrateBusy] = useState(false);
   const [migrateError, setMigrateError] = useState<string | null>(null);
   const canSave =
-    !isReader &&
-    canSignKspWorkbook(cryptoSession) &&
-    (isKsp ? hasKspEditorSecrets(slug) : !!legacyEditToken);
+    isPlaintext ||
+    (!isReader &&
+      canSignKspWorkbook(cryptoSession) &&
+      (isKsp ? hasKspEditorSecrets(slug) : !!legacyEditToken));
   const canEdit = canSave;
   const canChangeExpiry =
+    !isPlaintext &&
     !isReader &&
     (isKsp ? !!readKspSecrets(slug)?.ownerPrivateKey : !!legacyEditToken);
   const [saveMode, setSaveModeState] = useState<SaveMode>(() => getSaveMode());
@@ -179,7 +200,20 @@ export function Editor({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [outlineOpen, setOutlineOpen] = useState(false);
+  const [outlinePanel, setOutlinePanel] = useState<OutlineDrawerPanel>("outline");
+  const [outlineVisible, setOutlineVisible] = useState(true);
+  const [notesVisible, setNotesVisible] = useState(true);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [emptyDismissed, setEmptyDismissed] = useState(false);
+  const [activeHeading, setActiveHeading] = useState<string | null>(null);
   const [formatEditor, setFormatEditor] = useState<TiptapEditor | null>(null);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+  const [editorZoom, setEditorZoomState] = useState<EditorZoom>(() => getEditorZoom());
+  const [fontScale, setFontScaleState] = useState<EditorFontScale>(() => getEditorFontScale());
+  const [viewWidth, setViewWidthState] = useState<EditorViewWidth>(() => getEditorViewWidth());
   const [noteAppearance, setNoteAppearance] = useState<NoteAppearance>(() =>
     getStoredNoteAppearance(),
   );
@@ -224,10 +258,73 @@ export function Editor({
   const onEditorReady = useCallback((ed: TiptapEditor | null) => {
     setFormatEditor(ed);
   }, []);
+  useEffect(() => {
+    if (!formatEditor) {
+      setCanUndo(false);
+      setCanRedo(false);
+      return;
+    }
+    const syncHistory = () => {
+      setCanUndo(formatEditor.can().undo());
+      setCanRedo(formatEditor.can().redo());
+    };
+    syncHistory();
+    formatEditor.on("transaction", syncHistory);
+    return () => {
+      formatEditor.off("transaction", syncHistory);
+    };
+  }, [formatEditor]);
+  const handleUndo = useCallback(() => {
+    formatEditor?.chain().focus().undo().run();
+  }, [formatEditor]);
+  const handleRedo = useCallback(() => {
+    formatEditor?.chain().focus().redo().run();
+  }, [formatEditor]);
+  const changeZoom = useCallback((next: EditorZoom) => {
+    setEditorZoomState(next);
+    setEditorZoom(next);
+  }, []);
+  const changeFontScale = useCallback((next: EditorFontScale) => {
+    setFontScaleState(next);
+    setEditorFontScale(next);
+  }, []);
+  const changeViewWidth = useCallback((next: EditorViewWidth) => {
+    setViewWidthState(next);
+    setEditorViewWidth(next);
+  }, []);
+  const openNavigateDrawer = useCallback((panel: OutlineDrawerPanel) => {
+    setOutlinePanel(panel);
+    setOutlineOpen(true);
+  }, []);
+  const toggleOutlinePanel = useCallback(() => {
+    // Right rail is lg+; below that, toggle the navigate drawer.
+    if (typeof window !== "undefined" && !window.matchMedia("(min-width: 1024px)").matches) {
+      if (outlineOpen && outlinePanel === "outline") {
+        setOutlineOpen(false);
+      } else {
+        setOutlinePanel("outline");
+        setOutlineOpen(true);
+      }
+      return;
+    }
+    setOutlineVisible((v) => !v);
+  }, [outlineOpen, outlinePanel]);
+  const toggleNotesPanel = useCallback(() => {
+    // Left rail is md+; below that, toggle the navigate drawer.
+    if (typeof window !== "undefined" && !window.matchMedia("(min-width: 768px)").matches) {
+      if (outlineOpen && outlinePanel === "sheets") {
+        setOutlineOpen(false);
+      } else {
+        setOutlinePanel("sheets");
+        setOutlineOpen(true);
+      }
+      return;
+    }
+    setNotesVisible((v) => !v);
+  }, [outlineOpen, outlinePanel]);
   const editorSyncedRef = useRef(false);
   const workbookRef = useRef(workbook);
   workbookRef.current = workbook;
-  const planTier = useMemo(() => getPlanTier(), []);
   const activeSheet = useMemo(
     () => getSheetById(workbook, activeSheetId),
     [workbook, activeSheetId],
@@ -248,8 +345,6 @@ export function Editor({
     activeMarkdown.trim() ? activeMarkdown.trim().split(/\s+/).length : 0,
   );
   const visits = useVisitCount(slug);
-  const headerScrolled = useHeaderScrolled();
-  const needsAttachmentList = useMemo(() => workbookUsesAttachments(workbook), [workbook]);
   const [storedSecrets, setStoredSecrets] = useState(() => readKspSecrets(slug));
   const [readFromUrl, setReadFromUrl] = useState(() => getFragmentCapability("read"));
   const [editorFromUrl, setEditorFromUrl] = useState(() => getFragmentCapability("editor"));
@@ -318,12 +413,6 @@ export function Editor({
   }, []);
 
   useEffect(() => {
-    if (needsAttachmentList) {
-      prefetchAttachmentList(slug, queryClient);
-    }
-  }, [needsAttachmentList, queryClient, slug]);
-
-  useEffect(() => {
     editorSyncedRef.current = false;
   }, [activeSheetId]);
 
@@ -360,6 +449,7 @@ export function Editor({
         setViewMarkdown(getActiveSheetMarkdown(flushed, activeSheetId));
         setFocus(false);
         setFindOpen(false);
+        setFormatEditor(null);
         return true;
       }
       return false;
@@ -453,6 +543,12 @@ export function Editor({
         const generationAtSaveStart = editGenerationRef.current;
         setStatus("saving");
         try {
+          if (cryptoSession.kind === "plaintext") {
+            savePlaintextWorkbook(slug, plaintext);
+            markSaved(plaintext, payload, generationAtSaveStart);
+            setUpdatedAt(new Date().toISOString());
+            return true;
+          }
           const { ciphertext, iv, session } = await encryptPlaceWorkbookForSave(
             cryptoSession,
             plaintext,
@@ -570,6 +666,7 @@ export function Editor({
     setActiveSheetId(sheetId);
     writeLastOpenedSheet(slug, sheetId);
     setSheetHash(sheetId);
+    setViewMarkdown(getActiveSheetMarkdown(restored, sheetId));
     markClean();
     setStatus("idle");
   }, [markClean, slug]);
@@ -659,6 +756,38 @@ export function Editor({
     [activeSheetId, markDirty],
   );
 
+  const applyTemplate = useCallback(
+    (template: NoteTemplate) => {
+      if (!canEdit) return;
+      const current =
+        richEditorRef.current?.getMarkdown() ??
+        getActiveSheetMarkdown(workbookRef.current, activeSheetId);
+      const hasContent = current.trim().length > 0;
+      if (hasContent) {
+        const title =
+          workbookRef.current.sheets.find((s) => s.sheet_id === activeSheetId)?.title ?? "sheet";
+        const ok = window.confirm(
+          `Replace “${title}” with the ${template.label} template?`,
+        );
+        if (!ok) return;
+      }
+      richEditorRef.current?.setMarkdown(template.markdown);
+      handleMarkdownChange(template.markdown);
+      setEmptyDismissed(true);
+      toast.success(`${template.label} applied`);
+      queueMicrotask(() => richEditorRef.current?.focus());
+    },
+    [activeSheetId, canEdit, handleMarkdownChange],
+  );
+
+  const handleViewMarkdownChange = useCallback(
+    (markdown: string) => {
+      setViewMarkdown(markdown);
+      handleMarkdownChange(markdown);
+    },
+    [handleMarkdownChange],
+  );
+
   const handleEditorBaseline = useCallback(
     (markdown: string) => {
       try {
@@ -700,14 +829,6 @@ export function Editor({
       setWorkbook((prev) => renameSheet(prev, sheetId, title));
     },
     [markDirty],
-  );
-
-  const handleAttachmentAdded = useCallback(
-    (id: string) => {
-      markDirty();
-      setWorkbook((prev) => addSheetAttachment(prev, activeSheetId, id));
-    },
-    [activeSheetId, markDirty],
   );
 
   const handleDeleteSheet = useCallback(
@@ -763,8 +884,9 @@ export function Editor({
 
   useEffect(() => {
     if (!markdownView) return;
+    // Sync when switching sheets while in markdown mode; typing updates viewMarkdown directly.
     setViewMarkdown(getActiveSheetMarkdown(workbook, activeSheetId));
-  }, [activeSheetId, markdownView, workbook]);
+  }, [activeSheetId, markdownView]);
 
   // Debounced auto-save (auto mode only)
   useEffect(() => {
@@ -795,6 +917,29 @@ export function Editor({
     return () => window.removeEventListener("beforeunload", handler);
   }, [canSave, isDirty, status]);
 
+  const exportActions = useExportActions({
+    slug,
+    workbook,
+    activeSheetTitle:
+      workbook.sheets.find((s) => s.sheet_id === activeSheetId)?.title ?? "sheet",
+    getActiveText: () => richEditorRef.current?.getMarkdown() ?? activeMarkdown,
+  });
+  const exportMdRef = useRef(exportActions.items[0]?.onClick);
+  exportMdRef.current = exportActions.items[0]?.onClick;
+
+  useEffect(() => {
+    setEditorCommandContext({
+      sheets: getOrderedSheets(workbook).map((s) => ({
+        sheetId: s.sheet_id,
+        title: s.title,
+      })),
+      activeSheetId,
+      canSave,
+      canLock: !!onLock,
+      canEdit,
+    });
+  }, [workbook, activeSheetId, canSave, canEdit, onLock]);
+
   // Keyboard shortcuts + command palette events
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -818,8 +963,13 @@ export function Editor({
         e.preventDefault();
         const url = readerShareUrl ?? `${window.location.origin}/${slug}`;
         void copyToClipboard(url);
+      } else if (mod && k === "/") {
+        e.preventDefault();
+        setShortcutsOpen(true);
       } else if (k === "escape") {
         if (findOpen) setFindOpen(false);
+        else if (outlineOpen) setOutlineOpen(false);
+        else if (shortcutsOpen) setShortcutsOpen(false);
         else if (markdownView) setMarkdownView(false);
         else if (focus) setFocus(false);
       }
@@ -829,15 +979,76 @@ export function Editor({
       setMarkdownView(false);
     };
     const onMarkdownViewEvt = () => toggleMarkdownView();
+    const onFind = () => {
+      setFindMode("find");
+      setFindOpen(true);
+    };
+    const onFindReplace = () => {
+      setFindMode("replace");
+      setFindOpen(true);
+    };
+    const onSaveEvt = () => void save();
+    const onLockEvt = () => {
+      if (onLock) void handleLockNow("manual");
+    };
+    const onAppearanceEvt = () => {
+      setMobileMenuOpen(false);
+      setShareOpen(false);
+      setSaveModeOpen(false);
+      setMoreMenuOpen(true);
+    };
+    const onShortcutsEvt = () => setShortcutsOpen(true);
+    const onOutlineEvt = () => toggleOutlinePanel();
+    const onExportEvt = () => {
+      exportMdRef.current?.();
+    };
+    const onSwitchSheet = (e: Event) => {
+      const sheetId = (e as CustomEvent<{ sheetId?: string }>).detail?.sheetId;
+      if (sheetId) void switchSheet(sheetId);
+    };
+
     window.addEventListener("keydown", onKey);
-    window.addEventListener("kodama:toggle-focus", onFocusEvt);
-    window.addEventListener("kodama:toggle-markdown-view", onMarkdownViewEvt);
+    window.addEventListener(EDITOR_EVENTS.toggleFocus, onFocusEvt);
+    window.addEventListener(EDITOR_EVENTS.toggleMarkdownView, onMarkdownViewEvt);
+    window.addEventListener(EDITOR_EVENTS.find, onFind);
+    window.addEventListener(EDITOR_EVENTS.findReplace, onFindReplace);
+    window.addEventListener(EDITOR_EVENTS.save, onSaveEvt);
+    window.addEventListener(EDITOR_EVENTS.lock, onLockEvt);
+    window.addEventListener(EDITOR_EVENTS.appearance, onAppearanceEvt);
+    window.addEventListener(EDITOR_EVENTS.shortcuts, onShortcutsEvt);
+    window.addEventListener(EDITOR_EVENTS.outline, onOutlineEvt);
+    window.addEventListener(EDITOR_EVENTS.export, onExportEvt);
+    window.addEventListener(EDITOR_EVENTS.switchSheet, onSwitchSheet);
     return () => {
       window.removeEventListener("keydown", onKey);
-      window.removeEventListener("kodama:toggle-focus", onFocusEvt);
-      window.removeEventListener("kodama:toggle-markdown-view", onMarkdownViewEvt);
+      window.removeEventListener(EDITOR_EVENTS.toggleFocus, onFocusEvt);
+      window.removeEventListener(EDITOR_EVENTS.toggleMarkdownView, onMarkdownViewEvt);
+      window.removeEventListener(EDITOR_EVENTS.find, onFind);
+      window.removeEventListener(EDITOR_EVENTS.findReplace, onFindReplace);
+      window.removeEventListener(EDITOR_EVENTS.save, onSaveEvt);
+      window.removeEventListener(EDITOR_EVENTS.lock, onLockEvt);
+      window.removeEventListener(EDITOR_EVENTS.appearance, onAppearanceEvt);
+      window.removeEventListener(EDITOR_EVENTS.shortcuts, onShortcutsEvt);
+      window.removeEventListener(EDITOR_EVENTS.outline, onOutlineEvt);
+      window.removeEventListener(EDITOR_EVENTS.export, onExportEvt);
+      window.removeEventListener(EDITOR_EVENTS.switchSheet, onSwitchSheet);
     };
-  }, [copyToClipboard, findOpen, focus, markdownView, readerShareUrl, save, slug, toggleMarkdownView]);
+  }, [
+    copyToClipboard,
+    findOpen,
+    focus,
+    handleLockNow,
+    markdownView,
+    onLock,
+    outlineOpen,
+    readerShareUrl,
+    save,
+    shortcutsOpen,
+    slug,
+    switchSheet,
+    toggleMarkdownView,
+    toggleOutlinePanel,
+  ]);
 
   const charCount = activeMarkdown.length;
   const wordCount = useMemo(
@@ -848,9 +1059,22 @@ export function Editor({
   const readingMinutes = Math.max(1, Math.round(wordCount / 200));
 
 
+  const sheetIsEmpty = !activeMarkdown.trim();
+  const showEmptyStarters = canEdit && sheetIsEmpty && !focus && !markdownView && !emptyDismissed;
+
+  useEffect(() => {
+    setEmptyDismissed(false);
+    setActiveHeading(null);
+  }, [activeSheetId]);
+
   return (
-    <NoteShell showHeader={false} footer={false} fillViewport className={focus ? "focus-mode" : ""}>
-      <div className={`flex h-full min-h-0 flex-col overflow-hidden ${HEADER_OFFSET}`}>
+    <NoteShell
+      showHeader={false}
+      footer={false}
+      fillViewport
+      className={`editor-app${focus ? " focus-mode" : ""}`}
+    >
+      <div className={`flex h-full min-h-0 flex-col overflow-hidden ${EDITOR_HEADER_OFFSET}`}>
       {isReader && (
         <div
           className="border-b border-border/60 bg-muted/30 px-4 py-2 text-center text-xs font-light text-muted-foreground"
@@ -859,15 +1083,8 @@ export function Editor({
           Read-only — unlock with the place password on this device to edit or share.
         </div>
       )}
-      <header
-        data-editor-chrome="true"
-        className={headerShellClass(
-          headerScrolled,
-          mobileMenuOpen || moreMenuOpen || saveModeOpen || shareOpen,
-        )}
-      >
-
-        <div className={HEADER_INNER}>
+      <header data-editor-chrome="true" className={editorHeaderShellClass()}>
+        <div className={EDITOR_HEADER_INNER}>
           <Link
             to="/"
             onClick={(e) => {
@@ -884,8 +1101,32 @@ export function Editor({
             </span>
           </Link>
 
-          {/* Mobile: status + quick save + menu */}
+          {/* Mobile: undo/redo + status + quick save + menu */}
           <div className="flex shrink-0 items-center gap-1 md:hidden">
+            {canEdit && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleUndo}
+                  disabled={!canUndo}
+                  className="note-toolbar-btn !h-9 !w-9 !px-0 disabled:opacity-35"
+                  aria-label="Undo"
+                  title="Undo"
+                >
+                  <Undo2 className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRedo}
+                  disabled={!canRedo}
+                  className="note-toolbar-btn !h-9 !w-9 !px-0 disabled:opacity-35"
+                  aria-label="Redo"
+                  title="Redo"
+                >
+                  <Redo2 className="h-4 w-4" />
+                </button>
+              </>
+            )}
             {canSave && saveMode === "manual" && isDirty && (
               <button
                 type="button"
@@ -899,6 +1140,7 @@ export function Editor({
               </button>
             )}
             {canSave && <StatusPill status={status} isDirty={isDirty} compact />}
+            <ThemeToggle lightDarkOnly className="!h-9 !w-9" />
             <button
               type="button"
               onClick={() => {
@@ -915,8 +1157,32 @@ export function Editor({
             </button>
           </div>
 
-          {/* Desktop toolbar — status, share, find, lock, more */}
+          {/* Desktop toolbar — undo/redo, status, share, find, more */}
           <div className="hidden items-center gap-1.5 md:flex">
+            {canEdit && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleUndo}
+                  disabled={!canUndo}
+                  className="note-toolbar-btn !h-8 !w-8 !px-0 disabled:opacity-35"
+                  title="Undo (⌘Z)"
+                  aria-label="Undo"
+                >
+                  <Undo2 className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRedo}
+                  disabled={!canRedo}
+                  className="note-toolbar-btn !h-8 !w-8 !px-0 disabled:opacity-35"
+                  title="Redo (⌘⇧Z)"
+                  aria-label="Redo"
+                >
+                  <Redo2 className="h-3.5 w-3.5" />
+                </button>
+              </>
+            )}
             {canSave && (
               <>
                 {saveMode === "manual" && isDirty && (
@@ -924,11 +1190,11 @@ export function Editor({
                     type="button"
                     onClick={() => void save()}
                     disabled={status === "saving"}
-                    className="note-toolbar-btn !text-primary disabled:opacity-50"
+                    className="note-toolbar-btn !h-8 !w-8 !px-0 !text-primary disabled:opacity-50"
                     title="Save workbook (⌘S)"
+                    aria-label="Save"
                   >
                     <Save className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Save</span>
                   </button>
                 )}
                 <div className="relative">
@@ -1023,6 +1289,7 @@ export function Editor({
             {burnMode !== "never" && (
               <ExpiryPill burnMode={burnMode} expiresAt={expiresAt} />
             )}
+            {!isPlaintext && (
             <div className="relative">
               <button
                 type="button"
@@ -1031,13 +1298,13 @@ export function Editor({
                   setMoreMenuOpen(false);
                   setShareOpen((v) => !v);
                 }}
-                className="note-toolbar-btn"
+                className="note-toolbar-btn !h-8 !w-8 !px-0"
                 aria-haspopup="menu"
                 aria-expanded={shareOpen}
                 title="Share"
+                aria-label="Share"
               >
                 <Copy className="h-3.5 w-3.5" />
-                <span className="hidden lg:inline">Share</span>
               </button>
               {shareOpen && (
                 <>
@@ -1132,29 +1399,44 @@ export function Editor({
                 </>
               )}
             </div>
+            )}
             <button
+              type="button"
               onClick={() => {
                 setFindMode("find");
                 setFindOpen((v) => !v);
               }}
-              className="note-toolbar-btn"
+              className="note-toolbar-btn !h-8 !w-8 !px-0"
               aria-pressed={findOpen}
               title="Find & Replace (⌘F)"
+              aria-label="Find"
             >
               <Search className="h-3.5 w-3.5" />
-              <span className="hidden lg:inline">Find</span>
             </button>
-            {onLock && (
-              <button
-                type="button"
-                onClick={() => void handleLockNow("manual")}
-                className="note-toolbar-btn"
-                title="Lock now"
-              >
-                <Lock className="h-3.5 w-3.5" />
-                <span className="hidden lg:inline">Lock</span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => {
+                setFocus((v) => !v);
+                setMarkdownView(false);
+              }}
+              className="note-toolbar-btn !h-8 !w-8 !px-0"
+              aria-pressed={focus}
+              title="Focus mode"
+              aria-label="Focus mode"
+            >
+              <Focus className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={toggleMarkdownView}
+              className="note-toolbar-btn !h-8 !w-8 !px-0"
+              aria-pressed={markdownView}
+              title="Markdown view (⌘⇧M)"
+              aria-label="Markdown view"
+            >
+              <FileCode2 className="h-3.5 w-3.5" />
+            </button>
+            <ThemeToggle lightDarkOnly className="!h-8 !w-8" />
             <EditorMoreMenu
               canEdit={canEdit}
               canChangeExpiry={canChangeExpiry}
@@ -1176,6 +1458,7 @@ export function Editor({
                 setMarkdownView(false);
               }}
               onToggleMarkdownView={toggleMarkdownView}
+              onOpenShortcuts={() => setShortcutsOpen(true)}
               onChangeExpiry={changeExpiry}
               onChangeAutoLockDuration={changeAutoLockDuration}
               onChangeSaveMode={changeSaveMode}
@@ -1185,7 +1468,6 @@ export function Editor({
               onLockNow={onLock ? () => void handleLockNow("manual") : undefined}
               onOpenChange={setMoreMenuOpen}
             />
-            <ThemeToggle />
           </div>
         </div>
 
@@ -1211,6 +1493,7 @@ export function Editor({
           readerShareUrl={readerShareUrl}
           editorShareUrl={editorShareUrl}
           editorCapabilityExport={editorCapabilityExport}
+          shareEnabled={!isPlaintext}
           onCopyShare={(text, label) => void copyToClipboard(text, label)}
           onSave={() => void save()}
           onReload={handleReload}
@@ -1221,6 +1504,8 @@ export function Editor({
             setFindMode("find");
             setFindOpen((v) => !v);
           }}
+          onOpenOutline={() => openNavigateDrawer("sheets")}
+          onOpenShortcuts={() => setShortcutsOpen(true)}
           onToggleFocus={() => {
             setFocus((v) => !v);
             setMarkdownView(false);
@@ -1276,114 +1561,173 @@ export function Editor({
         )}
       </header>
 
-      <main className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 overflow-hidden px-4 py-4 sm:px-6 sm:py-6 lg:px-10">
-        {!focus && !markdownView && (
-          <Outline
-            text={activeMarkdown}
-            onJumpToHeading={(heading) => richEditorRef.current?.scrollToHeading(heading)}
-          />
-        )}
-        <div className="mx-auto flex min-h-0 w-full max-w-[800px] flex-1 flex-col">
-          <SheetTabBar
-            sheets={workbook.sheets}
-            activeSheetId={activeSheetId}
-            canEdit={canEdit}
-            switching={false}
-            onSelect={(id) => switchSheet(id)}
-            onAdd={handleAddSheet}
-            onRename={handleRenameSheet}
-            onDelete={(id) => void handleDeleteSheet(id)}
-            onReorder={handleReorderSheets}
-          />
-          <div
-            data-editor-scroll="true"
-            data-note-surface={noteSurfaceFilled ? "filled" : "default"}
-            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1"
-            style={noteSurfaceStyle as CSSProperties}
-          >
-            {markdownView ? (
-              <MarkdownView
-                markdown={viewMarkdown}
-                sheetTitle={
-                  workbook.sheets.find((s) => s.sheet_id === activeSheetId)?.title ?? "sheet"
-                }
-              />
-            ) : null}
-            <div className={markdownView ? "hidden" : undefined}>
-              {canEdit && !markdownView ? (
-                <EditorFormatToolbar
-                  editor={formatEditor}
-                  onOpenLink={() => richEditorRef.current?.openLinkDialog()}
-                  onInsertImage={(file) => void richEditorRef.current?.insertImageFromFile(file)}
-                />
-              ) : null}
-              <RichEditor
-                key={activeSheetId}
-                ref={richEditorRef}
-                initialContent={activeMarkdown}
-                onMarkdownChange={handleMarkdownChange}
-                onBaseline={handleEditorBaseline}
-                slug={slug}
-                crypto={cryptoSession}
-                canEdit={canEdit}
-                canUpload={canSave}
-                allowedAttachmentIds={activeAttachmentIds}
-                planTier={planTier}
-                sheetAttachmentCount={activeAttachmentIds.size}
-                onAttachmentAdded={handleAttachmentAdded}
-                focusMode={focus}
-                onEditorReady={onEditorReady}
-              />
+      {focus && (
+        <button
+          type="button"
+          data-editor-exit-focus="true"
+          onClick={() => setFocus(false)}
+        >
+          Exit focus
+        </button>
+      )}
 
-              {!focus && (
-                <div className="mt-8" data-editor-attachments="true">
-                  <AttachmentsPanel
-                    slug={slug}
-                    crypto={cryptoSession}
-                    canUpload={canSave}
-                    sheetMarkdown={activeMarkdown}
-                    sheetAttachmentIds={activeAttachmentIds}
-                    planTier={planTier}
-                    onAttachmentAdded={handleAttachmentAdded}
+      <main
+        data-editor-board="true"
+        data-editor-focus={focus ? "true" : undefined}
+        className="flex min-h-0 w-full flex-1 overflow-hidden"
+      >
+        {!focus && !markdownView && notesVisible && (
+          <aside
+            data-editor-left-rail="true"
+            className="hidden h-full min-h-0 w-44 shrink-0 flex-col self-stretch overflow-y-auto px-3 py-4 md:flex lg:w-48 lg:px-3.5"
+          >
+            <SheetNav
+              sheets={workbook.sheets}
+              activeSheetId={activeSheetId}
+              activeMarkdown={activeMarkdown}
+              canEdit={canEdit}
+              onSelect={(id) => void switchSheet(id)}
+              onAdd={handleAddSheet}
+              onRename={handleRenameSheet}
+              onDelete={(id) => void handleDeleteSheet(id)}
+              onReorder={handleReorderSheets}
+            />
+          </aside>
+        )}
+        <div
+          data-editor-stage="true"
+          className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden"
+        >
+          <div
+            data-editor-page-stack="true"
+            data-editor-view-width={viewWidth}
+            className={focus ? "editor-page-stack editor-page-stack--focus" : "editor-page-stack"}
+          >
+            <div data-editor-page-card="true">
+              {canEdit && !markdownView && !focus ? (
+                <div data-editor-toolbar-dock="true">
+                  <EditorToolbar
+                    editor={formatEditor}
+                    onOpenLink={() => richEditorRef.current?.openLinkDialog()}
                   />
                 </div>
-              )}
+              ) : null}
+              <div
+                data-editor-zoom-surface="true"
+                data-editor-font-surface="true"
+                data-editor-zoom={String(editorZoom)}
+                style={
+                  {
+                    "--editor-zoom": editorZoom,
+                    "--editor-font-scale": fontScale / 100,
+                  } as CSSProperties
+                }
+              >
+                {!focus && (
+                  <div data-editor-page-title-wrap="true">
+                    <EditorPageTitle
+                      title={
+                        workbook.sheets.find((s) => s.sheet_id === activeSheetId)?.title ?? "sheet"
+                      }
+                      canEdit={canEdit}
+                      onRename={(next) => handleRenameSheet(activeSheetId, next)}
+                    />
+                  </div>
+                )}
+                <div
+                  data-editor-scroll="true"
+                  data-note-surface={noteSurfaceFilled ? "filled" : "default"}
+                  className="overflow-x-hidden"
+                  style={noteSurfaceStyle as CSSProperties}
+                >
+                  {markdownView ? (
+                    <MarkdownView
+                      markdown={viewMarkdown}
+                      sheetTitle={
+                        workbook.sheets.find((s) => s.sheet_id === activeSheetId)?.title ?? "sheet"
+                      }
+                      canEdit={canEdit}
+                      onChange={canEdit ? handleViewMarkdownChange : undefined}
+                    />
+                  ) : (
+                    <>
+                      {showEmptyStarters && (
+                        <EditorEmptyState
+                          onSelect={applyTemplate}
+                          onStartBlank={() => {
+                            setEmptyDismissed(true);
+                            queueMicrotask(() => richEditorRef.current?.focus());
+                          }}
+                        />
+                      )}
+                      <div className={showEmptyStarters ? "sr-only" : undefined}>
+                        <RichEditor
+                          key={activeSheetId}
+                          ref={richEditorRef}
+                          initialContent={activeMarkdown}
+                          onMarkdownChange={handleMarkdownChange}
+                          onBaseline={handleEditorBaseline}
+                          slug={slug}
+                          crypto={cryptoSession}
+                          canEdit={canEdit}
+                          allowedAttachmentIds={activeAttachmentIds}
+                          focusMode={focus}
+                          onEditorReady={onEditorReady}
+                          onActiveHeadingChange={setActiveHeading}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
+        {!focus && !markdownView && outlineVisible && (
+          <aside
+            data-editor-right-rail="true"
+            className="hidden h-full min-h-0 w-48 shrink-0 self-stretch overflow-y-auto px-3 py-4 lg:block lg:w-52 lg:px-3.5"
+          >
+            <Outline
+              embedded
+              text={activeMarkdown}
+              activeHeading={activeHeading}
+              onJumpToHeading={(heading) => richEditorRef.current?.scrollToHeading(heading)}
+            />
+          </aside>
+        )}
       </main>
 
 
-      <footer
-        data-editor-chrome="true"
-        className="shrink-0 border-t border-border/70 bg-background/85 backdrop-blur-md"
-      >
-        <div className={`${HEADER_INNER} py-2 font-mono text-[11px] font-light uppercase tracking-[0.14em] text-muted-foreground`}>
-          <div className="flex items-center gap-3">
-            <span>{wordCount.toLocaleString()} words</span>
-            <span className="hidden sm:inline">·</span>
-            <span className="hidden sm:inline">{readingMinutes} min read</span>
-            {canSave && sessionWords > 0 && (
-              <>
-                <span className="hidden sm:inline">·</span>
-                <span className="hidden text-primary sm:inline">
-                  +{sessionWords.toLocaleString()} this session
-                </span>
-              </>
-            )}
-            <span className="hidden md:inline">·</span>
-            <span className="hidden md:inline">{charCount.toLocaleString()} chars</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="hidden sm:inline">
-              Updated <RelTime iso={updatedAt} />
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <ShieldCheck className="h-3 w-3 text-primary" /> End-to-end encrypted
-            </span>
-          </div>
-        </div>
-      </footer>
+      <EditorStatusBar
+        zoom={editorZoom}
+        fontScale={fontScale}
+        viewWidth={viewWidth}
+        wordCount={wordCount}
+        readingMinutes={readingMinutes}
+        charCount={charCount}
+        sessionWords={sessionWords}
+        updatedAt={updatedAt}
+        canSave={canSave}
+        isPlaintext={isPlaintext}
+        canEdit={canEdit}
+        onZoomChange={changeZoom}
+        onFontScaleChange={changeFontScale}
+        onViewWidthChange={changeViewWidth}
+        outlineVisible={
+          outlineVisible || (outlineOpen && outlinePanel === "outline")
+        }
+        notesVisible={notesVisible || (outlineOpen && outlinePanel === "sheets")}
+        onToggleOutline={toggleOutlinePanel}
+        onToggleNotes={toggleNotesPanel}
+        onOpenTemplates={() => setTemplatesOpen(true)}
+      />
+
+      <EditorTemplatesOverlay
+        open={templatesOpen}
+        onClose={() => setTemplatesOpen(false)}
+        onSelect={applyTemplate}
+      />
 
       {findOpen && (
         <FindReplace
@@ -1393,6 +1737,28 @@ export function Editor({
           initialMode={findMode}
         />
       )}
+
+      <OutlineDrawer
+        open={outlineOpen}
+        onClose={() => setOutlineOpen(false)}
+        text={activeMarkdown}
+        activeHeading={activeHeading}
+        initialPanel={outlinePanel}
+        onJumpToHeading={(heading) => richEditorRef.current?.scrollToHeading(heading)}
+        sheets={{
+          sheets: workbook.sheets,
+          activeSheetId,
+          activeMarkdown,
+          canEdit,
+          onSelect: (id) => void switchSheet(id),
+          onAdd: handleAddSheet,
+          onRename: handleRenameSheet,
+          onDelete: (id) => void handleDeleteSheet(id),
+          onReorder: handleReorderSheets,
+        }}
+      />
+
+      <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
 
       <DonateRibbon sessionWords={sessionWords} visits={visits} />
 
@@ -1444,41 +1810,26 @@ function StatusPill({
     error: { label: "Save failed", icon: <CloudOff className="h-3 w-3" />, cls: "bg-destructive/15 text-destructive" },
   };
   const v = map[displayStatus];
+  const title = `${v.label} · End-to-end encrypted`;
   if (compact) {
     return (
       <span
         className={`inline-flex h-9 w-9 items-center justify-center rounded-full ${v.cls}`}
-        title={v.label}
-        aria-label={v.label}
+        title={title}
+        aria-label={title}
       >
         {v.icon}
       </span>
     );
   }
   return (
-    <span className={`inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] ${v.cls}`}>
+    <span
+      className={`inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] ${v.cls}`}
+      title={title}
+    >
       {v.icon} {v.label}
     </span>
   );
-}
-
-function RelTime({ iso }: { iso: string }) {
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setTick((n) => n + 1), 15_000);
-    return () => clearInterval(id);
-  }, []);
-  const label = useMemo(() => {
-    const d = new Date(iso).getTime();
-    if (Number.isNaN(d)) return "";
-    const diff = (Date.now() - d) / 1000;
-    if (diff < 5) return "just now";
-    if (diff < 60) return `${Math.floor(diff)}s ago`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return new Date(iso).toLocaleDateString();
-  }, [iso]);
-  return <span>{label}</span>;
 }
 
 function formatRemaining(ms: number): string {

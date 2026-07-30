@@ -13,10 +13,15 @@ import {
 } from "@/components/encryption-progress";
 import { slugSchema } from "@/lib/slug";
 import { getSheetIdFromHash, migrateCodeToHash, readUnlockCode, stripCodeFromUrl, stripSensitiveHashParams } from "@/lib/hash-params";
-import { kspSessionFromSecrets, type PlaceCryptoSession } from "@/lib/crypto-context";
+import {
+  createPlaintextSession,
+  kspSessionFromSecrets,
+  type PlaceCryptoSession,
+} from "@/lib/crypto-context";
 import { clearDecryptedSession, type LockReason } from "@/lib/lock-session";
 import { BURN_MODES, createPage, getPage, type BurnMode, type GetPageResult } from "@/lib/pages";
 import { pageQueryKey, type ExistingPage } from "@/lib/page-query";
+import { isPlaintextMode, loadPlaintextWorkbook } from "@/lib/plaintext-mode";
 import { resolveUnlockCapability, type UnlockCapability } from "@/lib/unlock-capability";
 import { editorSecretsFromFragment, getFragmentCapability, parseEditorCapabilityImport } from "@/lib/ksp-fragment";
 import { createKspWorkbookPlace, isKspPlaceMeta } from "@/lib/ksp-place";
@@ -157,7 +162,39 @@ async function resolveExistingPage(
   return result;
 }
 
+function PlaintextEditorGate({ slug }: { slug: string }) {
+  const session = useMemo<UnlockedSession>(
+    () => ({
+      crypto: createPlaintextSession(),
+      plaintext: loadPlaintextWorkbook(slug),
+      updatedAt: new Date().toISOString(),
+      capability: "editor",
+    }),
+    [slug],
+  );
+
+  return (
+    <UnlockedEditor
+      slug={slug}
+      session={session}
+      burnMode="never"
+      expiresAt={null}
+      onLock={() => {
+        // Soft lock: reload chrome without wiping localStorage notes.
+        window.location.assign(`/${slug}`);
+      }}
+    />
+  );
+}
+
 function PageGate({ slug }: { slug: string }) {
+  if (isPlaintextMode()) {
+    return <PlaintextEditorGate slug={slug} />;
+  }
+  return <EncryptedPageGate slug={slug} />;
+}
+
+function EncryptedPageGate({ slug }: { slug: string }) {
   const { code: searchCode } = Route.useSearch();
   const codePassword = readUnlockCode(searchCode);
   const queryClient = useQueryClient();
@@ -167,6 +204,7 @@ function PageGate({ slug }: { slug: string }) {
     migrateCodeToHash(searchCode);
     importEditorFragment(slug);
   }, [searchCode, slug]);
+
   const q = useQuery({
     queryKey: pageQueryKey(slug),
     queryFn: () => getPage(slug),

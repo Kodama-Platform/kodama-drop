@@ -27,7 +27,15 @@ export type PlaceCryptoSession =
       version: number;
       productType: string;
       storageMode: "legacy" | "bundle";
+    }
+  | {
+      /** Dev / UI-polish session — no encryption; workbook saved to localStorage. */
+      kind: "plaintext";
     };
+
+export function createPlaintextSession(): PlaceCryptoSession {
+  return { kind: "plaintext" };
+}
 
 export function kspSessionFromSecrets(args: {
   slug: string;
@@ -51,6 +59,9 @@ export async function encryptPlaceWorkbookForSave(
   session: PlaceCryptoSession,
   plaintext: string,
 ): Promise<{ ciphertext: string; iv: string; session: PlaceCryptoSession }> {
+  if (session.kind === "plaintext") {
+    throw new Error("Plaintext mode does not encrypt — save via localStorage");
+  }
   if (session.kind === "legacy") {
     const { ciphertext, iv } = await encrypt(session.cryptoKey, plaintext);
     return { ciphertext, iv, session };
@@ -101,6 +112,9 @@ export async function encryptPlaceText(
   session: PlaceCryptoSession,
   plaintext: string,
 ): Promise<{ ciphertext: string; iv: string }> {
+  if (session.kind === "plaintext") {
+    throw new Error("Plaintext mode does not encrypt");
+  }
   if (session.kind === "legacy") return encrypt(session.cryptoKey, plaintext);
   return encryptKspText({
     slug: session.slug,
@@ -116,6 +130,9 @@ export async function decryptPlaceText(
   ciphertext: string,
   iv: string,
 ): Promise<string> {
+  if (session.kind === "plaintext") {
+    throw new Error("Plaintext mode does not decrypt");
+  }
   if (session.kind === "legacy") return decrypt(session.cryptoKey, ciphertext, iv);
   return decryptKspText({
     slug: session.slug,
@@ -131,6 +148,9 @@ export async function encryptPlaceBytes(
   session: PlaceCryptoSession,
   bytes: Uint8Array,
 ): Promise<{ ciphertext: Uint8Array; iv: string }> {
+  if (session.kind === "plaintext") {
+    throw new Error("Plaintext mode does not encrypt attachments");
+  }
   if (session.kind === "legacy") return encryptBytes(session.cryptoKey, bytes);
   return encryptKspBytes({
     slug: session.slug,
@@ -146,6 +166,9 @@ export async function decryptPlaceBytes(
   ciphertext: Uint8Array,
   iv: string,
 ): Promise<Uint8Array> {
+  if (session.kind === "plaintext") {
+    throw new Error("Plaintext mode does not decrypt attachments");
+  }
   if (session.kind === "legacy") return decryptBytes(session.cryptoKey, ciphertext, iv);
   return decryptKspBytes({
     slug: session.slug,
@@ -158,6 +181,7 @@ export async function decryptPlaceBytes(
 }
 
 export function canSignKspWorkbook(session: PlaceCryptoSession): boolean {
+  if (session.kind === "plaintext") return true;
   if (session.kind !== "ksp") return true;
   if (session.storageMode !== "bundle") return true;
   return !!session.secrets.editorPrivateKey;

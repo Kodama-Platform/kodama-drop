@@ -14,17 +14,10 @@ import Typography from "@tiptap/extension-typography";
 import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
 import type { Editor } from "@tiptap/react";
 import { Markdown } from "tiptap-markdown";
-import { toast } from "sonner";
 
 import { createKodamaImageExtension, revokeKodamaBlobCache } from "@/lib/kodama-image";
 import type { PlaceCryptoSession } from "@/lib/crypto-context";
-import { uploadEncryptedAttachment } from "@/lib/attachment-upload";
 import { handleEditorTabKeydown, ListTabExtension } from "@/lib/list-tab-extension";
-import {
-  formatAttachmentLimit,
-  maxAttachmentsPerSheet,
-  type PlanTier,
-} from "@/lib/plan-tier";
 import {
   KodamaBulletList,
   KodamaTaskItem,
@@ -75,7 +68,6 @@ export type RichEditorHandle = {
   replaceMatchAt: (query: string, replacement: string, matchIndex: number) => boolean;
   replaceAllMatches: (query: string, replacement: string) => void;
   scrollToHeading: (text: string) => void;
-  insertImageFromFile: (file: File) => Promise<void>;
 };
 
 type RichEditorProps = {
@@ -86,14 +78,13 @@ type RichEditorProps = {
   slug: string;
   crypto: PlaceCryptoSession;
   canEdit?: boolean;
-  canUpload?: boolean;
+  /** Existing image attachments may still render; upload is disabled for now. */
   allowedAttachmentIds?: ReadonlySet<string>;
-  planTier?: PlanTier;
-  sheetAttachmentCount?: number;
-  onAttachmentAdded?: (id: string) => void;
   autoFocus?: boolean;
   focusMode?: boolean;
   onEditorReady?: (editor: Editor | null) => void;
+  /** Current heading under the caret / near viewport top (for outline highlight). */
+  onActiveHeadingChange?: (heading: string | null) => void;
 };
 
 
@@ -142,19 +133,15 @@ export const RichEditor = forwardRef<RichEditorHandle, RichEditorProps>(
       slug,
       crypto,
       canEdit: canEditProp,
-      canUpload: canUploadProp,
       allowedAttachmentIds,
-      planTier = "free",
-      sheetAttachmentCount = 0,
-      onAttachmentAdded,
       autoFocus = true,
       focusMode = false,
       onEditorReady,
+      onActiveHeadingChange,
     },
     ref,
   ) {
     const canEdit = canEditProp ?? false;
-    const canUpload = canUploadProp ?? canEdit;
     const lastEmitted = useRef(initialContent);
     const skipUpdate = useRef(false);
     const baselineSet = useRef(false);
@@ -229,34 +216,6 @@ export const RichEditor = forwardRef<RichEditorHandle, RichEditorProps>(
       setLinkWarning(null);
     }, [linkWarning]);
 
-    async function insertImage(file: File) {
-      const ed = editorRef.current;
-      if (!ed || !canUpload) {
-        toast.error("Editor capability required to insert images");
-        return;
-      }
-      const limit = maxAttachmentsPerSheet(planTier);
-      if (limit !== null && sheetAttachmentCount >= limit) {
-        toast.error(
-          limit === 1
-            ? "Free plan allows 1 attachment per sheet"
-            : `Maximum ${formatAttachmentLimit(planTier)} attachments per sheet on your plan`,
-        );
-        return;
-      }
-      try {
-        const { id, url } = await uploadEncryptedAttachment({
-          file,
-          slug,
-          crypto,
-        });
-        onAttachmentAdded?.(id);
-        ed.chain().focus().setImage({ src: url, alt: file.name }).run();
-      } catch (e) {
-        toast.error((e as Error).message);
-      }
-    }
-
     const editor = useEditor({
       extensions: [
         StarterKit.configure({
@@ -295,7 +254,7 @@ export const RichEditor = forwardRef<RichEditorHandle, RichEditorProps>(
         TableCell,
         createKodamaImageExtension({ slug, crypto, allowedAttachmentIds }),
         Placeholder.configure({
-          placeholder: "Start writing… Select text for formatting, or use # for headings.",
+          placeholder: "Start writing… Select text to format, # for headings, Cmd/Ctrl+K for commands.",
         }),
         Markdown.configure({
           html: false,
@@ -314,36 +273,12 @@ export const RichEditor = forwardRef<RichEditorHandle, RichEditorProps>(
           "data-editor-surface": "true",
           spellcheck: "true",
         },
-        handlePaste(view, event) {
-          const items = event.clipboardData?.items;
-          if (items && canEdit) {
-            for (const item of items) {
-              if (item.type.startsWith("image/")) {
-                const file = item.getAsFile();
-                if (file) {
-                  event.preventDefault();
-                  void insertImage(file);
-                  return true;
-                }
-              }
-            }
-          }
-
+        handlePaste(_view, event) {
           const text = event.clipboardData?.getData("text/plain");
           const ed = editorRef.current;
           if (text?.trim() && ed?.storage.markdown?.parser && shouldParsePasteAsMarkdown(text)) {
             event.preventDefault();
             pasteMarkdownText(ed, text);
-            return true;
-          }
-          return false;
-        },
-        handleDrop(view, event) {
-          if (!canEdit) return false;
-          const file = event.dataTransfer?.files?.[0];
-          if (file?.type.startsWith("image/")) {
-            event.preventDefault();
-            void insertImage(file);
             return true;
           }
           return false;
@@ -449,22 +384,36 @@ export const RichEditor = forwardRef<RichEditorHandle, RichEditorProps>(
     }, [focusMode]);
 
     useEffect(() => {
-      const onImageShortcut = (e: KeyboardEvent) => {
-        const mod = e.metaKey || e.ctrlKey;
-        if (!mod || !e.shiftKey || e.key.toLowerCase() !== "i") return;
-        e.preventDefault();
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = "image/*";
-        input.onchange = () => {
-          const file = input.files?.[0];
-          if (file) void insertImage(file);
-        };
-        input.click();
+      if (!editor || !onActiveHeadingChange) return;
+
+      const emitActiveHeading = () => {
+        const { $from } = editor.state.selection;
+        for (let depth = $from.depth; depth > 0; depth -= 1) {
+          const node = $from.node(depth);
+          if (node.type.name === "heading") {
+            onActiveHeadingChange(node.textContent || null);
+            return;
+          }
+        }
+
+        // Nearest preceding heading in the document when caret is in body text.
+        let found: string | null = null;
+        const caret = $from.pos;
+        editor.state.doc.descendants((node, pos) => {
+          if (pos >= caret) return false;
+          if (node.type.name === "heading") found = node.textContent || null;
+        });
+        onActiveHeadingChange(found);
       };
-      window.addEventListener("keydown", onImageShortcut);
-      return () => window.removeEventListener("keydown", onImageShortcut);
-    }, []);
+
+      emitActiveHeading();
+      editor.on("selectionUpdate", emitActiveHeading);
+      editor.on("transaction", emitActiveHeading);
+      return () => {
+        editor.off("selectionUpdate", emitActiveHeading);
+        editor.off("transaction", emitActiveHeading);
+      };
+    }, [editor, onActiveHeadingChange]);
 
     useImperativeHandle(
       ref,
@@ -527,14 +476,21 @@ export const RichEditor = forwardRef<RichEditorHandle, RichEditorProps>(
 
           scheduleScrollBelowHeader(() => {
             const el = resolveHeadingElement(editor.view, headingPos);
-            if (el) scrollElementBelowHeader(el);
-            else scrollViewportYToHeaderOffset(editor.view.coordsAtPos(headingPos + 1).top);
+            if (el) {
+              scrollElementBelowHeader(el);
+              el.classList.remove("outline-heading-flash");
+              // Restart CSS animation
+              void el.offsetWidth;
+              el.classList.add("outline-heading-flash");
+              window.setTimeout(() => el.classList.remove("outline-heading-flash"), 1000);
+            } else {
+              scrollViewportYToHeaderOffset(editor.view.coordsAtPos(headingPos + 1).top);
+            }
             outlineJumpRef.current = false;
           });
         },
-        insertImageFromFile: insertImage,
       }),
-      [editor, onMarkdownChange, slug, crypto, canUpload],
+      [editor, onMarkdownChange],
     );
 
     if (!editor) return null;

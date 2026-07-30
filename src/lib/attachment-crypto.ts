@@ -69,6 +69,9 @@ export async function decryptAttachmentBytes(
   row: Pick<AttachmentRow, "iv" | "mime">,
   ciphertext: Uint8Array,
 ): Promise<Uint8Array> {
+  if (crypto.kind === "plaintext") {
+    throw new Error("Attachments are unavailable in plaintext mode");
+  }
   if (crypto.kind === "legacy") {
     return decryptPlaceBytes(crypto, ciphertext, row.iv);
   }
@@ -92,6 +95,9 @@ export async function decryptAttachmentFilename(
   crypto: PlaceCryptoSession,
   row: Pick<AttachmentRow, "filename_ciphertext" | "filename_iv" | "mime">,
 ): Promise<string> {
+  if (crypto.kind === "plaintext") {
+    throw new Error("Attachments are unavailable in plaintext mode");
+  }
   if (crypto.kind === "legacy") {
     return decryptPlaceText(crypto, row.filename_ciphertext, row.filename_iv);
   }

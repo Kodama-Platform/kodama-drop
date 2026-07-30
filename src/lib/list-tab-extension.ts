@@ -113,19 +113,9 @@ function indentCodeBlock(editor: Editor, shiftKey: boolean): boolean {
     .run();
 }
 
+/** Tab / Shift+Tab: code-block spaces, else indent/outdent (lists + paragraph/heading). */
 export function handleEditorTabKeydown(event: KeyboardEvent, editor: Editor): boolean {
   if (event.key !== "Tab") return false;
-
-  if (selectionInListItem(editor.state)) {
-    const itemType = listItemTypeAtSelection(editor.state);
-    if (!itemType) return false;
-    event.preventDefault();
-    event.stopPropagation();
-    const chain = editor.chain().focus();
-    return event.shiftKey
-      ? chain.liftListItem(itemType).run()
-      : chain.sinkListItem(itemType).run();
-  }
 
   if (selectionInCodeBlock(editor.state)) {
     event.preventDefault();
@@ -133,34 +123,30 @@ export function handleEditorTabKeydown(event: KeyboardEvent, editor: Editor): bo
     return indentCodeBlock(editor, event.shiftKey);
   }
 
-  return false;
+  event.preventDefault();
+  event.stopPropagation();
+  return event.shiftKey
+    ? editor.chain().focus().outdent().run()
+    : editor.chain().focus().indent().run();
 }
 
-/** High-priority Tab / Shift-Tab for lists and code blocks. */
+/** High-priority Tab / Shift-Tab for lists, code blocks, and block indent. */
 export const ListTabExtension = Extension.create({
   name: "listTab",
   priority: 1000,
   addKeyboardShortcuts() {
     return {
       Tab: () => {
-        const itemType = listItemTypeAtSelection(this.editor.state);
-        if (itemType) {
-          return this.editor.chain().focus().sinkListItem(itemType).run();
-        }
         if (selectionInCodeBlock(this.editor.state)) {
           return indentCodeBlock(this.editor, false);
         }
-        return false;
+        return this.editor.chain().focus().indent().run();
       },
       "Shift-Tab": () => {
-        const itemType = listItemTypeAtSelection(this.editor.state);
-        if (itemType) {
-          return this.editor.chain().focus().liftListItem(itemType).run();
-        }
         if (selectionInCodeBlock(this.editor.state)) {
           return indentCodeBlock(this.editor, true);
         }
-        return false;
+        return this.editor.chain().focus().outdent().run();
       },
     };
   },

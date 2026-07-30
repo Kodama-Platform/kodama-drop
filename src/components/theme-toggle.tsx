@@ -9,7 +9,13 @@ import {
   type Theme,
 } from "@/lib/theme";
 
-export function ThemeToggle({ className }: { className?: string }) {
+type ThemeToggleProps = {
+  className?: string;
+  /** When true, toggles only light ↔ dark (no system). */
+  lightDarkOnly?: boolean;
+};
+
+export function ThemeToggle({ className, lightDarkOnly = false }: ThemeToggleProps) {
   const [theme, setLocal] = useState<Theme>("system");
 
   useEffect(() => {
@@ -22,21 +28,31 @@ export function ThemeToggle({ className }: { className?: string }) {
     return unsub;
   }, []);
 
-  // Cycle light → dark → system
   const cycle = () => {
-    const next: Theme = theme === "light" ? "dark" : theme === "dark" ? "system" : "light";
+    let next: Theme;
+    if (lightDarkOnly) {
+      const resolved = resolveTheme(theme);
+      next = resolved === "dark" ? "light" : "dark";
+    } else {
+      // Cycle light → dark → system
+      next = theme === "light" ? "dark" : theme === "dark" ? "system" : "light";
+    }
     setLocal(next);
     setTheme(next);
   };
 
   const resolved = resolveTheme(theme);
-  const Icon = theme === "system" ? Monitor : resolved === "dark" ? Moon : Sun;
+  const Icon =
+    !lightDarkOnly && theme === "system" ? Monitor : resolved === "dark" ? Moon : Sun;
+  const label = lightDarkOnly
+    ? `Appearance: ${resolved}`
+    : `Theme: ${theme}`;
 
   return (
     <button
       type="button"
-      aria-label={`Theme: ${theme}`}
-      title={`Theme: ${theme}`}
+      aria-label={label}
+      title={label}
       onClick={cycle}
       className={
         "inline-flex h-10 w-10 items-center justify-center rounded-full border border-border text-muted-foreground transition-all duration-300 hover:scale-105 hover:text-foreground " +

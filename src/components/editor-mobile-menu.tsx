@@ -6,6 +6,8 @@ import {
   FileCode2,
   Flame,
   Focus,
+  Keyboard,
+  ListTree,
   Loader2,
   Lock,
   Pencil,
@@ -17,7 +19,6 @@ import {
 } from "lucide-react";
 
 import { NoteAppearancePicker } from "@/components/note-appearance-picker";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { BURN_MODES, type BurnMode } from "@/lib/pages";
 import { AUTO_LOCK_OPTIONS, autoLockLabel, type AutoLockDuration } from "@/lib/auto-lock";
 import type { NoteAppearance } from "@/lib/note-appearance";
@@ -47,11 +48,15 @@ type EditorMobileMenuProps = {
   readerShareUrl: string | null;
   editorShareUrl: string | null;
   editorCapabilityExport: string | null;
+  /** When false, hide share actions (e.g. plaintext / UI-polish mode). */
+  shareEnabled?: boolean;
   onCopyShare: (text: string, label: string) => void;
   onSave: () => void;
   onReload: () => void;
   onChangeSaveMode: (mode: SaveMode) => void;
   onToggleFind: () => void;
+  onOpenOutline?: () => void;
+  onOpenShortcuts?: () => void;
   onToggleFocus: () => void;
   onToggleMarkdownView: () => void;
   onChangeExpiry: (mode: BurnMode) => void;
@@ -82,11 +87,14 @@ export function EditorMobileMenu({
   readerShareUrl,
   editorShareUrl,
   editorCapabilityExport,
+  shareEnabled = true,
   onCopyShare,
   onSave,
   onReload,
   onChangeSaveMode,
   onToggleFind,
+  onOpenOutline,
+  onOpenShortcuts,
   onToggleFocus,
   onToggleMarkdownView,
   onChangeExpiry,
@@ -144,19 +152,21 @@ export function EditorMobileMenu({
         <div className="mt-4 flex flex-col gap-5 overflow-y-auto pb-4">
           {/* Primary actions */}
           <section className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              disabled={!readerShareUrl}
-              onClick={() => {
-                if (!readerShareUrl) return;
-                onCopyShare(readerShareUrl, "Read-only link copied");
-              }}
-              className="flex flex-col items-start gap-1 rounded-xl border border-border/70 bg-card/60 px-3 py-3 text-left disabled:opacity-40"
-            >
-              <Copy className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium text-foreground">Share</span>
-              <span className="text-[11px] text-muted-foreground">Read-only link</span>
-            </button>
+            {shareEnabled && (
+              <button
+                type="button"
+                disabled={!readerShareUrl}
+                onClick={() => {
+                  if (!readerShareUrl) return;
+                  onCopyShare(readerShareUrl, "Read-only link copied");
+                }}
+                className="flex flex-col items-start gap-1 rounded-xl border border-border/70 bg-card/60 px-3 py-3 text-left disabled:opacity-40"
+              >
+                <Copy className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium text-foreground">Share</span>
+                <span className="text-[11px] text-muted-foreground">Read-only link</span>
+              </button>
+            )}
             {canSave && saveMode === "manual" ? (
               <button
                 type="button"
@@ -237,38 +247,40 @@ export function EditorMobileMenu({
             </section>
           )}
 
-          <section className="space-y-1">
-            <SectionLabel>Share</SectionLabel>
-            <MobileAction
-              icon={<Copy className="h-4 w-4" />}
-              label="Read-only link"
-              hint="Anyone can decrypt and read"
-              disabled={!readerShareUrl}
-              onClick={() => {
-                if (!readerShareUrl) return;
-                onCopyShare(readerShareUrl, "Read-only link copied");
-              }}
-            />
-            <MobileAction
-              icon={<Copy className="h-4 w-4" />}
-              label="Editor link"
-              hint="Decrypt and edit"
-              disabled={!editorShareUrl}
-              onClick={() => {
-                if (!editorShareUrl) return;
-                onCopyShare(editorShareUrl, "Editor link copied");
-              }}
-            />
-            <MobileAction
-              icon={<Copy className="h-4 w-4" />}
-              label="Editor capability (JSON)"
-              disabled={!editorCapabilityExport}
-              onClick={() => {
-                if (!editorCapabilityExport) return;
-                onCopyShare(editorCapabilityExport, "Editor capability copied");
-              }}
-            />
-          </section>
+          {shareEnabled && (
+            <section className="space-y-1">
+              <SectionLabel>Share</SectionLabel>
+              <MobileAction
+                icon={<Copy className="h-4 w-4" />}
+                label="Read-only link"
+                hint="Anyone can decrypt and read"
+                disabled={!readerShareUrl}
+                onClick={() => {
+                  if (!readerShareUrl) return;
+                  onCopyShare(readerShareUrl, "Read-only link copied");
+                }}
+              />
+              <MobileAction
+                icon={<Copy className="h-4 w-4" />}
+                label="Editor link"
+                hint="Decrypt and edit"
+                disabled={!editorShareUrl}
+                onClick={() => {
+                  if (!editorShareUrl) return;
+                  onCopyShare(editorShareUrl, "Editor link copied");
+                }}
+              />
+              <MobileAction
+                icon={<Copy className="h-4 w-4" />}
+                label="Editor capability (JSON)"
+                disabled={!editorCapabilityExport}
+                onClick={() => {
+                  if (!editorCapabilityExport) return;
+                  onCopyShare(editorCapabilityExport, "Editor capability copied");
+                }}
+              />
+            </section>
+          )}
 
           <section className="space-y-1">
             <SectionLabel>Writing</SectionLabel>
@@ -281,6 +293,16 @@ export function EditorMobileMenu({
                 onClose();
               }}
             />
+            {onOpenOutline && (
+              <MobileAction
+                icon={<ListTree className="h-4 w-4" />}
+                label="Sheets & outline"
+                onClick={() => {
+                  onOpenOutline();
+                  onClose();
+                }}
+              />
+            )}
             <MobileAction
               icon={<Focus className="h-4 w-4" />}
               label="Focus mode"
@@ -299,6 +321,16 @@ export function EditorMobileMenu({
                 onClose();
               }}
             />
+            {onOpenShortcuts && (
+              <MobileAction
+                icon={<Keyboard className="h-4 w-4" />}
+                label="Keyboard shortcuts"
+                onClick={() => {
+                  onOpenShortcuts();
+                  onClose();
+                }}
+              />
+            )}
           </section>
 
           {noteAppearance && onChangeNoteAppearance && (
@@ -369,11 +401,6 @@ export function EditorMobileMenu({
               </div>
             </section>
           )}
-
-          <section className="flex items-center justify-between rounded-xl border border-border/70 px-3 py-2.5">
-            <span className="text-sm text-foreground">Theme</span>
-            <ThemeToggle />
-          </section>
 
           {burnMode !== "never" && (
             <p className="rounded-xl bg-ember/5 px-3 py-2 text-center text-[11px] text-ember">

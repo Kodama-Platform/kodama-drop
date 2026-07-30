@@ -15,7 +15,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
       "@kodama.page/ksp-core": path.resolve(
         __dirname,
-        "../kodama-security-protocol/packages/core/src/index.ts",
+        "../kodama-security-core/packages/core/src/index.ts",
       ),
     },
   },

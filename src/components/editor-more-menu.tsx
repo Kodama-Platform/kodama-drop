@@ -4,6 +4,7 @@ import {
   FileCode2,
   Flame,
   Focus,
+  Keyboard,
   Lock,
   MoreHorizontal,
   RotateCcw,
@@ -37,6 +38,7 @@ type EditorMoreMenuProps = {
   onChangeNoteAppearance?: (next: NoteAppearance) => void;
   onToggleFocus: () => void;
   onToggleMarkdownView: () => void;
+  onOpenShortcuts?: () => void;
   onChangeExpiry: (mode: BurnMode) => void;
   onChangeAutoLockDuration: (duration: AutoLockDuration) => void;
   onChangeSaveMode?: (mode: SaveMode) => void;
@@ -61,6 +63,7 @@ export function EditorMoreMenu({
   getActiveText,
   onToggleFocus,
   onToggleMarkdownView,
+  onOpenShortcuts,
   onChangeExpiry,
   onChangeAutoLockDuration,
   onChangeSaveMode,
@@ -99,7 +102,7 @@ export function EditorMoreMenu({
       <button
         type="button"
         onClick={() => setMenuOpen(!open)}
-        className="note-toolbar-btn"
+        className="note-toolbar-btn !h-8 !w-8 !px-0"
         title="More options"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -138,6 +141,17 @@ export function EditorMoreMenu({
                 setMenuOpen(false);
               }}
             />
+            {onOpenShortcuts && (
+              <MenuItem
+                icon={<Keyboard className="h-3.5 w-3.5" />}
+                label="Keyboard shortcuts"
+                hint="⌘/"
+                onClick={() => {
+                  onOpenShortcuts();
+                  setMenuOpen(false);
+                }}
+              />
+            )}
 
             {noteAppearance && onChangeNoteAppearance && (
               <>
@@ -302,10 +316,12 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 function MenuItem({
   icon,
   label,
+  hint,
   onClick,
 }: {
   icon: React.ReactNode;
   label: string;
+  hint?: string;
   onClick: () => void;
 }) {
   return (
@@ -316,7 +332,8 @@ function MenuItem({
       className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-light text-foreground transition-colors hover:bg-primary/5"
     >
       {icon}
-      {label}
+      <span className="flex-1">{label}</span>
+      {hint ? <span className="font-mono text-[10px] text-muted-foreground">{hint}</span> : null}
     </button>
   );
 }

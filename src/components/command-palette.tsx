@@ -14,10 +14,17 @@ import {
   ArrowRight,
   Check,
   Copy,
+  Download,
   FileCode2,
   Focus,
+  Keyboard,
+  ListTree,
+  Lock,
   Monitor,
   Moon,
+  Palette,
+  Save,
+  Search,
   Sun,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -27,16 +34,21 @@ import {
   setTheme as persistTheme,
   type Theme,
 } from "@/lib/theme";
+import {
+  dispatchEditorEvent,
+  EDITOR_EVENTS,
+  getEditorCommandContext,
+} from "@/lib/editor-commands";
 
 /**
  * Global command palette — Cmd/Ctrl+K
  *
- * Context-aware: page actions (Copy Link, Focus Mode, Reading Mode) light up
- * when we're on a /:slug route. Otherwise only navigation + theme appear.
+ * Context-aware: page actions light up on /:slug via editor command context.
  */
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [pageName, setPageName] = useState("");
+  const [ctxTick, setCtxTick] = useState(0);
   const navigate = useNavigate();
   const router = useRouter();
 
@@ -51,10 +63,15 @@ export function CommandPalette() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Resolve the current page slug from the URL, if any.
+  useEffect(() => {
+    if (open) setCtxTick((n) => n + 1);
+  }, [open]);
+
   const path = router.state.location.pathname;
   const slugMatch = path.match(/^\/([^/]+)$/);
   const currentSlug = slugMatch && slugMatch[1] !== "" ? slugMatch[1] : null;
+  const editorCtx = getEditorCommandContext();
+  void ctxTick;
 
   const run = useCallback((fn: () => void | Promise<void>) => {
     return async () => {
@@ -87,10 +104,6 @@ export function CommandPalette() {
     navigate({ to: "/$slug", params: { slug: trimmed } });
   };
 
-  const dispatchEditorEvent = (name: string) => {
-    window.dispatchEvent(new CustomEvent(name));
-  };
-
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
       <CommandInput
@@ -115,20 +128,103 @@ export function CommandPalette() {
 
         {currentSlug && (
           <CommandGroup heading="This page">
-            <CommandItem onSelect={run(copyLink)}>
+            <CommandItem onSelect={run(copyLink)} value="copy-link">
               <Copy className="h-4 w-4" /> Copy page link
               <CommandShortcut>⌘⇧C</CommandShortcut>
             </CommandItem>
-            <CommandItem onSelect={run(() => dispatchEditorEvent("kodama:toggle-focus"))}>
+            <CommandItem
+              onSelect={run(() => dispatchEditorEvent(EDITOR_EVENTS.find))}
+              value="find"
+            >
+              <Search className="h-4 w-4" /> Find
+              <CommandShortcut>⌘F</CommandShortcut>
+            </CommandItem>
+            <CommandItem
+              onSelect={run(() => dispatchEditorEvent(EDITOR_EVENTS.findReplace))}
+              value="find-replace"
+            >
+              <Search className="h-4 w-4" /> Find & replace
+              <CommandShortcut>⌘⇧H</CommandShortcut>
+            </CommandItem>
+            {editorCtx.canSave && (
+              <CommandItem
+                onSelect={run(() => dispatchEditorEvent(EDITOR_EVENTS.save))}
+                value="save"
+              >
+                <Save className="h-4 w-4" /> Save workbook
+                <CommandShortcut>⌘S</CommandShortcut>
+              </CommandItem>
+            )}
+            <CommandItem
+              onSelect={run(() => dispatchEditorEvent(EDITOR_EVENTS.toggleFocus))}
+              value="focus"
+            >
               <Focus className="h-4 w-4" /> Toggle focus mode
             </CommandItem>
-            <CommandItem onSelect={run(() => dispatchEditorEvent("kodama:toggle-markdown-view"))}>
+            <CommandItem
+              onSelect={run(() => dispatchEditorEvent(EDITOR_EVENTS.toggleMarkdownView))}
+              value="markdown"
+            >
               <FileCode2 className="h-4 w-4" /> Toggle markdown view
               <CommandShortcut>⌘⇧M</CommandShortcut>
             </CommandItem>
-            <CommandItem onSelect={run(() => dispatchEditorEvent("kodama:export"))}>
-              <ArrowRight className="h-4 w-4" /> Export note
+            {editorCtx.canEdit && (
+              <CommandItem
+                onSelect={run(() => dispatchEditorEvent(EDITOR_EVENTS.appearance))}
+                value="appearance"
+              >
+                <Palette className="h-4 w-4" /> Note appearance
+              </CommandItem>
+            )}
+            <CommandItem
+              onSelect={run(() => dispatchEditorEvent(EDITOR_EVENTS.outline))}
+              value="outline"
+            >
+              <ListTree className="h-4 w-4" /> Sheets & outline
             </CommandItem>
+            {editorCtx.canLock && (
+              <CommandItem
+                onSelect={run(() => dispatchEditorEvent(EDITOR_EVENTS.lock))}
+                value="lock"
+              >
+                <Lock className="h-4 w-4" /> Lock note
+              </CommandItem>
+            )}
+            <CommandItem
+              onSelect={run(() => dispatchEditorEvent(EDITOR_EVENTS.export))}
+              value="export"
+            >
+              <Download className="h-4 w-4" /> Export note
+            </CommandItem>
+            <CommandItem
+              onSelect={run(() => dispatchEditorEvent(EDITOR_EVENTS.shortcuts))}
+              value="shortcuts"
+            >
+              <Keyboard className="h-4 w-4" /> Keyboard shortcuts
+              <CommandShortcut>⌘/</CommandShortcut>
+            </CommandItem>
+          </CommandGroup>
+        )}
+
+        {currentSlug && editorCtx.sheets.length > 1 && (
+          <CommandGroup heading="Sheets">
+            {editorCtx.sheets.map((sheet) => (
+              <CommandItem
+                key={sheet.sheetId}
+                value={`sheet-${sheet.title}-${sheet.sheetId}`}
+                onSelect={run(() =>
+                  dispatchEditorEvent(EDITOR_EVENTS.switchSheet, {
+                    sheetId: sheet.sheetId,
+                  }),
+                )}
+              >
+                <FileCode2 className="h-4 w-4" />
+                {sheet.title}
+                {sheet.sheetId === editorCtx.activeSheetId && (
+                  <Check className="ml-auto h-4 w-4" />
+                )}
+              </CommandItem>
+            ))}
           </CommandGroup>
         )}
 
