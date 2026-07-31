@@ -9,17 +9,18 @@ import { devTlsOptions } from "./scripts/dev-tls";
 
 const tls = devTlsOptions();
 const repoRoot = path.dirname(fileURLToPath(import.meta.url));
-const kspRoot = path.resolve(repoRoot, "../kodama-security-core/packages");
+const kscRoot = path.resolve(repoRoot, "../kodama-security-core/packages");
 
 // Pure SPA build — outputs static assets to dist/ for AWS Amplify.
 export default defineConfig({
   resolve: {
     tsconfigPaths: true,
     alias: {
-      "@kodama.page/ksp-core": path.join(kspRoot, "core/src/index.ts"),
-      "@kodama.page/ksp-browser": path.join(kspRoot, "browser/src/index.ts"),
+      "@kodama.page/core": path.join(kscRoot, "core/src/index.ts"),
+      "@kodama.page/security-browser": path.join(kscRoot, "security-browser/src/index.ts"),
     },
-  },  plugins: [
+  },
+  plugins: [
     TanStackRouterVite({
       target: "react",
       autoCodeSplitting: true,
@@ -43,7 +44,7 @@ export default defineConfig({
     ...(tls ? { https: tls } : {}),
   },
   optimizeDeps: {
-    include: ["@kodama.page/ksp-core", "hash-wasm"],
+    include: ["@kodama.page/core", "@kodama.page/security-browser", "hash-wasm"],
   },
   build: {
     outDir: "dist",

@@ -3,7 +3,6 @@ import type { PlaceCryptoSession } from "@/lib/crypto-context";
 import { randomPath } from "@/lib/crypto";
 import { registerAttachment, uploadAttachmentBlob } from "@/lib/pages";
 import { kodamaAttUrl } from "@/lib/kodama-image";
-import { readLegacyEditToken } from "@/lib/legacy-edit";
 
 const MAX_BYTES = 20 * 1024 * 1024;
 
@@ -15,6 +14,9 @@ export async function uploadEncryptedAttachment(args: {
   const { file, slug, crypto } = args;
   if (file.size > MAX_BYTES) {
     throw new Error("Max 20 MB per file");
+  }
+  if (crypto.kind !== "knp") {
+    throw new Error("Attachments require a KNP-1 session");
   }
 
   const buf = new Uint8Array(await file.arrayBuffer());
@@ -34,8 +36,7 @@ export async function uploadEncryptedAttachment(args: {
     filename_ciphertext: encrypted.filename_ciphertext,
     filename_iv: encrypted.filename_iv,
     mime: encrypted.mime,
-    ksp: crypto.kind === "ksp",
-    legacyEditToken: readLegacyEditToken(slug),
+    size: file.size,
   });
 
   return { id, url: kodamaAttUrl(id), mime: file.type || "application/octet-stream" };

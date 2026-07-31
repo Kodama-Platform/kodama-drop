@@ -42,7 +42,6 @@ import { EditorToolbar } from "@/components/editor-toolbar";
 import { FindReplace } from "@/components/find-replace";
 import { KeyboardShortcutsDialog } from "@/components/keyboard-shortcuts-dialog";
 import { MarkdownView } from "@/components/markdown-view";
-import { MigrateToKspBanner } from "@/components/migrate-to-ksp-banner";
 import { Outline, OutlineDrawer, type OutlineDrawerPanel } from "@/components/outline";
 import { RichEditor, type RichEditorHandle } from "@/components/rich-editor";
 import type { Editor as TiptapEditor } from "@tiptap/react";
@@ -61,9 +60,8 @@ import {
   type AutoLockDuration,
 } from "@/lib/auto-lock";
 import {
-  encryptPlaceWorkbookForSave,
-  canSignKspWorkbook,
-  kspSessionFromSecrets,
+  canSignKnpWorkbook,
+  saveKnpWorkbook,
   type PlaceCryptoSession,
 } from "@/lib/crypto-context";
 import {
@@ -92,19 +90,16 @@ import { getSaveMode, setSaveMode, type SaveMode } from "@/lib/save-mode";
 import { getStoredTheme, resolveTheme, watchSystemTheme } from "@/lib/theme";
 import type { UnlockCapability } from "@/lib/unlock-capability";
 import { setSheetHash } from "@/lib/hash-params";
-import { migrateLegacyPlaceToKsp } from "@/lib/ksp-place";
-import { deleteAttachment, savePage, updateExpiry, type BurnMode } from "@/lib/pages";
+import { deleteAttachment, updateExpiry, type BurnMode } from "@/lib/pages";
 import { flushActiveSheetMarkdown } from "@/lib/workbook-flush";
 import {
   buildEditorCapabilityExport,
   buildEditorShareUrl,
   buildReadOnlyUrl,
-  getFragmentCapability,
-  isLegacyEditorFragment,
-} from "@/lib/ksp-fragment";
-import { resolveShareCapabilities, syncKspSecretsFromSession } from "@/lib/share-capabilities";
-import { hasKspEditorSecrets, readKspSecrets, writeKspSecrets } from "@/lib/ksp-secrets";
-import { clearLegacyEditToken, readLegacyEditToken } from "@/lib/legacy-edit";
+  encodeCapabilityFragment,
+} from "@/lib/knp-fragment";
+import { hasKnpEditorSecrets, readKnpSecrets } from "@/lib/knp-secrets";
+import { composeKodamaNoteApp } from "@/lib/security-bootstrap";
 import {
   addSheet,
   collectSheetAttachmentRefs,
@@ -153,31 +148,20 @@ export function Editor({
   onLock?: (reason: LockReason) => void;
 }) {
   const isReader = unlockCapability === "reader";
-  const [legacyEditToken, setLegacyEditToken] = useState(() => readLegacyEditToken(slug));
-  useEffect(() => {
-    setLegacyEditToken(readLegacyEditToken(slug));
-  }, [slug]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [cryptoSession, setCryptoSession] = useState(crypto);
   useEffect(() => {
     setCryptoSession(crypto);
   }, [crypto]);
-  const isKsp = cryptoSession.kind === "ksp";
+  const isKnp = cryptoSession.kind === "knp";
   const isPlaintext = cryptoSession.kind === "plaintext";
-  const [migrateBannerDismissed, setMigrateBannerDismissed] = useState(false);
-  const [migrateBusy, setMigrateBusy] = useState(false);
-  const [migrateError, setMigrateError] = useState<string | null>(null);
   const canSave =
     isPlaintext ||
-    (!isReader &&
-      canSignKspWorkbook(cryptoSession) &&
-      (isKsp ? hasKspEditorSecrets(slug) : !!legacyEditToken));
+    (!isReader && canSignKnpWorkbook(cryptoSession) && hasKnpEditorSecrets(slug));
   const canEdit = canSave;
   const canChangeExpiry =
-    !isPlaintext &&
-    !isReader &&
-    (isKsp ? !!readKspSecrets(slug)?.ownerPrivateKey : !!legacyEditToken);
+    !isPlaintext && !isReader && !!readKnpSecrets(slug)?.isOwner;
   const [saveMode, setSaveModeState] = useState<SaveMode>(() => getSaveMode());
   const [autoLockDuration, setAutoLockDurationState] = useState<AutoLockDuration>(() =>
     getAutoLockDuration(),
@@ -345,36 +329,40 @@ export function Editor({
     activeMarkdown.trim() ? activeMarkdown.trim().split(/\s+/).length : 0,
   );
   const visits = useVisitCount(slug);
-  const [storedSecrets, setStoredSecrets] = useState(() => readKspSecrets(slug));
-  const [readFromUrl, setReadFromUrl] = useState(() => getFragmentCapability("read"));
-  const [editorFromUrl, setEditorFromUrl] = useState(() => getFragmentCapability("editor"));
+  const [storedSecrets, setStoredSecrets] = useState(() => readKnpSecrets(slug));
+  const [readFromUrl, setReadFromUrl] = useState(() =>
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.hash.replace(/^#/, "")).get("read")
+      : null,
+  );
+  const [editorFromUrl, setEditorFromUrl] = useState(() =>
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.hash.replace(/^#/, "")).get("editor")
+      : null,
+  );
   useEffect(() => {
     const sync = () => {
-      setReadFromUrl(getFragmentCapability("read"));
-      setEditorFromUrl(getFragmentCapability("editor"));
+      const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      setReadFromUrl(params.get("read"));
+      setEditorFromUrl(params.get("editor"));
     };
     sync();
     window.addEventListener("hashchange", sync);
     return () => window.removeEventListener("hashchange", sync);
   }, []);
   useEffect(() => {
-    syncKspSecretsFromSession(slug, cryptoSession, writeKspSecrets);
-    setStoredSecrets(readKspSecrets(slug));
+    setStoredSecrets(readKnpSecrets(slug));
   }, [cryptoSession, slug]);
   useEffect(() => {
-    if (shareOpen) setStoredSecrets(readKspSecrets(slug));
+    if (shareOpen) setStoredSecrets(readKnpSecrets(slug));
   }, [shareOpen, slug]);
 
-  const { readerCapability, editorPrivateKey } = useMemo(
-    () =>
-      resolveShareCapabilities({
-        session: cryptoSession,
-        stored: storedSecrets,
-        readFromUrl,
-        editorFromUrl,
-      }),
-    [cryptoSession, storedSecrets, readFromUrl, editorFromUrl],
-  );
+  const { readerCapability, editorCapability } = useMemo(() => {
+    return {
+      readerCapability: storedSecrets?.readerCapability || readFromUrl || null,
+      editorCapability: storedSecrets?.editorCapability || editorFromUrl || null,
+    };
+  }, [storedSecrets, readFromUrl, editorFromUrl]);
 
   const readerShareUrl = useMemo(() => {
     if (!readerCapability) return null;
@@ -382,26 +370,41 @@ export function Editor({
   }, [readerCapability, slug]);
 
   const editorShareUrl = useMemo(() => {
-    if (!readerCapability || !editorPrivateKey) return null;
-    if (cryptoSession.kind === "ksp" && isLegacyEditorFragment(editorPrivateKey)) return null;
-    if (cryptoSession.kind === "legacy" && !isLegacyEditorFragment(editorPrivateKey)) return null;
-    return buildEditorShareUrl(
-      `${window.location.origin}/${slug}`,
-      readerCapability,
-      editorPrivateKey,
-    );
-  }, [cryptoSession.kind, editorPrivateKey, readerCapability, slug]);
+    if (!editorCapability) return null;
+    return buildEditorShareUrl(`${window.location.origin}/${slug}`, editorCapability);
+  }, [editorCapability, slug]);
 
   const editorCapabilityExport = useMemo(() => {
-    if (cryptoSession.kind !== "ksp" || !readerCapability || !editorPrivateKey) {
-      return null;
+    if (!editorCapability) return null;
+    return buildEditorCapabilityExport({ slug, editorCapability });
+  }, [editorCapability, slug]);
+
+  const issueEditorShare = useCallback(async () => {
+    if (cryptoSession.kind !== "knp" || cryptoSession.session.role !== "owner") {
+      toast.error("Only the owner can issue editor links");
+      return;
     }
-    return buildEditorCapabilityExport({
-      slug,
-      readerCapability,
-      editorPrivateKey,
-    });
-  }, [cryptoSession.kind, editorPrivateKey, readerCapability, slug]);
+    try {
+      const { note } = composeKodamaNoteApp();
+      const { capability, session } = await note.issueEditorCapability(cryptoSession.session);
+      setCryptoSession({ kind: "knp", session });
+      const encoded = encodeCapabilityFragment(capability);
+      const { writeKnpSecrets } = await import("@/lib/knp-secrets");
+      const existing = readKnpSecrets(slug);
+      writeKnpSecrets(slug, {
+        readerCapability: existing?.readerCapability ?? encodeCapabilityFragment(capability),
+        editorCapability: encoded,
+        isOwner: true,
+      });
+      setStoredSecrets(readKnpSecrets(slug));
+      await navigator.clipboard.writeText(
+        buildEditorShareUrl(`${window.location.origin}/${slug}`, encoded),
+      );
+      toast.success("Editor link copied");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }, [cryptoSession, slug]);
 
   const copyToClipboard = useCallback(async (text: string, label = "Link copied") => {
     try {
@@ -467,9 +470,8 @@ export function Editor({
         const res = await updateExpiry({
           slug,
           burn_mode: mode,
-          ksp: isKsp,
-          legacyEditToken,
-        });
+          ksp: isKnp,
+                  });
         setBurnMode(res.burn_mode);
         setExpiresAt(res.expires_at);
         toast.success("Lifetime updated");
@@ -479,7 +481,7 @@ export function Editor({
         setExpirySaving(false);
       }
     },
-    [burnMode, canChangeExpiry, isKsp, legacyEditToken, slug],
+    [burnMode, canChangeExpiry, isKnp, slug],
   );
 
   const markDirty = useCallback(() => {
@@ -549,20 +551,10 @@ export function Editor({
             setUpdatedAt(new Date().toISOString());
             return true;
           }
-          const { ciphertext, iv, session } = await encryptPlaceWorkbookForSave(
-            cryptoSession,
-            plaintext,
-          );
-          setCryptoSession(session);
-          const res = await savePage({
-            slug,
-            ciphertext,
-            iv,
-            ksp: isKsp,
-            legacyEditToken,
-          });
+          const next = await saveKnpWorkbook(cryptoSession, payload);
+          setCryptoSession(next);
           markSaved(plaintext, payload, generationAtSaveStart);
-          setUpdatedAt(res.created_at);
+          setUpdatedAt(new Date().toISOString());
           return true;
         } catch (e) {
           setStatus("error");
@@ -581,50 +573,7 @@ export function Editor({
         }
       }
     },
-    [cryptoSession, canSave, flushWorkbook, isKsp, legacyEditToken, markSaved, slug],
-  );
-
-  const migrateToKsp = useCallback(
-    async (password: string) => {
-      if (!legacyEditToken || cryptoSession.kind !== "legacy") return;
-      setMigrateBusy(true);
-      setMigrateError(null);
-      try {
-        const payload = flushWorkbook();
-        const plaintext = serializeWorkbook(payload);
-        const result = await migrateLegacyPlaceToKsp({
-          slug,
-          password,
-          workbookPlaintext: plaintext,
-          legacyEditToken,
-        });
-        writeKspSecrets(slug, result.secrets);
-        clearLegacyEditToken(slug);
-        setLegacyEditToken(null);
-        setCryptoSession(
-          kspSessionFromSecrets({
-            slug,
-            secrets: result.secrets,
-            meta: result.kdf_params,
-          }),
-        );
-        workbookRef.current = payload;
-        setWorkbook(payload);
-        lastSavedRef.current = plaintext;
-        markClean();
-        setStatus("saved");
-        await queryClient.invalidateQueries({ queryKey: pageQueryKey(slug) });
-        toast.success("Upgraded to KSP — create new share links; old #read= links no longer work");
-        setMigrateBannerDismissed(true);
-      } catch (e) {
-        const message = e instanceof Error ? e.message : String(e);
-        setMigrateError(message);
-        toast.error(message);
-      } finally {
-        setMigrateBusy(false);
-      }
-    },
-    [cryptoSession.kind, flushWorkbook, legacyEditToken, markClean, queryClient, slug],
+    [cryptoSession, canSave, flushWorkbook, markSaved, slug],
   );
 
   const prepareForLock = useCallback(async () => {
@@ -848,9 +797,8 @@ export function Editor({
               deleteAttachment({
                 slug,
                 attachment_id,
-                ksp: isKsp,
-                legacyEditToken,
-              }),
+                ksp: isKnp,
+                              }),
             ),
           );
           const failed = results.filter((r) => r.status === "rejected").length;
@@ -871,7 +819,7 @@ export function Editor({
         toast.error((e as Error).message);
       }
     },
-    [activeSheetId, canSave, isKsp, legacyEditToken, markDirty, queryClient, slug, switchSheet, workbook],
+    [activeSheetId, canSave, isKnp, markDirty, queryClient, slug, switchSheet, workbook],
   );
 
   const handleReorderSheets = useCallback(
@@ -1355,7 +1303,7 @@ export function Editor({
                           ? "Anyone with this link can decrypt and edit"
                           : isReader
                             ? "Unlock with your password to share edit access"
-                            : cryptoSession.kind === "legacy"
+                            : cryptoSession.kind === "plaintext"
                               ? "Unlock with your password once to generate an editor link"
                               : "Unlock with your password to generate an editor link"
                       }
@@ -1383,7 +1331,7 @@ export function Editor({
                       title={
                         editorCapabilityExport
                           ? "Copy KSP editor capability JSON for secure sharing"
-                          : cryptoSession.kind === "legacy"
+                          : cryptoSession.kind === "plaintext"
                             ? "Editor capability export requires a KSP place"
                             : "Unlock with your password to export editor capability"
                       }
@@ -1546,20 +1494,7 @@ export function Editor({
             )}
           </div>
         )}
-
-        {!migrateBannerDismissed && (
-          <MigrateToKspBanner
-            isLegacy={cryptoSession.kind === "legacy"}
-            isReader={isReader}
-            hasEditToken={!!legacyEditToken}
-            hasAttachments={workbookUsesAttachments(workbook)}
-            busy={migrateBusy}
-            error={migrateError}
-            onMigrate={migrateToKsp}
-            onDismiss={() => setMigrateBannerDismissed(true)}
-          />
-        )}
-      </header>
+</header>
 
       {focus && (
         <button

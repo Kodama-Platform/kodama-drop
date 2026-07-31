@@ -13,9 +13,13 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "@kodama.page/ksp-core": path.resolve(
+      "@kodama.page/core": path.resolve(
         __dirname,
         "../kodama-security-core/packages/core/src/index.ts",
+      ),
+      "@kodama.page/security-browser": path.resolve(
+        __dirname,
+        "../kodama-security-core/packages/security-browser/src/index.ts",
       ),
     },
   },

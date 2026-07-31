@@ -15,18 +15,22 @@ import { slugSchema } from "@/lib/slug";
 import { getSheetIdFromHash, migrateCodeToHash, readUnlockCode, stripCodeFromUrl, stripSensitiveHashParams } from "@/lib/hash-params";
 import {
   createPlaintextSession,
-  kspSessionFromSecrets,
   type PlaceCryptoSession,
 } from "@/lib/crypto-context";
 import { clearDecryptedSession, type LockReason } from "@/lib/lock-session";
-import { BURN_MODES, createPage, getPage, type BurnMode, type GetPageResult } from "@/lib/pages";
+import { BURN_MODES, getPage, type BurnMode, type GetPageResult } from "@/lib/pages";
 import { pageQueryKey, type ExistingPage } from "@/lib/page-query";
 import { isPlaintextMode, loadPlaintextWorkbook } from "@/lib/plaintext-mode";
 import { resolveUnlockCapability, type UnlockCapability } from "@/lib/unlock-capability";
-import { editorSecretsFromFragment, getFragmentCapability, parseEditorCapabilityImport } from "@/lib/ksp-fragment";
-import { createKspWorkbookPlace, isKspPlaceMeta } from "@/lib/ksp-place";
-import { readKspSecrets, writeKspSecrets } from "@/lib/ksp-secrets";
+import {
+  editorSecretsFromFragment,
+  encodeCapabilityFragment,
+  getFragmentCapability,
+  parseEditorCapabilityImport,
+} from "@/lib/knp-fragment";
+import { readKnpSecrets, writeKnpSecrets } from "@/lib/knp-secrets";
 import { unlockErrorMessage, unlockPlace, unlockPlaceWithEditorImport } from "@/lib/unlock-place";
+import { composeKodamaNoteApp } from "@/lib/security-bootstrap";
 import {
   createEmptyWorkbook,
   parseWorkbook,
@@ -45,23 +49,22 @@ export const Route = createFileRoute("/$slug")({
 });
 
 function initialUnlockCapability(slug: string, viaShareLink: boolean): UnlockCapability {
-  const secrets = readKspSecrets(slug);
+  const secrets = readKnpSecrets(slug);
   const editorFragment = editorSecretsFromFragment();
   return resolveUnlockCapability({
-    hasEditorSecrets: !!(secrets?.editorPrivateKey || editorFragment?.editorPrivateKey),
-    hasReadCapability: viaShareLink || !!getFragmentCapability("read"),
+    hasEditorSecrets: !!(secrets?.isOwner || secrets?.editorCapability || editorFragment?.editorPrivateKey),
+    hasReadCapability: viaShareLink || !!getFragmentCapability("read") || !!secrets?.readerCapability,
   });
 }
 
-/** Persist `#editor=` + `#read=` fragments into session secrets (KSP import via URL). */
+/** Persist `#editor=` / `#read=` fragments into session secrets. */
 function importEditorFragment(slug: string): void {
   const imported = editorSecretsFromFragment();
   if (!imported) return;
-  const existing = readKspSecrets(slug);
-  writeKspSecrets(slug, {
+  writeKnpSecrets(slug, {
     readerCapability: imported.readerCapability,
-    editorPrivateKey: imported.editorPrivateKey,
-    ownerPrivateKey: existing?.ownerPrivateKey ?? "",
+    editorCapability: imported.editorPrivateKey,
+    isOwner: false,
   });
 }
 
@@ -388,47 +391,42 @@ function CreateGate({
     setBusy(true);
     try {
       setEncryptPhase("deriving");
-      const workbookPlaintext = serializeWorkbook(createEmptyWorkbook());
+      const { note } = composeKodamaNoteApp();
       setEncryptPhase("encrypting");
-      const ksp = await createKspWorkbookPlace({ slug, password: pw, workbookPlaintext });
-      setEncryptPhase("uploading");
-      const res = await createPage({
-        slug,
-        ciphertext: ksp.ciphertext,
-        salt: ksp.salt,
-        iv: ksp.iv,
-        kdf_params: ksp.kdf_params,
-        burn_mode: burnMode,
-      });
-      if (!res.ok) {
-        toast.error("That page name was just taken. Reloading…");
-        onSlugTaken();
-        return;
+      let created;
+      try {
+        created = await note.createPlace({
+          slug,
+          password: pw,
+          burnMode,
+          workbook: createEmptyWorkbook(),
+        });
+      } catch (err) {
+        if ((err as Error).message === "slug_taken") {
+          toast.error("That page name was just taken. Reloading…");
+          onSlugTaken();
+          return;
+        }
+        throw err;
       }
-      writeKspSecrets(slug, {
-        readerCapability: ksp.readerCapability,
-        editorPrivateKey: ksp.editorPrivateKey,
-        ownerPrivateKey: ksp.ownerPrivateKey,
+      setEncryptPhase("uploading");
+      const readerCap = await note.issueReaderCapability(created.session);
+      writeKnpSecrets(slug, {
+        readerCapability: encodeCapabilityFragment(readerCap),
+        editorCapability: "",
+        isOwner: true,
       });
       history.replaceState(null, "", window.location.pathname);
       setEncryptPhase("done");
       onCreated({
         session: {
-          crypto: kspSessionFromSecrets({
-            slug,
-            secrets: {
-              readerCapability: ksp.readerCapability,
-              editorPrivateKey: ksp.editorPrivateKey,
-              ownerPrivateKey: ksp.ownerPrivateKey,
-            },
-            meta: ksp.kdf_params,
-          }),
-          plaintext: workbookPlaintext,
+          crypto: { kind: "knp", session: created.session },
+          plaintext: serializeWorkbook(created.workbook),
           updatedAt: new Date().toISOString(),
-          capability: "editor",
+          capability: "owner",
         },
         burnMode,
-        expiresAt: res.expires_at,
+        expiresAt: null,
       });
     } catch (err) {
       toast.error((err as Error).message || "Could not create page");
@@ -597,11 +595,11 @@ function UnlockGate({
   useEffect(() => {
     if (session) return;
     const hasEditorShareLink = !!getFragmentCapability("editor");
-    const stored = readKspSecrets(slug);
+    const stored = readKnpSecrets(slug);
     const canAutoUnlock =
       hasReadShareLink ||
-      (hasEditorShareLink && !!stored?.readerCapability) ||
-      (!!stored?.readerCapability && !!stored?.editorPrivateKey);
+      hasEditorShareLink ||
+      (!!stored?.readerCapability && (!!stored?.editorCapability || !!stored?.isOwner));
     if (!canAutoUnlock) return;
     let cancelled = false;
     setShareUnlockFailed(false);
@@ -669,16 +667,9 @@ function UnlockGate({
     setBusy(true);
     try {
       const loaded = page ?? (await ensurePage());
-      if (!isKspPlaceMeta(loaded.kdf_params)) {
-        toast.error("Editor capability import works only for KSP places");
-        return;
-      }
       const unlocked = await unlockPlaceWithEditorImport({
         page: loaded,
-        secrets: {
-          readerCapability: parsed.read,
-          editorPrivateKey: parsed.editor,
-        },
+        editorCapability: parsed.editor,
       });
       capabilityRef.current = unlocked.capability;
       setSession({

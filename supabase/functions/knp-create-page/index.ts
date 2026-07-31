@@ -1,7 +1,14 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { handleCors, jsonResponse } from "../_shared/cors.ts";
 import { createServiceClient } from "../_shared/supabase-admin.ts";
-import { verifyKspCreateWirePayload } from "../_shared/verify-create-wire.ts";
+
+type KnpMeta = {
+  protocol?: string;
+  suite?: string;
+  owner_public_key?: string;
+  version?: number;
+  storage_mode?: string;
+};
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -16,17 +23,18 @@ Deno.serve(async (req) => {
     const slug = body?.slug as string | undefined;
     const ciphertext = body?.ciphertext as string | undefined;
     const salt = body?.salt as string | undefined;
-    const iv = body?.iv as string | undefined;
-    const kdf_params = body?.kdf_params as unknown;
+    const iv = (body?.iv as string | undefined) ?? "";
+    const kdf_params = body?.kdf_params as KnpMeta | undefined;
     const burn_mode = (body?.burn_mode as string | undefined) ?? "never";
 
-    if (!slug || !ciphertext || !salt || !iv || !kdf_params) {
+    if (!slug || !ciphertext || !salt || !kdf_params) {
       return jsonResponse({ error: "missing required fields" }, 400);
     }
-
-    const verified = await verifyKspCreateWirePayload({ slug, ciphertext, salt, kdf_params });
-    if (!verified.ok) {
-      return jsonResponse({ error: verified.error }, verified.status);
+    if (kdf_params.protocol !== "knp-1" || kdf_params.storage_mode !== "knp-envelope") {
+      return jsonResponse({ error: "invalid knp meta" }, 400);
+    }
+    if (!kdf_params.owner_public_key || typeof kdf_params.owner_public_key !== "string") {
+      return jsonResponse({ error: "owner_public_key required" }, 400);
     }
 
     const supabase = createServiceClient();

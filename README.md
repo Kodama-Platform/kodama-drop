@@ -2,43 +2,43 @@
 
 A zero-knowledge, end-to-end encrypted place for writing, sharing, and owning your thoughts.
 
-Cryptography follows [Kodama Security Protocol (KSP)](../kodama-security-protocol/docs/KODAMA_SECURITY_PROTOCOL.md) via `@kodama.page/ksp-core`.
+Cryptography follows **Kodama Note Protocol (KNP-1)** on **Kodama Security Core (KSC-1 / 0.2.0)** via `@kodama.page/core` and `@kodama.page/security-browser`.
 
-## KSP auth model
+**Security profile:** production security **candidate**. Not production-proven until KNP-1 §14 (audits, fuzz corpus, signed releases) is completed. See [`docs/KODAMA_NOTE_PROTOCOL.md`](docs/KODAMA_NOTE_PROTOCOL.md).
+
+## Auth model (KNP-1)
 
 | Action | Authorization |
 |--------|----------------|
-| Read | `#read=` URL fragment or password |
-| Edit / save | Ed25519-signed wire payload + editor private key (from password or out-of-band import) |
-| Owner settings | Owner private key (from password) |
+| Read | `#read=` capability fragment or owner password |
+| Edit / save | Owner or editor signing key + signed state header |
+| Owner settings | Password unlock (owner role) |
 
-There is **no server `edit_token`** for KSP places. KSP writes are verified server-side (Ed25519) via Supabase Edge Functions before persisting.
+The Delivery Gate stores ciphertext and public meta only — it never decrypts notes. Writes go through `knp-create-page` / `knp-append-version` edge functions (or RPC fallback in local/dev).
 
 Deploy migrations and edge functions before saving in production:
 
 ```bash
 # From kodama-note/
 supabase db push
-npm run vendor:ksp
-supabase functions deploy ksp-append-version
-supabase functions deploy ksp-create-page
-supabase functions deploy ksp-migrate-page
+yarn vendor:ksc
+supabase functions deploy knp-create-page
+supabase functions deploy knp-append-version
 ```
 
 | Edge function | Purpose |
 |---------------|---------|
-| `ksp-create-page` | Verify owner create signature, then insert page |
-| `ksp-append-version` | Verify editor edit signature, then append version |
-| `ksp-migrate-page` | Verify create signature + legacy `edit_token`, then rewrite place to KSP |
+| `knp-create-page` | Accept KNP meta + envelope ciphertext, insert page |
+| `knp-append-version` | Monotonic version + writer checks, append ciphertext |
 
-Direct client calls to `kodama_ksp_append_version` are revoked for anon/authenticated roles; only the `ksp-append-version` edge function (service role) may invoke it after verification. Attachment and expiry RPCs remain open until signed edge functions are added.
+Prior temporary KSP pages are wiped (not migrated). Create new notes under KNP-1.
 
 ## Development
 
 ```bash
-npm install
-npm run dev
-npm test
+yarn install
+yarn dev
+yarn test
 ```
 
-Link local KSP packages via `file:../kodama-security-protocol/packages/core` in `package.json`.
+Link local KSC packages via `file:../kodama-security-core/packages/...` in `package.json` (Vite/Vitest also alias to package sources).

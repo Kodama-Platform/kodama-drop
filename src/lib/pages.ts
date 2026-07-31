@@ -1,23 +1,19 @@
 // Client-side data access for the encrypted pages backend.
 //
-// Zero-knowledge contract (KSP):
+// Zero-knowledge contract (KNP-1):
 // - Password and private keys never leave the browser.
-// - Writes are authorized by Ed25519 edit signatures embedded in wire payloads.
-// - The backend stores ciphertext and public keys only.
+// - Delivery Gate stores ciphertext + public meta only (never decrypts).
 import { supabase } from "@/integrations/supabase/client";
-import { normalizeKdfParams } from "@/lib/crypto";
-import { isKspPlaceMeta, type KspPlaceMeta } from "@/lib/ksp-place";
-import { parseKspWire, primaryIvFromWire } from "@/lib/ksp-wire";
 import { assertNoSecretsInPayload } from "@/lib/server-payload";
 
-type KspEdgeError = { error?: string; ok?: boolean; reason?: string };
+type KnpEdgeError = { error?: string; ok?: boolean; reason?: string };
 
-async function readEdgeFunctionBody(error: unknown): Promise<KspEdgeError | null> {
+async function readEdgeFunctionBody(error: unknown): Promise<KnpEdgeError | null> {
   if (!error || typeof error !== "object") return null;
   const context = (error as { context?: Response }).context;
   if (!(context instanceof Response)) return null;
   try {
-    return (await context.clone().json()) as KspEdgeError;
+    return (await context.clone().json()) as KnpEdgeError;
   } catch {
     return null;
   }
@@ -30,7 +26,7 @@ function isEdgeFunctionUnavailable(error: unknown): boolean {
   );
 }
 
-async function invokeKspFunction<T>(
+async function invokeKnpFunction<T>(
   name: string,
   body: Record<string, unknown>,
 ): Promise<T> {
@@ -46,7 +42,7 @@ async function invokeKspFunction<T>(
     }
     throw error;
   }
-  const payload = data as T & KspEdgeError;
+  const payload = data as T & KnpEdgeError;
   if (payload && typeof payload === "object" && "error" in payload && payload.error) {
     throw new Error(String(payload.error));
   }
@@ -87,7 +83,7 @@ export type SerializableKdfParams =
       p: number;
       version: number;
     }
-  | KspPlaceMeta;
+  | Record<string, unknown>;
 
 export type BurnMode = "never" | "after_read" | "1h" | "24h" | "7d";
 
@@ -136,32 +132,15 @@ function parseJsonField(raw: unknown): unknown {
 function hydratePageRow(
   row: Record<string, unknown>,
 ): Extract<GetPageResult, { exists: true }> {
-  let ciphertext = row.ciphertext as string;
-  let iv = row.iv as string;
-
-  const wire = parseKspWire(ciphertext);
-  if (wire) {
-    iv = primaryIvFromWire(wire) || iv;
-  }
-
   const rawKdf = parseJsonField(row.kdf_params);
-  const kdf_params: SerializableKdfParams = isKspPlaceMeta(rawKdf)
-    ? {
-        ...(rawKdf as KspPlaceMeta),
-        version: wire?.version ?? (rawKdf as KspPlaceMeta).version,
-        storage_mode:
-          wire?.storage_mode ?? (rawKdf as KspPlaceMeta).storage_mode ?? "legacy",
-      }
-    : normalizeKdfParams(rawKdf);
-
   return {
     exists: true,
     id: row.id as string,
     slug: row.slug as string,
-    ciphertext,
-    iv,
+    ciphertext: row.ciphertext as string,
+    iv: (row.iv as string) ?? "",
     salt: row.salt as string,
-    kdf_params,
+    kdf_params: (rawKdf ?? {}) as SerializableKdfParams,
     burn_mode: row.burn_mode as BurnMode,
     expires_at: row.expires_at as string | null,
     created_at: row.created_at as string,
@@ -184,157 +163,63 @@ export type CreatePageResult =
   | { ok: false; reason: "slug_taken" };
 
 export async function createPage(input: CreatePageInput): Promise<CreatePageResult> {
-  if (isKspPlaceMeta(input.kdf_params)) {
-    if (
-      !Array.isArray(input.kdf_params.editor_public_keys) ||
-      input.kdf_params.editor_public_keys.length < 1
-    ) {
-      throw new Error("editor_public_keys required");
+  try {
+    const result = await invokeKnpFunction<CreatePageResult>("knp-create-page", {
+      slug: input.slug,
+      ciphertext: input.ciphertext,
+      salt: input.salt,
+      iv: input.iv,
+      kdf_params: input.kdf_params,
+      burn_mode: input.burn_mode,
+    });
+    if (!result.ok && result.reason === "slug_taken") {
+      return { ok: false, reason: "slug_taken" };
     }
-    try {
-      const result = await invokeKspFunction<CreatePageResult>("ksp-create-page", {
-        slug: input.slug,
-        ciphertext: input.ciphertext,
-        salt: input.salt,
-        iv: input.iv,
-        kdf_params: input.kdf_params,
-        burn_mode: input.burn_mode,
-      });
-      if (!result.ok && result.reason === "slug_taken") {
-        return { ok: false, reason: "slug_taken" };
-      }
-      if (!result.ok) {
-        throw new Error("Failed to create KSP page");
-      }
-      return result;
-    } catch (err) {
-      if (isEdgeFunctionUnavailable(err)) {
-        return createPageViaRpc(input);
-      }
-      throw err;
+    if (!result.ok) throw new Error("Failed to create page");
+    return result;
+  } catch (err) {
+    if (isEdgeFunctionUnavailable(err)) {
+      return createPageViaRpc(input);
     }
+    throw err;
   }
-
-  return createPageViaRpc(input);
 }
 
-/** Replace a legacy page ciphertext/salt/iv/kdf_params with a verified KSP create payload. */
-export async function migratePageToKsp(input: {
-  slug: string;
-  edit_token: string;
-  ciphertext: string;
-  salt: string;
-  iv: string;
-  kdf_params: KspPlaceMeta;
-}): Promise<{ ok: true }> {
-  if (
-    !Array.isArray(input.kdf_params.editor_public_keys) ||
-    input.kdf_params.editor_public_keys.length < 1
-  ) {
-    throw new Error("editor_public_keys required");
-  }
-  const result = await invokeKspFunction<{ ok?: boolean }>("ksp-migrate-page", {
-    slug: input.slug,
-    edit_token: input.edit_token,
-    ciphertext: input.ciphertext,
-    salt: input.salt,
-    iv: input.iv,
-    kdf_params: input.kdf_params,
-  });
-  if (!result?.ok) {
-    throw new Error("Failed to migrate page to KSP");
-  }
-  return { ok: true };
-}
-
-/** Legacy pre-KSP pages only. */
-async function appendVersionLegacy(args: {
-  slug: string;
-  legacyEditToken: string;
-  ciphertext: string;
-  iv: string;
-}): Promise<{ id: string; created_at: string }> {
-  const { data, error } = await rpc("kodama_append_version", {
-    p_slug: args.slug,
-    p_edit_token: args.legacyEditToken,
-    p_ciphertext: args.ciphertext,
-    p_iv: args.iv,
-  });
-  if (error) throw new Error(error.message);
-  return data as { id: string; created_at: string };
-}
-
-async function appendKspVersion(args: {
+/** Append ciphertext version (used by non-protocol callers). Prefer NoteDeliveryClient. */
+export async function savePage(args: {
   slug: string;
   ciphertext: string;
   iv: string;
+  ksp?: boolean;
+  legacyEditToken?: string | null;
 }): Promise<{ id: string; created_at: string }> {
   try {
-    return await invokeKspFunction("ksp-append-version", {
+    return await invokeKnpFunction("knp-append-version", {
       slug: args.slug,
       ciphertext: args.ciphertext,
-      iv: args.iv,
+      iv: args.iv ?? "",
+      expected_version: -1,
     });
   } catch (err) {
     if (!isEdgeFunctionUnavailable(err)) throw err;
     const { data, error } = await rpc("kodama_ksp_append_version", {
       p_slug: args.slug,
       p_ciphertext: args.ciphertext,
-      p_iv: args.iv,
+      p_iv: args.iv ?? "",
     });
     if (error) throw new Error(error.message);
     return data as { id: string; created_at: string };
   }
 }
 
-/** Save encrypted page content (KSP signed wire or legacy edit token). */
-export async function savePage(args: {
-  slug: string;
-  ciphertext: string;
-  iv: string;
-  ksp: boolean;
-  legacyEditToken?: string | null;
-}): Promise<{ id: string; created_at: string }> {
-  if (args.ksp) {
-    return appendKspVersion({
-      slug: args.slug,
-      ciphertext: args.ciphertext,
-      iv: args.iv,
-    });
-  }
-  if (!args.legacyEditToken) {
-    throw new Error("Legacy edit access not available on this device");
-  }
-  return appendVersionLegacy({
-    slug: args.slug,
-    legacyEditToken: args.legacyEditToken,
-    ciphertext: args.ciphertext,
-    iv: args.iv,
-  });
-}
-
 export async function updateExpiry(args: {
   slug: string;
   burn_mode: BurnMode;
-  ksp: boolean;
+  ksp?: boolean;
   legacyEditToken?: string | null;
 }): Promise<{ burn_mode: BurnMode; expires_at: string | null }> {
-  if (args.ksp) {
-    const { data, error } = await rpc("kodama_ksp_update_expiry", {
-      p_slug: args.slug,
-      p_burn_mode: args.burn_mode,
-    });
-    if (error) throw new Error(error.message);
-    const row = Array.isArray(data) ? data[0] : data;
-    return {
-      burn_mode: row.burn_mode as BurnMode,
-      expires_at: row.expires_at,
-    };
-  }
-  if (!args.legacyEditToken) throw new Error("Legacy edit access not available");
-  const { data, error } = await rpc("kodama_update_expiry", {
+  const { data, error } = await rpc("kodama_ksp_update_expiry", {
     p_slug: args.slug,
-    p_edit_token: args.legacyEditToken,
     p_burn_mode: args.burn_mode,
   });
   if (error) throw new Error(error.message);
@@ -370,26 +255,11 @@ export async function registerAttachment(args: {
   filename_iv: string;
   mime: string;
   size: number;
-  ksp: boolean;
+  ksp?: boolean;
   legacyEditToken?: string | null;
 }): Promise<{ id: string; created_at: string }> {
-  if (args.ksp) {
-    const { data, error } = await rpc("kodama_ksp_register_attachment", {
-      p_slug: args.slug,
-      p_storage_path: args.storage_path,
-      p_iv: args.iv,
-      p_filename_ciphertext: args.filename_ciphertext,
-      p_filename_iv: args.filename_iv,
-      p_mime: args.mime,
-      p_size: args.size,
-    });
-    if (error) throw new Error(error.message);
-    return data as { id: string; created_at: string };
-  }
-  if (!args.legacyEditToken) throw new Error("Legacy edit access not available");
-  const { data, error } = await rpc("kodama_register_attachment", {
+  const { data, error } = await rpc("kodama_ksp_register_attachment", {
     p_slug: args.slug,
-    p_edit_token: args.legacyEditToken,
     p_storage_path: args.storage_path,
     p_iv: args.iv,
     p_filename_ciphertext: args.filename_ciphertext,
@@ -404,21 +274,11 @@ export async function registerAttachment(args: {
 export async function deleteAttachment(args: {
   slug: string;
   attachment_id: string;
-  ksp: boolean;
+  ksp?: boolean;
   legacyEditToken?: string | null;
 }): Promise<void> {
-  if (args.ksp) {
-    const { error } = await rpc("kodama_ksp_delete_attachment", {
-      p_slug: args.slug,
-      p_attachment_id: args.attachment_id,
-    });
-    if (error) throw new Error(error.message);
-    return;
-  }
-  if (!args.legacyEditToken) throw new Error("Legacy edit access not available");
-  const { error } = await rpc("kodama_delete_attachment", {
+  const { error } = await rpc("kodama_ksp_delete_attachment", {
     p_slug: args.slug,
-    p_edit_token: args.legacyEditToken,
     p_attachment_id: args.attachment_id,
   });
   if (error) throw new Error(error.message);

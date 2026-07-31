@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 
 import { invalidateAttachmentList } from "@/lib/attachment-list";
-import { clearKspSecrets } from "@/lib/ksp-secrets";
+import { clearKnpSecrets } from "@/lib/knp-secrets";
 import { revokeKodamaBlobCache } from "@/lib/kodama-image";
 
 export type LockReason = "manual" | "inactivity";
@@ -10,5 +10,5 @@ export type LockReason = "manual" | "inactivity";
 export function clearDecryptedSession(slug: string, queryClient?: QueryClient): void {
   revokeKodamaBlobCache(slug);
   invalidateAttachmentList(slug, queryClient);
-  clearKspSecrets(slug);
+  clearKnpSecrets(slug);
 }

@@ -25,7 +25,7 @@ vi.mock("@/lib/attachment-crypto", () => ({
 
 import { resolveKodamaAttachmentUrl } from "@/lib/kodama-image";
 
-const legacyCrypto = { kind: "legacy" as const, cryptoKey: {} as CryptoKey };
+const knpCrypto = { kind: "knp" as const, session: {} as never };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -41,7 +41,7 @@ describe("resolveKodamaAttachmentUrl", () => {
   it("returns null when id is not in allowed set", async () => {
     const url = await resolveKodamaAttachmentUrl(attId, {
       slug: "test",
-      crypto: legacyCrypto,
+      crypto: knpCrypto,
       allowedAttachmentIds: new Set(["bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"]),
     });
     expect(url).toBeNull();
@@ -50,7 +50,7 @@ describe("resolveKodamaAttachmentUrl", () => {
   it("resolves when id is in allowed set", async () => {
     const url = await resolveKodamaAttachmentUrl(attId, {
       slug: "test",
-      crypto: legacyCrypto,
+      crypto: knpCrypto,
       allowedAttachmentIds: new Set([attId]),
     });
     expect(url).toMatch(/^blob:/);
