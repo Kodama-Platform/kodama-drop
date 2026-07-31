@@ -23,7 +23,6 @@ import { pageQueryKey, type ExistingPage } from "@/lib/page-query";
 import { isPlaintextMode, loadPlaintextWorkbook } from "@/lib/plaintext-mode";
 import { resolveUnlockCapability, type UnlockCapability } from "@/lib/unlock-capability";
 import {
-  editorSecretsFromFragment,
   encodeCapabilityFragment,
   getFragmentCapability,
   parseEditorCapabilityImport,
@@ -48,22 +47,33 @@ export const Route = createFileRoute("/$slug")({
   component: SlugPage,
 });
 
+function fragmentCapabilitySecrets(): {
+  readerCapability: string;
+  editorCapability: string;
+} | null {
+  const editor = getFragmentCapability("editor");
+  if (editor) return { readerCapability: editor, editorCapability: editor };
+  const read = getFragmentCapability("read");
+  if (read) return { readerCapability: read, editorCapability: "" };
+  return null;
+}
+
 function initialUnlockCapability(slug: string, viaShareLink: boolean): UnlockCapability {
   const secrets = readKnpSecrets(slug);
-  const editorFragment = editorSecretsFromFragment();
+  const fromHash = fragmentCapabilitySecrets();
   return resolveUnlockCapability({
-    hasEditorSecrets: !!(secrets?.isOwner || secrets?.editorCapability || editorFragment?.editorPrivateKey),
+    hasEditorSecrets: !!(secrets?.isOwner || secrets?.editorCapability || fromHash?.editorCapability),
     hasReadCapability: viaShareLink || !!getFragmentCapability("read") || !!secrets?.readerCapability,
   });
 }
 
 /** Persist `#editor=` / `#read=` fragments into session secrets. */
 function importEditorFragment(slug: string): void {
-  const imported = editorSecretsFromFragment();
+  const imported = fragmentCapabilitySecrets();
   if (!imported) return;
   writeKnpSecrets(slug, {
     readerCapability: imported.readerCapability,
-    editorCapability: imported.editorPrivateKey,
+    editorCapability: imported.editorCapability,
     isOwner: false,
   });
 }

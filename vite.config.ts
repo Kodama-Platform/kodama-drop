@@ -10,9 +10,15 @@ import { devTlsOptions } from "./scripts/dev-tls";
 const tls = devTlsOptions();
 const repoRoot = path.dirname(fileURLToPath(import.meta.url));
 const kscRoot = path.resolve(repoRoot, "../kodama-security-core/packages");
+// Keep Vite's optimize-deps cache off Dropbox — sync/locks cause empty deps + 504s.
+const viteCacheDir = path.join(
+  process.env.LOCALAPPDATA || process.env.TMPDIR || "/tmp",
+  "kodama-note-vite",
+);
 
 // Pure SPA build — outputs static assets to dist/ for AWS Amplify.
 export default defineConfig({
+  cacheDir: viteCacheDir,
   resolve: {
     tsconfigPaths: true,
     alias: {

@@ -87,3 +87,22 @@ export function parseEditorCapabilityImport(raw: string): { editor: string } | n
     return null;
   }
 }
+
+/**
+ * Read `#editor=` / `#read=` into session-shaped secrets.
+ * For KNP, editor share blobs are self-contained capability packages (same string for both fields).
+ */
+export function editorSecretsFromFragment(): {
+  readerCapability: string;
+  editorPrivateKey: string;
+} | null {
+  const editor = getFragmentCapability("editor");
+  if (editor) {
+    return { readerCapability: editor, editorPrivateKey: editor };
+  }
+  const read = getFragmentCapability("read");
+  if (read) {
+    return { readerCapability: read, editorPrivateKey: "" };
+  }
+  return null;
+}
