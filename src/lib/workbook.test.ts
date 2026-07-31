@@ -205,10 +205,10 @@ describe("exportWorkbookMarkdown", () => {
 });
 
 describe("createEmptyWorkbook", () => {
-  it("creates a single empty Main sheet", () => {
+  it("creates a single empty untitled sheet", () => {
     const wb = createEmptyWorkbook();
     expect(wb.sheets).toHaveLength(1);
-    expect(wb.sheets[0].title).toBe("Main");
+    expect(wb.sheets[0].title).toBe("");
     expect(wb.sheets[0].markdown).toBe("");
   });
 });

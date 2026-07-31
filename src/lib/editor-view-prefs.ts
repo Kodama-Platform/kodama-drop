@@ -12,7 +12,7 @@ const FONT_KEY = "kodama-editor-font-scale";
 const WIDTH_KEY = "kodama-editor-view-width";
 const DEFAULT_ZOOM: EditorZoom = 100;
 const DEFAULT_FONT: EditorFontScale = 100;
-const DEFAULT_WIDTH: EditorViewWidth = "tablet";
+const DEFAULT_WIDTH: EditorViewWidth = "comfortable";
 
 function isZoom(value: number): value is EditorZoom {
   return (EDITOR_ZOOM_STEPS as readonly number[]).includes(value);
@@ -95,10 +95,10 @@ export function setEditorViewWidth(width: EditorViewWidth): void {
 export function editorViewWidthLabel(width: EditorViewWidth): string {
   switch (width) {
     case "comfortable":
-      return "Comfortable";
+      return "Narrow";
     case "tablet":
-      return "Tablet";
+      return "Wide";
     case "full":
-      return "Full";
+      return "Full width";
   }
 }

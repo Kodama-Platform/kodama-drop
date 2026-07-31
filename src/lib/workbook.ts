@@ -175,7 +175,7 @@ export function createEmptyWorkbook(): WorkbookPayload {
     sheets: [
       {
         sheet_id,
-        title: "Main",
+        title: "",
         order: 0,
         markdown: "",
         created_at: ts,
@@ -293,7 +293,6 @@ export function renameSheet(
   title: string,
 ): WorkbookPayload {
   const trimmed = title.trim().slice(0, WORKBOOK_LIMITS.maxTitleLength);
-  if (!trimmed) return payload;
   const ts = nowIso();
   return {
     ...payload,

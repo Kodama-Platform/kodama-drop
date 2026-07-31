@@ -33,6 +33,8 @@ import {
   type LinkRiskAssessment,
 } from "@/lib/link-safety";
 import { ExternalLinkWarning } from "@/components/external-link-warning";
+import { EditorBlockInsertButton, EditorSlashMenu } from "@/components/editor-slash-menu";
+import { EditorFormatToolbar } from "@/components/editor-format-toolbar";
 import { LinkInsertDialog } from "@/components/link-insert-dialog";
 import { KodamaParagraph, KodamaHeading } from "@/lib/kodama-aligned-blocks";
 import { KodamaHighlight } from "@/lib/kodama-highlight";
@@ -82,6 +84,8 @@ type RichEditorProps = {
   allowedAttachmentIds?: ReadonlySet<string>;
   autoFocus?: boolean;
   focusMode?: boolean;
+  /** TipTap empty-state placeholder (keep short when starters are shown below). */
+  placeholder?: string;
   onEditorReady?: (editor: Editor | null) => void;
   /** Current heading under the caret / near viewport top (for outline highlight). */
   onActiveHeadingChange?: (heading: string | null) => void;
@@ -136,6 +140,7 @@ export const RichEditor = forwardRef<RichEditorHandle, RichEditorProps>(
       allowedAttachmentIds,
       autoFocus = true,
       focusMode = false,
+      placeholder = "Start writing…",
       onEditorReady,
       onActiveHeadingChange,
     },
@@ -254,7 +259,7 @@ export const RichEditor = forwardRef<RichEditorHandle, RichEditorProps>(
         TableCell,
         createKodamaImageExtension({ slug, crypto, allowedAttachmentIds }),
         Placeholder.configure({
-          placeholder: "Start writing… Select text to format, # for headings, Cmd/Ctrl+K for commands.",
+          placeholder,
         }),
         Markdown.configure({
           html: false,
@@ -498,6 +503,23 @@ export const RichEditor = forwardRef<RichEditorHandle, RichEditorProps>(
     return (
       <>
         <EditorContent editor={editor} />
+        {canEdit !== false && (
+          <>
+            <EditorFormatToolbar
+              editor={editor}
+              onOpenLink={() => {
+                const { from, to } = editor.state.selection;
+                const selectedText = editor.state.doc.textBetween(from, to, " ");
+                setLinkInsert({
+                  selectedText,
+                  url: editor.getAttributes("link").href ?? "",
+                });
+              }}
+            />
+            <EditorSlashMenu editor={editor} />
+            <EditorBlockInsertButton editor={editor} />
+          </>
+        )}
         <ExternalLinkWarning
           open={linkWarning !== null}
           assessment={linkWarning}

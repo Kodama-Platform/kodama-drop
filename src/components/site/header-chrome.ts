@@ -3,13 +3,13 @@ import { useEffect, useState } from "react";
 export const HEADER_INNER =
   "mx-auto flex h-12 max-w-7xl items-center justify-between gap-2 px-3 sm:h-16 sm:gap-3 sm:px-6 lg:h-[72px] lg:px-10";
 
-/** Full-bleed slim editor chrome — matches status bar padding. */
+/** Full-bleed nearly invisible editor chrome (~52px). */
 export const EDITOR_HEADER_INNER =
-  "mx-auto flex h-14 w-full max-w-none items-center justify-between gap-2 px-3 sm:gap-3 sm:px-6 lg:px-6";
+  "mx-auto flex h-[52px] w-full max-w-none items-center justify-between gap-2 px-3 sm:gap-3 sm:px-5 lg:px-6";
 
 export const HEADER_OFFSET = "pt-12 sm:pt-16 lg:pt-[72px]";
 
-export const EDITOR_HEADER_OFFSET = "pt-14";
+export const EDITOR_HEADER_OFFSET = "pt-[52px]";
 
 export function useHeaderScrolled(threshold = 20) {
   const [scrolled, setScrolled] = useState(false);
@@ -32,9 +32,9 @@ export function headerShellClass(scrolled: boolean, menuOpen = false) {
   }`;
 }
 
-/** Translucent app chrome for the note editor. */
+/** Nearly invisible app chrome for the note editor. */
 export function editorHeaderShellClass() {
-  return "fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-[rgb(var(--editor-surface)/0.94)] backdrop-blur-md";
+  return "fixed inset-x-0 top-0 z-50 border-b border-border/25 bg-[rgb(var(--editor-surface)/0.72)] backdrop-blur-sm";
 }
 
 export function headerLogoClass() {

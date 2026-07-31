@@ -15,6 +15,8 @@ type NoteShellProps = {
   centered?: boolean;
   showHeader?: boolean;
   atmosphere?: boolean;
+  /** Custom cursor trail — off on the writing surface. */
+  spiritCursor?: boolean;
   atmosphereClassName?: string;
   className?: string;
   /** Lock shell to viewport height so inner panes can scroll (editor page). */
@@ -31,6 +33,7 @@ export function NoteShell({
   centered = false,
   showHeader = true,
   atmosphere = true,
+  spiritCursor = true,
   atmosphereClassName = "note-atmosphere",
   className,
   fillViewport = false,
@@ -48,7 +51,7 @@ export function NoteShell({
         fillViewport ? "h-dvh min-h-0 overflow-hidden" : "min-h-screen"
       } ${className ?? ""}`}
     >
-      <SpiritCursor />
+      {spiritCursor && <SpiritCursor />}
       {atmosphere && (
         <div
           aria-hidden="true"

@@ -188,8 +188,13 @@
   }
 
   ::selection {
-    background-color: rgb(var(--primary));
-    color: rgb(var(--primary-foreground));
+    background-color: rgb(var(--primary) / 0.22);
+    color: inherit;
+  }
+
+  .dark ::selection {
+    background-color: rgb(var(--primary) / 0.34);
+    color: inherit;
   }
 
   ::-webkit-scrollbar {
@@ -592,7 +597,7 @@ html:not(.dark) .firefly {
   opacity: 0.5;
 }
 
-/* Soft forest under the editor — quieter than marketing */
+/* Soft forest under the editor — quieter than marketing (legacy; paper mode prefers none) */
 .editor-app .note-atmosphere,
 .editor-app.note-atmosphere {
   opacity: 0.28;
@@ -602,6 +607,102 @@ html:not(.dark) .firefly {
 .editor-app.focus-mode .note-atmosphere {
   opacity: 0.14;
   transition: opacity 0.5s ease;
+}
+
+/* Quiet warm-paper writing surface — no forest layer */
+.editor-app--paper {
+  --editor-surface: 252 248 240;
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgb(255 252 245 / 0.95), transparent 55%),
+    rgb(246 241 232);
+}
+
+.dark .editor-app--paper {
+  --editor-surface: 28 30 28;
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgb(36 40 36 / 0.9), transparent 55%),
+    rgb(18 20 18);
+}
+
+.editor-app--paper .ProseMirror {
+  caret-color: rgb(var(--primary));
+}
+
+.editor-slash-menu {
+  position: fixed;
+  z-index: 60;
+  min-width: 11.5rem;
+  max-height: 16rem;
+  overflow-y: auto;
+  border: 1px solid rgb(var(--border) / 0.45);
+  border-radius: 0.75rem;
+  background: rgb(var(--card) / 0.97);
+  padding: 0.25rem;
+  box-shadow: 0 12px 32px -16px rgb(0 0 0 / 0.28);
+}
+
+.editor-slash-menu--anchored {
+  position: absolute;
+  top: 1.75rem;
+  left: 0;
+}
+
+.editor-slash-menu--block-insert {
+  position: fixed;
+  z-index: 90;
+}
+
+.editor-slash-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.55rem;
+  text-align: left;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: rgb(var(--foreground));
+}
+
+.editor-slash-item:hover,
+.editor-slash-item.is-active {
+  background: rgb(var(--primary) / 0.1);
+  color: rgb(var(--primary));
+}
+
+.editor-slash-icon {
+  display: inline-flex;
+  color: rgb(var(--muted-foreground));
+}
+
+.editor-block-insert {
+  position: fixed;
+  z-index: 40;
+  transform: translateY(-0.15rem);
+}
+
+.editor-block-insert-btn {
+  display: flex;
+  height: 1.35rem;
+  width: 1.35rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid rgb(var(--border) / 0.35);
+  background: rgb(var(--editor-surface) / 0.9);
+  font-size: 0.95rem;
+  line-height: 1;
+  color: rgb(var(--muted-foreground) / 0.75);
+  opacity: 0.55;
+  transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.editor-block-insert:hover .editor-block-insert-btn,
+.editor-block-insert:focus-within .editor-block-insert-btn {
+  opacity: 1;
+  color: rgb(var(--primary));
+  border-color: rgb(var(--primary) / 0.35);
 }
 
 .editor-app.focus-mode::after {
@@ -723,16 +824,16 @@ html:not(.dark) .firefly {
 .editor-page-stack {
   display: flex;
   width: 100%;
-  max-width: 800px;
+  max-width: 740px;
   min-height: 100%;
   flex-direction: column;
   align-items: stretch;
   margin: 0 auto;
-  padding: 1rem 0.85rem 1.75rem;
+  padding: 1.75rem 1.1rem 3rem;
 }
 
 .editor-page-stack[data-editor-view-width="comfortable"] {
-  max-width: 720px;
+  max-width: 740px;
 }
 
 .editor-page-stack[data-editor-view-width="tablet"] {
@@ -780,14 +881,15 @@ html:not(.dark) .firefly {
   flex: 1 1 auto;
   flex-direction: column;
   overflow-x: clip;
-  border: 1px solid rgb(var(--border) / 0.45);
-  border-radius: 1rem;
-  background: rgb(var(--editor-surface) / 0.96);
-  box-shadow:
-    0 1px 0 rgb(var(--border) / 0.2),
-    0 18px 48px -20px rgb(0 0 0 / 0.14),
-    0 6px 18px rgb(0 0 0 / 0.04);
-  padding: 1.25rem 1.35rem 1.75rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0.25rem 0.15rem 2.5rem;
+}
+
+.editor-app--paper [data-editor-page-card="true"] {
+  background: transparent;
 }
 
 /*
@@ -839,8 +941,8 @@ html:not(.dark) .firefly {
 
 [data-editor-page-title-wrap="true"] {
   width: 100%;
-  margin: 0 0 0.65rem;
-  padding: 0;
+  margin: 0 0 1.35rem;
+  padding: 0.35rem 0 0;
 }
 
 [data-editor-left-rail="true"],
@@ -875,10 +977,8 @@ html:not(.dark) .firefly {
 }
 
 .dark [data-editor-page-card="true"] {
-  border-color: rgb(var(--border) / 0.55);
-  box-shadow:
-    0 1px 0 rgb(var(--border) / 0.12),
-    0 22px 50px -18px rgb(0 0 0 / 0.45);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 [data-editor-board="true"][data-editor-focus="true"] [data-editor-page-card="true"] {
@@ -895,15 +995,19 @@ html:not(.dark) .firefly {
   display: block;
   width: 100%;
   margin: 0;
-  padding: 0.15rem 0.05rem 0.4rem;
+  padding: 0.2rem 0.05rem 0.55rem;
   border: none;
   background: transparent;
   font-family: var(--font-display);
-  font-size: calc(clamp(1.65rem, 2.4vw, 2.15rem) * var(--editor-font-scale, 1));
+  font-size: calc(clamp(1.85rem, 2.8vw, 2.45rem) * var(--editor-font-scale, 1));
   font-weight: 300;
-  line-height: 1.2;
-  letter-spacing: -0.025em;
+  line-height: 1.18;
+  letter-spacing: -0.03em;
   color: rgb(var(--foreground));
+}
+
+.editor-page-title-input::placeholder {
+  color: rgb(var(--muted-foreground) / 0.45);
 }
 
 .editor-page-title-input {
@@ -1313,7 +1417,7 @@ html:not(.dark) .firefly {
     0 8px 18px rgb(0 0 0 / 0.35);
 }
 
-/* Legacy bubble styles (unused by focused layout; kept for safety). */
+/* Legacy block toolbar shell (kept for safety). */
 .editor-block-toolbar {
   flex-shrink: 0;
   border-bottom: 1px solid rgb(var(--border) / 0.4);
@@ -1323,19 +1427,83 @@ html:not(.dark) .firefly {
 
 .editor-format-toolbar {
   z-index: 40;
-  max-width: min(calc(100vw - 1.5rem), 42rem);
-  border: 1px solid rgb(var(--border) / 0.55);
-  border-radius: 0.85rem;
-  background: rgb(var(--card) / 0.96);
+  max-width: min(calc(100vw - 1.5rem), 22.5rem);
+  border: 1px solid rgb(var(--border) / 0.5);
+  border-radius: 0.7rem;
+  background: rgb(var(--card) / 0.97);
   box-shadow:
-    0 10px 30px rgb(0 0 0 / 0.12),
-    0 0 0 1px rgb(var(--border) / 0.2);
-  backdrop-filter: blur(10px);
+    0 8px 22px rgb(0 0 0 / 0.1),
+    0 0 0 1px rgb(var(--border) / 0.16);
+  backdrop-filter: blur(12px);
+}
+
+.editor-format-toolbar--floating {
+  z-index: 80;
+  pointer-events: auto;
 }
 
 .editor-format-toolbar--static {
   position: relative;
   margin: 0.5rem 0;
+  max-width: none;
+}
+
+.dark .editor-format-toolbar {
+  background: rgb(var(--card) / 0.98);
+  border-color: rgb(var(--border) / 0.65);
+  box-shadow:
+    0 10px 28px rgb(0 0 0 / 0.42),
+    0 0 0 1px rgb(var(--border) / 0.3);
+}
+
+/* Dense single strip: primary stays short; More opens a second row */
+.editor-format-toolbar-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0.2rem;
+}
+
+.editor-format-toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: nowrap;
+}
+
+.editor-format-toolbar-row--more {
+  flex-wrap: wrap;
+  margin-top: 0.15rem;
+  padding-top: 0.15rem;
+  border-top: 1px solid rgb(var(--border) / 0.35);
+}
+
+.editor-format-toolbar .editor-format-group {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.editor-format-toolbar .editor-format-group + .editor-format-group {
+  margin-left: 0.15rem;
+  padding-left: 0.15rem;
+  border-left: 1px solid rgb(var(--border) / 0.4);
+}
+
+.editor-format-toolbar .editor-format-btn {
+  height: 1.6rem;
+  min-width: 1.6rem;
+  border-radius: 0.4rem;
+}
+
+.editor-format-toolbar .editor-format-btn[aria-pressed="true"] {
+  background: rgb(var(--primary) / 0.14);
+  color: rgb(var(--foreground));
+  box-shadow: none;
 }
 
 .editor-footer-meta {
@@ -1563,6 +1731,11 @@ html:not(.dark) .firefly {
 
 .editor-format-toolbar-scroll::-webkit-scrollbar {
   display: none;
+}
+
+/* Prefer the stacked body layout over the old horizontal scroll strip */
+.editor-format-toolbar .editor-format-toolbar-body {
+  overflow: visible;
 }
 
 .editor-format-group {
@@ -1957,47 +2130,50 @@ html:not(.dark) .firefly {
 
 .editor-empty-state {
   display: flex;
-  min-height: min(52vh, 28rem);
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1.25rem;
-  padding: 2rem 1rem 3rem;
-  text-align: center;
+  align-items: stretch;
+  gap: 0.85rem;
+  margin-top: 1.75rem;
+  padding: 0 0 2.5rem;
+  text-align: left;
 }
 
-.editor-empty-state h2 {
-  font-family: var(--font-display);
-  font-size: 1.35rem;
+.editor-empty-hint {
+  max-width: 28rem;
+  font-size: 0.8125rem;
   font-weight: 300;
-  letter-spacing: -0.02em;
-  color: rgb(var(--foreground) / 0.9);
+  line-height: 1.5;
+  color: rgb(var(--muted-foreground) / 0.85);
 }
 
-.editor-empty-state p {
-  max-width: 26rem;
-  font-size: 0.9rem;
-  font-weight: 300;
-  line-height: 1.55;
-  color: rgb(var(--muted-foreground));
+.editor-empty-hint kbd {
+  display: inline-block;
+  min-width: 1.15rem;
+  border: 1px solid rgb(var(--border) / 0.55);
+  border-radius: 0.3rem;
+  padding: 0 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: rgb(var(--foreground) / 0.75);
 }
 
 .editor-template-grid {
   display: grid;
   width: 100%;
-  max-width: 36rem;
-  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
-  gap: 0.65rem;
+  max-width: 32rem;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.5rem;
 }
 
 .editor-template-card {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  border: 1px solid rgb(var(--border) / 0.55);
-  border-radius: 0.85rem;
-  background: rgb(var(--editor-surface) / 0.7);
-  padding: 0.85rem 0.9rem;
+  gap: 0.2rem;
+  border: 1px solid rgb(var(--border) / 0.4);
+  border-radius: 0.7rem;
+  background: rgb(var(--editor-surface) / 0.55);
+  padding: 0.7rem 0.8rem;
   text-align: left;
   cursor: pointer;
   transition:
@@ -2057,8 +2233,8 @@ html:not(.dark) .firefly {
 /* Mobile polish — larger targets + safe areas */
 @media (max-width: 767px) {
   .editor-app [data-editor-page-card="true"] {
-    border-radius: 0.85rem;
-    padding: 1rem 1rem 1.5rem;
+    border-radius: 0;
+    padding: 0.15rem 0.1rem 2rem;
   }
 
   [data-editor-toolbar-dock="true"] .editor-format-btn {
@@ -2200,7 +2376,25 @@ html:not(.dark) .firefly {
 
 .tiptap ::selection,
 .ProseMirror ::selection {
-  background: rgb(250 204 21 / 0.28);
+  background: rgb(var(--primary) / 0.2);
+  color: inherit;
+}
+
+.dark .tiptap ::selection,
+.dark .ProseMirror ::selection {
+  background: rgb(var(--primary) / 0.36);
+  color: inherit;
+}
+
+/* Warm paper: slightly stronger moss wash so selection reads on ivory */
+.editor-app--paper .tiptap ::selection,
+.editor-app--paper .ProseMirror ::selection {
+  background: rgb(var(--primary) / 0.24);
+}
+
+.dark .editor-app--paper .tiptap ::selection,
+.dark .editor-app--paper .ProseMirror ::selection {
+  background: rgb(var(--primary) / 0.4);
 }
 
 .tiptap:focus,
@@ -2375,16 +2569,18 @@ html:not(.dark) .firefly {
 
 .tiptap mark,
 .ProseMirror mark {
-  background: rgb(250 204 21 / 0.42);
+  background: rgb(var(--primary) / 0.18);
   color: inherit;
   border-radius: 0.2em;
   padding: 0.05em 0.15em;
   box-decoration-break: clone;
+  box-shadow: inset 0 -0.08em 0 rgb(var(--primary) / 0.28);
 }
 
 .dark .tiptap mark,
 .dark .ProseMirror mark {
-  background: rgb(250 204 21 / 0.28);
+  background: rgb(var(--primary) / 0.28);
+  box-shadow: inset 0 -0.08em 0 rgb(var(--primary) / 0.35);
 }
 
 .tiptap u,

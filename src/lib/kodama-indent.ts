@@ -47,10 +47,10 @@ export const KodamaIndent = Extension.create({
       indent:
         () =>
         ({ commands, editor, state }) => {
-          if (editor.can().sinkListItem("listItem")) {
+          if (editor.schema.nodes.listItem && editor.can().sinkListItem("listItem")) {
             return commands.sinkListItem("listItem");
           }
-          if (editor.can().sinkListItem("taskItem")) {
+          if (editor.schema.nodes.taskItem && editor.can().sinkListItem("taskItem")) {
             return commands.sinkListItem("taskItem");
           }
 
@@ -63,10 +63,10 @@ export const KodamaIndent = Extension.create({
       outdent:
         () =>
         ({ commands, editor, state }) => {
-          if (editor.can().liftListItem("listItem")) {
+          if (editor.schema.nodes.listItem && editor.can().liftListItem("listItem")) {
             return commands.liftListItem("listItem");
           }
-          if (editor.can().liftListItem("taskItem")) {
+          if (editor.schema.nodes.taskItem && editor.can().liftListItem("taskItem")) {
             return commands.liftListItem("taskItem");
           }
 

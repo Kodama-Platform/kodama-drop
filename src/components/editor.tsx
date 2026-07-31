@@ -5,23 +5,15 @@ import {
   AlertTriangle,
   Check,
   CloudOff,
-  Copy,
-  FileCode2,
   Flame,
-  Focus,
   Loader2,
   Menu,
   Pencil,
-  Redo2,
-  RotateCcw,
   Save,
-  Search,
   Timer,
-  Undo2,
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { ThemeToggle } from "@/components/theme-toggle";
 import { KodamaMark } from "@/components/kodama-mark";
 import { NoteShell } from "@/components/site/note-shell";
 import {
@@ -36,17 +28,14 @@ import { EditorEmptyState } from "@/components/editor-empty-state";
 import { EditorMobileMenu } from "@/components/editor-mobile-menu";
 import { EditorMoreMenu } from "@/components/editor-more-menu";
 import { EditorPageTitle } from "@/components/editor-page-title";
-import { EditorStatusBar } from "@/components/editor-status-bar";
 import { EditorTemplatesOverlay } from "@/components/editor-templates-overlay";
-import { EditorToolbar } from "@/components/editor-toolbar";
 import { FindReplace } from "@/components/find-replace";
 import { KeyboardShortcutsDialog } from "@/components/keyboard-shortcuts-dialog";
 import { MarkdownView } from "@/components/markdown-view";
-import { Outline, OutlineDrawer, type OutlineDrawerPanel } from "@/components/outline";
+import { OutlineDrawer, type OutlineDrawerPanel } from "@/components/outline";
 import { RichEditor, type RichEditorHandle } from "@/components/rich-editor";
 import type { Editor as TiptapEditor } from "@tiptap/react";
 import { DonateRibbon, useVisitCount } from "@/components/donate-ribbon";
-import { SheetNav } from "@/components/sheet-nav";
 import { UnsavedChangesDialog } from "@/components/unsaved-changes-dialog";
 import { useExportActions } from "@/components/export-menu";
 import { EDITOR_EVENTS, setEditorCommandContext } from "@/lib/editor-commands";
@@ -186,13 +175,13 @@ export function Editor({
   const [shareOpen, setShareOpen] = useState(false);
   const [outlineOpen, setOutlineOpen] = useState(false);
   const [outlinePanel, setOutlinePanel] = useState<OutlineDrawerPanel>("outline");
-  const [outlineVisible, setOutlineVisible] = useState(true);
-  const [notesVisible, setNotesVisible] = useState(true);
+  const [outlineVisible, setOutlineVisible] = useState(false);
+  const [notesVisible, setNotesVisible] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
-  const [emptyDismissed, setEmptyDismissed] = useState(false);
   const [activeHeading, setActiveHeading] = useState<string | null>(null);
   const [formatEditor, setFormatEditor] = useState<TiptapEditor | null>(null);
+  const [editorIsEmpty, setEditorIsEmpty] = useState(true);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [editorZoom, setEditorZoomState] = useState<EditorZoom>(() => getEditorZoom());
@@ -246,16 +235,20 @@ export function Editor({
     if (!formatEditor) {
       setCanUndo(false);
       setCanRedo(false);
+      setEditorIsEmpty(true);
       return;
     }
-    const syncHistory = () => {
+    const syncEditorUi = () => {
       setCanUndo(formatEditor.can().undo());
       setCanRedo(formatEditor.can().redo());
+      setEditorIsEmpty(formatEditor.isEmpty);
     };
-    syncHistory();
-    formatEditor.on("transaction", syncHistory);
+    syncEditorUi();
+    formatEditor.on("transaction", syncEditorUi);
+    formatEditor.on("create", syncEditorUi);
     return () => {
-      formatEditor.off("transaction", syncHistory);
+      formatEditor.off("transaction", syncEditorUi);
+      formatEditor.off("create", syncEditorUi);
     };
   }, [formatEditor]);
   const handleUndo = useCallback(() => {
@@ -705,30 +698,6 @@ export function Editor({
     [activeSheetId, markDirty],
   );
 
-  const applyTemplate = useCallback(
-    (template: NoteTemplate) => {
-      if (!canEdit) return;
-      const current =
-        richEditorRef.current?.getMarkdown() ??
-        getActiveSheetMarkdown(workbookRef.current, activeSheetId);
-      const hasContent = current.trim().length > 0;
-      if (hasContent) {
-        const title =
-          workbookRef.current.sheets.find((s) => s.sheet_id === activeSheetId)?.title ?? "sheet";
-        const ok = window.confirm(
-          `Replace “${title}” with the ${template.label} template?`,
-        );
-        if (!ok) return;
-      }
-      richEditorRef.current?.setMarkdown(template.markdown);
-      handleMarkdownChange(template.markdown);
-      setEmptyDismissed(true);
-      toast.success(`${template.label} applied`);
-      queueMicrotask(() => richEditorRef.current?.focus());
-    },
-    [activeSheetId, canEdit, handleMarkdownChange],
-  );
-
   const handleViewMarkdownChange = useCallback(
     (markdown: string) => {
       setViewMarkdown(markdown);
@@ -778,6 +747,36 @@ export function Editor({
       setWorkbook((prev) => renameSheet(prev, sheetId, title));
     },
     [markDirty],
+  );
+
+  const applyTemplate = useCallback(
+    (template: NoteTemplate) => {
+      if (!canEdit) return;
+      const current =
+        richEditorRef.current?.getMarkdown() ??
+        getActiveSheetMarkdown(workbookRef.current, activeSheetId);
+      const hasContent = current.trim().length > 0;
+      if (hasContent) {
+        const title =
+          workbookRef.current.sheets.find((s) => s.sheet_id === activeSheetId)?.title || "note";
+        const ok = window.confirm(
+          `Replace “${title}” with the ${template.label} template?`,
+        );
+        if (!ok) return;
+      }
+      let markdown = template.markdown;
+      const h1 = markdown.match(/^#\s+(.+)\n+/);
+      if (h1) {
+        markdown = markdown.slice(h1[0].length);
+      }
+      const noteTitle = template.id === "blank" ? "" : template.label;
+      handleRenameSheet(activeSheetId, noteTitle);
+      richEditorRef.current?.setMarkdown(markdown);
+      handleMarkdownChange(markdown);
+      toast.success(template.id === "blank" ? "Blank note" : `${template.label} applied`);
+      queueMicrotask(() => richEditorRef.current?.focus());
+    },
+    [activeSheetId, canEdit, handleMarkdownChange, handleRenameSheet],
   );
 
   const handleDeleteSheet = useCallback(
@@ -1007,11 +1006,16 @@ export function Editor({
   const readingMinutes = Math.max(1, Math.round(wordCount / 200));
 
 
-  const sheetIsEmpty = !activeMarkdown.trim();
-  const showEmptyStarters = canEdit && sheetIsEmpty && !focus && !markdownView && !emptyDismissed;
+  // Match TipTap's placeholder: when the live editor is empty, show starters under it.
+  // Fall back to workbook markdown before the editor mounts.
+  const sheetIsEmpty = !activeMarkdown.replace(/[\s\u200b\uFEFF]/g, "").trim();
+  const showEmptyStarters =
+    canEdit &&
+    !focus &&
+    !markdownView &&
+    (formatEditor ? editorIsEmpty : sheetIsEmpty);
 
   useEffect(() => {
-    setEmptyDismissed(false);
     setActiveHeading(null);
   }, [activeSheetId]);
 
@@ -1019,8 +1023,10 @@ export function Editor({
     <NoteShell
       showHeader={false}
       footer={false}
+      atmosphere={false}
+      spiritCursor={false}
       fillViewport
-      className={`editor-app${focus ? " focus-mode" : ""}`}
+      className={`editor-app editor-app--paper${focus ? " focus-mode" : ""}`}
     >
       <div className={`flex h-full min-h-0 flex-col overflow-hidden ${EDITOR_HEADER_OFFSET}`}>
       {isReader && (
@@ -1049,32 +1055,8 @@ export function Editor({
             </span>
           </Link>
 
-          {/* Mobile: undo/redo + status + quick save + menu */}
+          {/* Mobile: status + share entry + menu */}
           <div className="flex shrink-0 items-center gap-1 md:hidden">
-            {canEdit && (
-              <>
-                <button
-                  type="button"
-                  onClick={handleUndo}
-                  disabled={!canUndo}
-                  className="note-toolbar-btn !h-9 !w-9 !px-0 disabled:opacity-35"
-                  aria-label="Undo"
-                  title="Undo"
-                >
-                  <Undo2 className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleRedo}
-                  disabled={!canRedo}
-                  className="note-toolbar-btn !h-9 !w-9 !px-0 disabled:opacity-35"
-                  aria-label="Redo"
-                  title="Redo"
-                >
-                  <Redo2 className="h-4 w-4" />
-                </button>
-              </>
-            )}
             {canSave && saveMode === "manual" && isDirty && (
               <button
                 type="button"
@@ -1087,8 +1069,9 @@ export function Editor({
                 <Save className="h-4 w-4" />
               </button>
             )}
-            {canSave && <StatusPill status={status} isDirty={isDirty} compact />}
-            <ThemeToggle lightDarkOnly className="!h-9 !w-9" />
+            {canSave && (
+              <StatusPill status={status} isDirty={isDirty} compact privateNote={!isPlaintext} />
+            )}
             <button
               type="button"
               onClick={() => {
@@ -1105,132 +1088,74 @@ export function Editor({
             </button>
           </div>
 
-          {/* Desktop toolbar — undo/redo, status, share, find, more */}
-          <div className="hidden items-center gap-1.5 md:flex">
-            {canEdit && (
-              <>
-                <button
-                  type="button"
-                  onClick={handleUndo}
-                  disabled={!canUndo}
-                  className="note-toolbar-btn !h-8 !w-8 !px-0 disabled:opacity-35"
-                  title="Undo (⌘Z)"
-                  aria-label="Undo"
-                >
-                  <Undo2 className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleRedo}
-                  disabled={!canRedo}
-                  className="note-toolbar-btn !h-8 !w-8 !px-0 disabled:opacity-35"
-                  title="Redo (⌘⇧Z)"
-                  aria-label="Redo"
-                >
-                  <Redo2 className="h-3.5 w-3.5" />
-                </button>
-              </>
-            )}
+          {/* Desktop — Private · Saved, Share, ⋯ */}
+          <div className="hidden items-center gap-2 md:flex">
             {canSave && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShareOpen(false);
+                  setMoreMenuOpen(false);
+                  setSaveModeOpen((v) => !v);
+                }}
+                className="rounded-md"
+                aria-haspopup="menu"
+                aria-expanded={saveModeOpen}
+                title={`Save status · ${saveMode === "auto" ? "Auto-save" : "Manual"}`}
+              >
+                <StatusPill status={status} isDirty={isDirty} privateNote={!isPlaintext} />
+              </button>
+            )}
+            {canSave && saveModeOpen && (
               <>
-                {saveMode === "manual" && isDirty && (
+                <button
+                  aria-label="Close menu"
+                  className="fixed inset-0 z-30 cursor-default"
+                  onClick={() => setSaveModeOpen(false)}
+                />
+                <div
+                  role="menu"
+                  className="absolute right-28 top-[52px] z-40 mt-1.5 w-56 overflow-hidden rounded-xl border border-border/60 bg-card/95 p-1 shadow-card backdrop-blur-md"
+                >
+                  <p className="px-2.5 py-1 font-sans text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                    Save
+                  </p>
                   <button
                     type="button"
-                    onClick={() => void save()}
-                    disabled={status === "saving"}
-                    className="note-toolbar-btn !h-8 !w-8 !px-0 !text-primary disabled:opacity-50"
-                    title="Save workbook (⌘S)"
-                    aria-label="Save"
+                    role="menuitemradio"
+                    aria-checked={saveMode === "auto"}
+                    onClick={() => changeSaveMode("auto")}
+                    className={`flex w-full items-start gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-light transition-colors hover:bg-primary/5 ${
+                      saveMode === "auto" ? "bg-primary/10" : ""
+                    }`}
                   >
-                    <Save className="h-3.5 w-3.5" />
+                    <span className="flex-1">
+                      <span className="block font-medium text-foreground">Auto-save</span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        Save changes automatically
+                      </span>
+                    </span>
+                    {saveMode === "auto" && <Check className="mt-0.5 h-3 w-3 text-primary" />}
                   </button>
-                )}
-                <div className="relative">
                   <button
                     type="button"
-                    onClick={() => {
-                      setShareOpen(false);
-                      setMoreMenuOpen(false);
-                      setSaveModeOpen((v) => !v);
-                    }}
-                    className="rounded-full"
-                    aria-haspopup="menu"
-                    aria-expanded={saveModeOpen}
-                    title={`Save status · ${saveMode === "auto" ? "Auto-save" : "Manual"}`}
+                    role="menuitemradio"
+                    aria-checked={saveMode === "manual"}
+                    onClick={() => changeSaveMode("manual")}
+                    className={`flex w-full items-start gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-light transition-colors hover:bg-primary/5 ${
+                      saveMode === "manual" ? "bg-primary/10" : ""
+                    }`}
                   >
-                    <StatusPill status={status} isDirty={isDirty} />
+                    <span className="flex-1">
+                      <span className="block font-medium text-foreground">Manual save</span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        Save when you choose (⌘S)
+                      </span>
+                    </span>
+                    {saveMode === "manual" && (
+                      <Check className="mt-0.5 h-3 w-3 text-primary" />
+                    )}
                   </button>
-                  {saveModeOpen && (
-                    <>
-                      <button
-                        aria-label="Close menu"
-                        className="fixed inset-0 z-30 cursor-default"
-                        onClick={() => setSaveModeOpen(false)}
-                      />
-                      <div
-                        role="menu"
-                        className="absolute right-0 z-40 mt-1.5 w-56 overflow-hidden rounded-xl border border-border/80 bg-card/95 p-1 shadow-card backdrop-blur-md"
-                      >
-                        <p className="px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-                          Save mode
-                        </p>
-                        <button
-                          type="button"
-                          role="menuitemradio"
-                          aria-checked={saveMode === "auto"}
-                          onClick={() => changeSaveMode("auto")}
-                          className={`flex w-full items-start gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-light transition-colors hover:bg-primary/5 ${
-                            saveMode === "auto" ? "bg-primary/10" : ""
-                          }`}
-                        >
-                          <span className="flex-1">
-                            <span className="block font-medium text-foreground">Auto-save</span>
-                            <span className="block text-[11px] text-muted-foreground">
-                              Save changes automatically
-                            </span>
-                          </span>
-                          {saveMode === "auto" && <Check className="mt-0.5 h-3 w-3 text-primary" />}
-                        </button>
-                        <button
-                          type="button"
-                          role="menuitemradio"
-                          aria-checked={saveMode === "manual"}
-                          onClick={() => changeSaveMode("manual")}
-                          className={`flex w-full items-start gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-light transition-colors hover:bg-primary/5 ${
-                            saveMode === "manual" ? "bg-primary/10" : ""
-                          }`}
-                        >
-                          <span className="flex-1">
-                            <span className="block font-medium text-foreground">Manual save</span>
-                            <span className="block text-[11px] text-muted-foreground">
-                              Save when you choose (⌘S)
-                            </span>
-                          </span>
-                          {saveMode === "manual" && (
-                            <Check className="mt-0.5 h-3 w-3 text-primary" />
-                          )}
-                        </button>
-                        {saveMode === "manual" && (
-                          <>
-                            <div className="my-1 border-t border-border/60" role="separator" />
-                            <button
-                              type="button"
-                              role="menuitem"
-                              onClick={() => {
-                                setSaveModeOpen(false);
-                                handleReload();
-                              }}
-                              disabled={status === "saving"}
-                              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-light text-foreground transition-colors hover:bg-primary/5 disabled:opacity-50"
-                            >
-                              <RotateCcw className="h-3.5 w-3.5" />
-                              Reload last saved
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </>
-                  )}
                 </div>
               </>
             )}
@@ -1246,13 +1171,13 @@ export function Editor({
                   setMoreMenuOpen(false);
                   setShareOpen((v) => !v);
                 }}
-                className="note-toolbar-btn !h-8 !w-8 !px-0"
+                className="note-toolbar-btn !h-8 !px-3 text-xs font-medium"
                 aria-haspopup="menu"
                 aria-expanded={shareOpen}
                 title="Share"
                 aria-label="Share"
               >
-                <Copy className="h-3.5 w-3.5" />
+                Share
               </button>
               {shareOpen && (
                 <>
@@ -1348,43 +1273,6 @@ export function Editor({
               )}
             </div>
             )}
-            <button
-              type="button"
-              onClick={() => {
-                setFindMode("find");
-                setFindOpen((v) => !v);
-              }}
-              className="note-toolbar-btn !h-8 !w-8 !px-0"
-              aria-pressed={findOpen}
-              title="Find & Replace (⌘F)"
-              aria-label="Find"
-            >
-              <Search className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setFocus((v) => !v);
-                setMarkdownView(false);
-              }}
-              className="note-toolbar-btn !h-8 !w-8 !px-0"
-              aria-pressed={focus}
-              title="Focus mode"
-              aria-label="Focus mode"
-            >
-              <Focus className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={toggleMarkdownView}
-              className="note-toolbar-btn !h-8 !w-8 !px-0"
-              aria-pressed={markdownView}
-              title="Markdown view (⌘⇧M)"
-              aria-label="Markdown view"
-            >
-              <FileCode2 className="h-3.5 w-3.5" />
-            </button>
-            <ThemeToggle lightDarkOnly className="!h-8 !w-8" />
             <EditorMoreMenu
               canEdit={canEdit}
               canChangeExpiry={canChangeExpiry}
@@ -1398,7 +1286,7 @@ export function Editor({
               slug={slug}
               workbook={workbook}
               activeSheetTitle={
-                workbook.sheets.find((s) => s.sheet_id === activeSheetId)?.title ?? "sheet"
+                workbook.sheets.find((s) => s.sheet_id === activeSheetId)?.title || "Untitled"
               }
               getActiveText={() => richEditorRef.current?.getMarkdown() ?? activeMarkdown}
               onToggleFocus={() => {
@@ -1407,6 +1295,21 @@ export function Editor({
               }}
               onToggleMarkdownView={toggleMarkdownView}
               onOpenShortcuts={() => setShortcutsOpen(true)}
+              onOpenOutline={() => {
+                setOutlinePanel("outline");
+                setOutlineOpen(true);
+              }}
+              onOpenTemplates={() => setTemplatesOpen(true)}
+              onOpenFind={() => {
+                setFindMode("find");
+                setFindOpen(true);
+              }}
+              fontScale={fontScale}
+              viewWidth={viewWidth}
+              editorZoom={editorZoom}
+              onFontScaleChange={changeFontScale}
+              onViewWidthChange={changeViewWidth}
+              onZoomChange={changeZoom}
               onChangeExpiry={changeExpiry}
               onChangeAutoLockDuration={changeAutoLockDuration}
               onChangeSaveMode={changeSaveMode}
@@ -1511,24 +1414,6 @@ export function Editor({
         data-editor-focus={focus ? "true" : undefined}
         className="flex min-h-0 w-full flex-1 overflow-hidden"
       >
-        {!focus && !markdownView && notesVisible && (
-          <aside
-            data-editor-left-rail="true"
-            className="hidden h-full min-h-0 w-44 shrink-0 flex-col self-stretch overflow-y-auto px-3 py-4 md:flex lg:w-48 lg:px-3.5"
-          >
-            <SheetNav
-              sheets={workbook.sheets}
-              activeSheetId={activeSheetId}
-              activeMarkdown={activeMarkdown}
-              canEdit={canEdit}
-              onSelect={(id) => void switchSheet(id)}
-              onAdd={handleAddSheet}
-              onRename={handleRenameSheet}
-              onDelete={(id) => void handleDeleteSheet(id)}
-              onReorder={handleReorderSheets}
-            />
-          </aside>
-        )}
         <div
           data-editor-stage="true"
           className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden"
@@ -1539,14 +1424,6 @@ export function Editor({
             className={focus ? "editor-page-stack editor-page-stack--focus" : "editor-page-stack"}
           >
             <div data-editor-page-card="true">
-              {canEdit && !markdownView && !focus ? (
-                <div data-editor-toolbar-dock="true">
-                  <EditorToolbar
-                    editor={formatEditor}
-                    onOpenLink={() => richEditorRef.current?.openLinkDialog()}
-                  />
-                </div>
-              ) : null}
               <div
                 data-editor-zoom-surface="true"
                 data-editor-font-surface="true"
@@ -1562,7 +1439,7 @@ export function Editor({
                   <div data-editor-page-title-wrap="true">
                     <EditorPageTitle
                       title={
-                        workbook.sheets.find((s) => s.sheet_id === activeSheetId)?.title ?? "sheet"
+                        workbook.sheets.find((s) => s.sheet_id === activeSheetId)?.title ?? ""
                       }
                       canEdit={canEdit}
                       onRename={(next) => handleRenameSheet(activeSheetId, next)}
@@ -1579,38 +1456,32 @@ export function Editor({
                     <MarkdownView
                       markdown={viewMarkdown}
                       sheetTitle={
-                        workbook.sheets.find((s) => s.sheet_id === activeSheetId)?.title ?? "sheet"
+                        workbook.sheets.find((s) => s.sheet_id === activeSheetId)?.title ||
+                        "Untitled"
                       }
                       canEdit={canEdit}
                       onChange={canEdit ? handleViewMarkdownChange : undefined}
                     />
                   ) : (
                     <>
+                      <RichEditor
+                        key={activeSheetId}
+                        ref={richEditorRef}
+                        initialContent={activeMarkdown}
+                        onMarkdownChange={handleMarkdownChange}
+                        onBaseline={handleEditorBaseline}
+                        slug={slug}
+                        crypto={cryptoSession}
+                        canEdit={canEdit}
+                        allowedAttachmentIds={activeAttachmentIds}
+                        focusMode={focus}
+                        placeholder="Start writing…"
+                        onEditorReady={onEditorReady}
+                        onActiveHeadingChange={setActiveHeading}
+                      />
                       {showEmptyStarters && (
-                        <EditorEmptyState
-                          onSelect={applyTemplate}
-                          onStartBlank={() => {
-                            setEmptyDismissed(true);
-                            queueMicrotask(() => richEditorRef.current?.focus());
-                          }}
-                        />
+                        <EditorEmptyState onSelect={applyTemplate} />
                       )}
-                      <div className={showEmptyStarters ? "sr-only" : undefined}>
-                        <RichEditor
-                          key={activeSheetId}
-                          ref={richEditorRef}
-                          initialContent={activeMarkdown}
-                          onMarkdownChange={handleMarkdownChange}
-                          onBaseline={handleEditorBaseline}
-                          slug={slug}
-                          crypto={cryptoSession}
-                          canEdit={canEdit}
-                          allowedAttachmentIds={activeAttachmentIds}
-                          focusMode={focus}
-                          onEditorReady={onEditorReady}
-                          onActiveHeadingChange={setActiveHeading}
-                        />
-                      </div>
                     </>
                   )}
                 </div>
@@ -1618,45 +1489,7 @@ export function Editor({
             </div>
           </div>
         </div>
-        {!focus && !markdownView && outlineVisible && (
-          <aside
-            data-editor-right-rail="true"
-            className="hidden h-full min-h-0 w-48 shrink-0 self-stretch overflow-y-auto px-3 py-4 lg:block lg:w-52 lg:px-3.5"
-          >
-            <Outline
-              embedded
-              text={activeMarkdown}
-              activeHeading={activeHeading}
-              onJumpToHeading={(heading) => richEditorRef.current?.scrollToHeading(heading)}
-            />
-          </aside>
-        )}
       </main>
-
-
-      <EditorStatusBar
-        zoom={editorZoom}
-        fontScale={fontScale}
-        viewWidth={viewWidth}
-        wordCount={wordCount}
-        readingMinutes={readingMinutes}
-        charCount={charCount}
-        sessionWords={sessionWords}
-        updatedAt={updatedAt}
-        canSave={canSave}
-        isPlaintext={isPlaintext}
-        canEdit={canEdit}
-        onZoomChange={changeZoom}
-        onFontScaleChange={changeFontScale}
-        onViewWidthChange={changeViewWidth}
-        outlineVisible={
-          outlineVisible || (outlineOpen && outlinePanel === "outline")
-        }
-        notesVisible={notesVisible || (outlineOpen && outlinePanel === "sheets")}
-        onToggleOutline={toggleOutlinePanel}
-        onToggleNotes={toggleNotesPanel}
-        onOpenTemplates={() => setTemplatesOpen(true)}
-      />
 
       <EditorTemplatesOverlay
         open={templatesOpen}
@@ -1704,7 +1537,7 @@ export function Editor({
         description={
           leavePrompt?.kind === "reload"
             ? "Reloading will discard unsaved edits on all sheets and restore the last saved version."
-            : "You have unsaved changes across this workbook. Save before leaving, or discard them."
+            : "You have unsaved changes on this note. Save before leaving, or discard them."
         }
         onSave={() => void handleLeaveSave()}
         onDiscard={handleLeaveDiscard}
@@ -1724,10 +1557,12 @@ function StatusPill({
   status,
   isDirty,
   compact = false,
+  privateNote = true,
 }: {
   status: SaveStatus;
   isDirty: boolean;
   compact?: boolean;
+  privateNote?: boolean;
 }) {
   const displayStatus: SaveStatus =
     status === "saving" || status === "error"
@@ -1737,32 +1572,52 @@ function StatusPill({
         : status === "saved"
           ? "saved"
           : "idle";
-  const map: Record<SaveStatus, { label: string; icon: React.ReactNode; cls: string }> = {
-    idle: { label: "Ready", icon: <Check className="h-3 w-3" />, cls: "bg-muted text-muted-foreground" },
-    dirty: { label: "Unsaved", icon: <Pencil className="h-3 w-3" />, cls: "bg-amber-500/15 text-amber-700 dark:text-amber-300" },
-    saving: { label: "Saving…", icon: <Loader2 className="h-3 w-3 animate-spin" />, cls: "bg-primary/10 text-primary" },
-    saved: { label: "Saved", icon: <Check className="h-3 w-3" />, cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" },
-    error: { label: "Save failed", icon: <CloudOff className="h-3 w-3" />, cls: "bg-destructive/15 text-destructive" },
-  };
-  const v = map[displayStatus];
-  const title = `${v.label} · End-to-end encrypted`;
+  const saveLabel =
+    displayStatus === "saving"
+      ? "Saving"
+      : displayStatus === "error"
+        ? "Error"
+        : displayStatus === "dirty"
+          ? "Unsaved"
+          : "Saved";
+  const label = privateNote ? `Private · ${saveLabel}` : saveLabel;
+  const cls =
+    displayStatus === "error"
+      ? "text-destructive"
+      : displayStatus === "dirty"
+        ? "text-amber-700 dark:text-amber-300"
+        : displayStatus === "saving"
+          ? "text-primary"
+          : "text-primary/90";
+  const icon =
+    displayStatus === "saving" ? (
+      <Loader2 className="h-3 w-3 animate-spin" />
+    ) : displayStatus === "error" ? (
+      <CloudOff className="h-3 w-3" />
+    ) : displayStatus === "dirty" ? (
+      <Pencil className="h-3 w-3" />
+    ) : (
+      <Check className="h-3 w-3" />
+    );
+  const title = privateNote ? `${label} · End-to-end encrypted` : label;
   if (compact) {
     return (
       <span
-        className={`inline-flex h-9 w-9 items-center justify-center rounded-full ${v.cls}`}
+        className={`inline-flex h-9 w-9 items-center justify-center rounded-full ${cls}`}
         title={title}
         aria-label={title}
       >
-        {v.icon}
+        {icon}
       </span>
     );
   }
   return (
     <span
-      className={`inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] ${v.cls}`}
+      className={`inline-flex h-8 items-center gap-1.5 px-1.5 font-sans text-xs font-medium tracking-tight ${cls}`}
       title={title}
     >
-      {v.icon} {v.label}
+      {icon}
+      <span>{label}</span>
     </span>
   );
 }

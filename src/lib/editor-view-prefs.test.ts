@@ -21,7 +21,7 @@ describe("editor-view-prefs", () => {
   it("defaults zoom, font scale, and view width", () => {
     expect(getEditorZoom()).toBe(100);
     expect(getEditorFontScale()).toBe(100);
-    expect(getEditorViewWidth()).toBe("tablet");
+    expect(getEditorViewWidth()).toBe("comfortable");
   });
 
   it("persists zoom and steps within range", () => {
@@ -46,6 +46,6 @@ describe("editor-view-prefs", () => {
     setEditorViewWidth("full");
     expect(getEditorViewWidth()).toBe("full");
     localStorage.setItem("kodama-editor-view-width", "huge");
-    expect(getEditorViewWidth()).toBe("tablet");
+    expect(getEditorViewWidth()).toBe("comfortable");
   });
 });

@@ -15,12 +15,9 @@ export function EditorPageTitle({ title, canEdit, onRename }: EditorPageTitlePro
   }, [title]);
 
   const commit = () => {
-    const trimmed = value.trim();
-    if (!trimmed) {
-      setValue(title);
-      return;
-    }
-    if (trimmed !== title) onRename(trimmed);
+    const next = value.trim();
+    if (next !== title) onRename(next);
+    setValue(next);
   };
 
   if (!canEdit) {
@@ -29,7 +26,7 @@ export function EditorPageTitle({ title, canEdit, onRename }: EditorPageTitlePro
         data-editor-page-title="true"
         className="editor-page-title"
       >
-        {title}
+        {title || "Untitled"}
       </h1>
     );
   }
@@ -40,6 +37,7 @@ export function EditorPageTitle({ title, canEdit, onRename }: EditorPageTitlePro
       data-editor-chrome="true"
       className="editor-page-title editor-page-title-input"
       value={value}
+      placeholder="Untitled"
       onChange={(e) => setValue(e.target.value)}
       onBlur={commit}
       onKeyDown={(e) => {
@@ -53,7 +51,7 @@ export function EditorPageTitle({ title, canEdit, onRename }: EditorPageTitlePro
         }
       }}
       maxLength={80}
-      aria-label="Sheet title"
+      aria-label="Note title"
       spellCheck={false}
     />
   );

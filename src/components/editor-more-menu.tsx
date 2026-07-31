@@ -5,20 +5,32 @@ import {
   Flame,
   Focus,
   Keyboard,
+  ListTree,
   Lock,
   MoreHorizontal,
   RotateCcw,
   Save,
+  Search,
   Timer,
+  LayoutTemplate,
 } from "lucide-react";
 
 import { NoteAppearancePicker } from "@/components/note-appearance-picker";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { BURN_MODES, type BurnMode } from "@/lib/pages";
 import { AUTO_LOCK_OPTIONS, autoLockLabel, type AutoLockDuration } from "@/lib/auto-lock";
 import type { NoteAppearance } from "@/lib/note-appearance";
 import type { SaveMode } from "@/lib/save-mode";
 import type { WorkbookPayload } from "@/lib/workbook";
 import { useExportActions } from "@/components/export-menu";
+import {
+  EDITOR_FONT_SCALE_STEPS,
+  EDITOR_ZOOM_STEPS,
+  editorViewWidthLabel,
+  type EditorFontScale,
+  type EditorViewWidth,
+  type EditorZoom,
+} from "@/lib/editor-view-prefs";
 
 type EditorMoreMenuProps = {
   canEdit: boolean;
@@ -39,6 +51,15 @@ type EditorMoreMenuProps = {
   onToggleFocus: () => void;
   onToggleMarkdownView: () => void;
   onOpenShortcuts?: () => void;
+  onOpenOutline?: () => void;
+  onOpenTemplates?: () => void;
+  onOpenFind?: () => void;
+  fontScale?: EditorFontScale;
+  viewWidth?: EditorViewWidth;
+  editorZoom?: EditorZoom;
+  onFontScaleChange?: (scale: EditorFontScale) => void;
+  onViewWidthChange?: (width: EditorViewWidth) => void;
+  onZoomChange?: (zoom: EditorZoom) => void;
   onChangeExpiry: (mode: BurnMode) => void;
   onChangeAutoLockDuration: (duration: AutoLockDuration) => void;
   onChangeSaveMode?: (mode: SaveMode) => void;
@@ -64,6 +85,15 @@ export function EditorMoreMenu({
   onToggleFocus,
   onToggleMarkdownView,
   onOpenShortcuts,
+  onOpenOutline,
+  onOpenTemplates,
+  onOpenFind,
+  fontScale,
+  viewWidth,
+  editorZoom,
+  onFontScaleChange,
+  onViewWidthChange,
+  onZoomChange,
   onChangeExpiry,
   onChangeAutoLockDuration,
   onChangeSaveMode,
@@ -121,7 +151,38 @@ export function EditorMoreMenu({
             role="menu"
             className="absolute right-0 z-40 mt-1.5 max-h-[min(80vh,32rem)] w-72 overflow-y-auto overflow-x-hidden rounded-xl border border-border/80 bg-card/95 p-1 shadow-card backdrop-blur-md"
           >
-            <SectionLabel>Writing</SectionLabel>
+            <SectionLabel>Note</SectionLabel>
+            {onOpenOutline && (
+              <MenuItem
+                icon={<ListTree className="h-3.5 w-3.5" />}
+                label="Outline"
+                onClick={() => {
+                  onOpenOutline();
+                  setMenuOpen(false);
+                }}
+              />
+            )}
+            {onOpenTemplates && (
+              <MenuItem
+                icon={<LayoutTemplate className="h-3.5 w-3.5" />}
+                label="Templates"
+                onClick={() => {
+                  onOpenTemplates();
+                  setMenuOpen(false);
+                }}
+              />
+            )}
+            {onOpenFind && (
+              <MenuItem
+                icon={<Search className="h-3.5 w-3.5" />}
+                label="Find"
+                hint="⌘F"
+                onClick={() => {
+                  onOpenFind();
+                  setMenuOpen(false);
+                }}
+              />
+            )}
             <MenuToggle
               icon={<Focus className="h-3.5 w-3.5" />}
               label="Focus mode"
@@ -153,15 +214,81 @@ export function EditorMoreMenu({
               />
             )}
 
+            <div className="my-1 border-t border-border/50" role="separator" />
+            <SectionLabel>Appearance</SectionLabel>
+            <div className="flex items-center justify-between gap-2 px-2.5 py-1.5">
+              <span className="text-xs font-medium text-foreground">Theme</span>
+              <ThemeToggle lightDarkOnly className="!h-8 !w-8" />
+            </div>
+            {onFontScaleChange && fontScale !== undefined && (
+              <div className="px-2.5 py-1.5">
+                <p className="mb-1 text-[11px] text-muted-foreground">Text size</p>
+                <div className="flex flex-wrap gap-1">
+                  {EDITOR_FONT_SCALE_STEPS.map((step) => (
+                    <button
+                      key={step}
+                      type="button"
+                      onClick={() => onFontScaleChange(step)}
+                      className={`rounded-md px-2 py-1 text-[11px] ${
+                        fontScale === step
+                          ? "bg-primary/15 text-primary"
+                          : "text-muted-foreground hover:bg-primary/5"
+                      }`}
+                    >
+                      {step}%
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {onViewWidthChange && viewWidth && (
+              <div className="px-2.5 py-1.5">
+                <p className="mb-1 text-[11px] text-muted-foreground">Page width</p>
+                <div className="flex flex-wrap gap-1">
+                  {(["comfortable", "tablet", "full"] as const).map((w) => (
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => onViewWidthChange(w)}
+                      className={`rounded-md px-2 py-1 text-[11px] ${
+                        viewWidth === w
+                          ? "bg-primary/15 text-primary"
+                          : "text-muted-foreground hover:bg-primary/5"
+                      }`}
+                    >
+                      {editorViewWidthLabel(w)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {onZoomChange && editorZoom !== undefined && (
+              <div className="px-2.5 py-1.5">
+                <p className="mb-1 text-[11px] text-muted-foreground">Zoom</p>
+                <div className="flex flex-wrap gap-1">
+                  {EDITOR_ZOOM_STEPS.map((step) => (
+                    <button
+                      key={step}
+                      type="button"
+                      onClick={() => onZoomChange(step)}
+                      className={`rounded-md px-2 py-1 text-[11px] ${
+                        editorZoom === step
+                          ? "bg-primary/15 text-primary"
+                          : "text-muted-foreground hover:bg-primary/5"
+                      }`}
+                    >
+                      {step}%
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {noteAppearance && onChangeNoteAppearance && (
-              <>
-                <div className="my-1 border-t border-border/60" role="separator" />
-                <NoteAppearancePicker
-                  compact
-                  value={noteAppearance}
-                  onChange={onChangeNoteAppearance}
-                />
-              </>
+              <NoteAppearancePicker
+                compact
+                value={noteAppearance}
+                onChange={onChangeNoteAppearance}
+              />
             )}
 
             {onChangeSaveMode && saveMode && (
@@ -307,7 +434,7 @@ export function EditorMoreMenu({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+    <p className="px-2.5 py-1 font-sans text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
       {children}
     </p>
   );

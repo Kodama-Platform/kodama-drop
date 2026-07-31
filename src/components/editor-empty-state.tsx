@@ -5,23 +5,23 @@ const STARTERS: { id: string; label: string }[] = [
   { id: "journal", label: "Journal" },
   { id: "checklist", label: "Checklist" },
   { id: "decision", label: "Decision" },
-  { id: "blank", label: "Blank" },
 ];
 
 type EditorEmptyStateProps = {
   onSelect: (template: NoteTemplate) => void;
-  onStartBlank?: () => void;
 };
 
-/** Centered empty-sheet starters when the active page has no content. */
-export function EditorEmptyState({ onSelect, onStartBlank }: EditorEmptyStateProps) {
+/**
+ * Template suggestions that sit under the live editor placeholder —
+ * one blank-page experience: start writing, or pick a starter.
+ */
+export function EditorEmptyState({ onSelect }: EditorEmptyStateProps) {
   return (
     <div className="editor-empty-state" data-editor-empty-state="true">
-      <div>
-        <h2>Begin a page</h2>
-        <p>Pick a starter, or write freely on a blank page.</p>
-      </div>
-      <div className="editor-template-grid">
+      <p className="editor-empty-hint">
+        Type <kbd>/</kbd> for commands, or select text to format.
+      </p>
+      <div className="editor-template-grid" role="list" aria-label="Note starters">
         {STARTERS.map(({ id, label }) => {
           const template = NOTE_TEMPLATES.find((t) => t.id === id);
           if (!template) return null;
@@ -29,14 +29,9 @@ export function EditorEmptyState({ onSelect, onStartBlank }: EditorEmptyStatePro
             <button
               key={id}
               type="button"
+              role="listitem"
               className="editor-template-card"
-              onClick={() => {
-                if (id === "blank") {
-                  onStartBlank?.();
-                  return;
-                }
-                onSelect(template);
-              }}
+              onClick={() => onSelect(template)}
             >
               <strong>{label}</strong>
               <span>{template.description}</span>
