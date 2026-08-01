@@ -1,6 +1,12 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
-import path from "path";
+
+const repoRoot = path.dirname(fileURLToPath(import.meta.url));
+const kscRoot = path.resolve(repoRoot, "../kodama-security-core/packages");
+const useLocalKsc = fs.existsSync(path.join(kscRoot, "core/src/index.ts"));
 
 export default defineConfig({
   plugins: [react()],
@@ -12,15 +18,16 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
-      "@kodama.page/core": path.resolve(
-        __dirname,
-        "../kodama-security-core/packages/core/src/index.ts",
-      ),
-      "@kodama.page/security-browser": path.resolve(
-        __dirname,
-        "../kodama-security-core/packages/security-browser/src/index.ts",
-      ),
+      "@": path.resolve(repoRoot, "./src"),
+      ...(useLocalKsc
+        ? {
+            "@kodama.page/core": path.join(kscRoot, "core/src/index.ts"),
+            "@kodama.page/security-browser": path.join(
+              kscRoot,
+              "security-browser/src/index.ts",
+            ),
+          }
+        : {}),
     },
   },
 });
