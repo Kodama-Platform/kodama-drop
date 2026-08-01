@@ -43,7 +43,7 @@ export function SheetTabBar({
 
   const sorted = [...sheets].sort((a, b) => a.order - b.order || a.title.localeCompare(b.title));
   const multi = sorted.length > 1;
-  if (!multi && !canEdit) return null;
+  if (sorted.length === 0 || (!multi && !canEdit)) return null;
 
   const startRename = useCallback((sheet: WorkbookSheet) => {
     setEditingId(sheet.sheet_id);
@@ -96,21 +96,25 @@ export function SheetTabBar({
 
   return (
     <>
-      <div data-editor-tabs="true" className="note-sheet-tabs" role="tablist" aria-label="Workbook sheets">
+      <div
+        data-editor-tabs="true"
+        className="note-sheet-tabs note-sheet-tabs--paper"
+        role="tablist"
+        aria-label="Note sheets"
+      >
         <div ref={scrollRef} className="note-sheet-tabs-scroll">
-          {multi &&
-            sorted.map((sheet) => {
-              const active = sheet.sheet_id === activeSheetId;
-              const editing = editingId === sheet.sheet_id;
-              return (
-                <div
-                  key={sheet.sheet_id}
-                  ref={active ? activeTabRef : undefined}
-                  role="presentation"
-                  className={`note-sheet-tab-group${active ? " is-active" : ""}`}
-                  onDragOver={(e) => canEdit && onDragOver(e, sheet.sheet_id)}
-                >
-                {canEdit && sorted.length > 1 && (
+          {sorted.map((sheet) => {
+            const active = sheet.sheet_id === activeSheetId;
+            const editing = editingId === sheet.sheet_id;
+            return (
+              <div
+                key={sheet.sheet_id}
+                ref={active ? activeTabRef : undefined}
+                role="presentation"
+                className={`note-sheet-tab-group${active ? " is-active" : ""}`}
+                onDragOver={(e) => canEdit && multi && onDragOver(e, sheet.sheet_id)}
+              >
+                {canEdit && multi && (
                   <button
                     type="button"
                     draggable
@@ -157,7 +161,7 @@ export function SheetTabBar({
                       aria-hidden="true"
                       strokeWidth={1.75}
                     />
-                    <span className="note-sheet-tab-label">{sheet.title}</span>
+                    <span className="note-sheet-tab-label">{sheet.title || "Untitled"}</span>
                   </button>
                 )}
 
@@ -167,16 +171,16 @@ export function SheetTabBar({
                       type="button"
                       onClick={() => startRename(sheet)}
                       className="note-sheet-tab-action"
-                      aria-label={`Rename ${sheet.title}`}
+                      aria-label={`Rename ${sheet.title || "Untitled"}`}
                     >
                       <Pencil className="h-3 w-3" />
                     </button>
-                    {sorted.length > 1 && (
+                    {multi && (
                       <button
                         type="button"
                         onClick={() => setDeleteTarget(sheet)}
                         className="note-sheet-tab-action note-sheet-tab-action--danger"
-                        aria-label={`Delete ${sheet.title}`}
+                        aria-label={`Delete ${sheet.title || "Untitled"}`}
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -193,6 +197,7 @@ export function SheetTabBar({
               onClick={onAdd}
               className="note-sheet-tab-add"
               aria-label="Add sheet"
+              title="Add another sheet"
             >
               <Plus className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">New sheet</span>

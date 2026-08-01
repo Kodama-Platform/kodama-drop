@@ -2,31 +2,21 @@ import { useEffect, useMemo, useRef } from "react";
 import { ListTree, X } from "lucide-react";
 
 import { SheetNav, type SheetNavProps } from "@/components/sheet-nav";
-
-type Heading = { level: number; text: string; offset: number };
+import {
+  parseMarkdownHeadings,
+  type EditorHeading,
+} from "@/lib/editor-headings";
 
 export type OutlineDrawerPanel = "sheets" | "outline";
-
-function parseHeadings(text: string): Heading[] {
-  const out: Heading[] = [];
-  const lines = text.split("\n");
-  let offset = 0;
-  for (const line of lines) {
-    const m = /^(#{1,6})\s+(.+?)\s*$/.exec(line);
-    if (m) out.push({ level: m[1].length, text: m[2], offset });
-    offset += line.length + 1;
-  }
-  return out;
-}
 
 function OutlineBody({
   headings,
   activeHeading,
   onJump,
 }: {
-  headings: Heading[];
+  headings: EditorHeading[];
   activeHeading?: string | null;
-  onJump: (h: Heading) => void;
+  onJump: (h: EditorHeading) => void;
 }) {
   if (headings.length === 0) {
     return (
@@ -40,14 +30,20 @@ function OutlineBody({
     <ul className="space-y-0.5">
       {headings.map((h, i) => {
         const active = !!activeHeading && h.text === activeHeading;
+        const depth = Math.max(0, h.level - 1);
         return (
-          <li key={`${h.offset}-${i}`} style={{ paddingLeft: (h.level - 1) * 10 }}>
+          <li key={`${h.pos ?? h.text}-${i}`} style={{ paddingLeft: depth * 0.85 + "rem" }}>
             <button
               type="button"
               onClick={() => onJump(h)}
-              className={`outline-item block w-full truncate rounded-md px-1.5 py-1.5 text-left text-[11px] font-light text-muted-foreground/80 transition-colors hover:bg-primary/5 hover:text-foreground${
-                active ? " is-active" : ""
-              }`}
+              data-heading-level={h.level}
+              className={`outline-item block w-full truncate rounded-md px-1.5 py-1.5 text-left transition-colors hover:bg-primary/5 hover:text-foreground${
+                h.level === 1
+                  ? " text-[12.5px] font-medium text-foreground/85"
+                  : h.level === 2
+                    ? " text-[11.5px] font-normal text-foreground/75"
+                    : " text-[11px] font-light text-muted-foreground/85"
+              }${active ? " is-active" : ""}`}
               title={h.text}
               aria-current={active ? "true" : undefined}
             >
@@ -62,22 +58,27 @@ function OutlineBody({
 
 export function Outline({
   text,
+  headings: headingsProp,
   activeHeading,
   onJumpToHeading,
   onJump,
   embedded = false,
 }: {
   text: string;
+  headings?: EditorHeading[];
   activeHeading?: string | null;
-  onJumpToHeading?: (heading: string) => void;
+  onJumpToHeading?: (heading: EditorHeading) => void;
   onJump?: () => void;
   /** When true, render as a section (for stacking under SheetNav). */
   embedded?: boolean;
 }) {
-  const headings = useMemo(() => parseHeadings(text), [text]);
+  const headings = useMemo(
+    () => headingsProp ?? parseMarkdownHeadings(text),
+    [headingsProp, text],
+  );
 
-  const jump = (h: Heading) => {
-    onJumpToHeading?.(h.text);
+  const jump = (h: EditorHeading) => {
+    onJumpToHeading?.(h);
     onJump?.();
   };
 
@@ -126,6 +127,7 @@ export function OutlineDrawer({
   open,
   onClose,
   text,
+  headings: headingsProp,
   activeHeading,
   onJumpToHeading,
   sheets,
@@ -134,12 +136,16 @@ export function OutlineDrawer({
   open: boolean;
   onClose: () => void;
   text: string;
+  headings?: EditorHeading[];
   activeHeading?: string | null;
-  onJumpToHeading?: (heading: string) => void;
+  onJumpToHeading?: (heading: EditorHeading) => void;
   sheets?: OutlineDrawerSheetProps;
   initialPanel?: OutlineDrawerPanel;
 }) {
-  const headings = useMemo(() => parseHeadings(text), [text]);
+  const headings = useMemo(
+    () => headingsProp ?? parseMarkdownHeadings(text),
+    [headingsProp, text],
+  );
   const sheetsRef = useRef<HTMLElement | null>(null);
   const outlineRef = useRef<HTMLElement | null>(null);
 
@@ -156,7 +162,7 @@ export function OutlineDrawer({
       className="fixed inset-0 z-[60]"
       role="dialog"
       aria-modal="true"
-      aria-label="Sheets and outline"
+      aria-label="Canopy"
     >
       <button
         type="button"
@@ -166,10 +172,15 @@ export function OutlineDrawer({
       />
       <div className="relative mx-auto flex h-full max-w-lg flex-col px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between gap-3">
-          <p className="inline-flex items-center gap-2 font-display text-lg font-medium tracking-tight text-foreground">
-            <ListTree className="h-4 w-4 text-primary" />
-            Navigate
-          </p>
+          <div>
+            <p className="inline-flex items-center gap-2 font-display text-lg font-medium tracking-tight text-foreground">
+              <ListTree className="h-4 w-4 text-primary" />
+              Canopy
+            </p>
+            <p className="mt-0.5 font-mono text-[10px] font-light uppercase tracking-[0.14em] text-muted-foreground/75">
+              Headings in this trail
+            </p>
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -183,20 +194,20 @@ export function OutlineDrawer({
           {sheets && (
             <section ref={sheetsRef} data-outline-panel="sheets">
               <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/80">
-                Sheets
+                Trails
               </p>
               <SheetNav {...sheets} embedded onAfterSelect={onClose} />
             </section>
           )}
           <section ref={outlineRef} data-outline-panel="outline">
             <p className="mb-2 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/80">
-              <ListTree className="h-3 w-3" /> Outline
+              <ListTree className="h-3 w-3" /> Canopy map
             </p>
             <OutlineBody
               headings={headings}
               activeHeading={activeHeading}
               onJump={(h) => {
-                onJumpToHeading?.(h.text);
+                onJumpToHeading?.(h);
                 onClose();
               }}
             />

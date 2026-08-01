@@ -155,7 +155,7 @@ export function EditorMoreMenu({
             {onOpenOutline && (
               <MenuItem
                 icon={<ListTree className="h-3.5 w-3.5" />}
-                label="Outline"
+                label="Canopy"
                 onClick={() => {
                   onOpenOutline();
                   setMenuOpen(false);

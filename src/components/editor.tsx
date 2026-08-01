@@ -6,6 +6,7 @@ import {
   Check,
   CloudOff,
   Flame,
+  Leaf,
   Loader2,
   Menu,
   Pencil,
@@ -32,12 +33,18 @@ import { EditorTemplatesOverlay } from "@/components/editor-templates-overlay";
 import { FindReplace } from "@/components/find-replace";
 import { KeyboardShortcutsDialog } from "@/components/keyboard-shortcuts-dialog";
 import { MarkdownView } from "@/components/markdown-view";
+import { OutlineCanopyPanel } from "@/components/outline-canopy-panel";
 import { OutlineDrawer, type OutlineDrawerPanel } from "@/components/outline";
 import { RichEditor, type RichEditorHandle } from "@/components/rich-editor";
+import { SheetTrailhead } from "@/components/sheet-trailhead";
 import type { Editor as TiptapEditor } from "@tiptap/react";
 import { DonateRibbon, useVisitCount } from "@/components/donate-ribbon";
 import { UnsavedChangesDialog } from "@/components/unsaved-changes-dialog";
 import { useExportActions } from "@/components/export-menu";
+import {
+  parseMarkdownHeadings,
+  type EditorHeading,
+} from "@/lib/editor-headings";
 import { EDITOR_EVENTS, setEditorCommandContext } from "@/lib/editor-commands";
 import { useAutoLock } from "@/hooks/use-auto-lock";
 import { invalidateAttachmentList } from "@/lib/attachment-list";
@@ -175,11 +182,14 @@ export function Editor({
   const [shareOpen, setShareOpen] = useState(false);
   const [outlineOpen, setOutlineOpen] = useState(false);
   const [outlinePanel, setOutlinePanel] = useState<OutlineDrawerPanel>("outline");
+  /** Desktop docked canopy panel (layout-shifting). Mobile uses OutlineDrawer. */
+  const [canopyDocked, setCanopyDocked] = useState(false);
   const [outlineVisible, setOutlineVisible] = useState(false);
   const [notesVisible, setNotesVisible] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [activeHeading, setActiveHeading] = useState<string | null>(null);
+  const [outlineHeadings, setOutlineHeadings] = useState<EditorHeading[]>([]);
   const [formatEditor, setFormatEditor] = useState<TiptapEditor | null>(null);
   const [editorIsEmpty, setEditorIsEmpty] = useState(true);
   const [canUndo, setCanUndo] = useState(false);
@@ -228,9 +238,30 @@ export function Editor({
   const lockingRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const richEditorRef = useRef<RichEditorHandle | null>(null);
-  const onEditorReady = useCallback((ed: TiptapEditor | null) => {
-    setFormatEditor(ed);
+  const syncOutlineHeadings = useCallback((fallbackMarkdown?: string) => {
+    const live = richEditorRef.current?.getHeadings();
+    if (live && live.length > 0) {
+      setOutlineHeadings(live);
+      return;
+    }
+    setOutlineHeadings(parseMarkdownHeadings(fallbackMarkdown ?? ""));
   }, []);
+  const jumpToOutlineHeading = useCallback((heading: EditorHeading) => {
+    const ed = richEditorRef.current;
+    if (!ed) return;
+    if (typeof heading.pos === "number") {
+      ed.scrollToHeadingAt(heading.pos);
+      return;
+    }
+    ed.scrollToHeading(heading.text);
+  }, []);
+  const onEditorReady = useCallback(
+    (ed: TiptapEditor | null) => {
+      setFormatEditor(ed);
+      queueMicrotask(() => syncOutlineHeadings(richEditorRef.current?.getMarkdown()));
+    },
+    [syncOutlineHeadings],
+  );
   useEffect(() => {
     if (!formatEditor) {
       setCanUndo(false);
@@ -273,31 +304,42 @@ export function Editor({
     setOutlinePanel(panel);
     setOutlineOpen(true);
   }, []);
+  const isNarrowViewport = useCallback(
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches,
+    [],
+  );
+
   const toggleOutlinePanel = useCallback(() => {
-    // Right rail is lg+; below that, toggle the navigate drawer.
-    if (typeof window !== "undefined" && !window.matchMedia("(min-width: 1024px)").matches) {
+    if (isNarrowViewport()) {
+      setCanopyDocked(false);
       if (outlineOpen && outlinePanel === "outline") {
         setOutlineOpen(false);
+        setOutlineVisible(false);
       } else {
         setOutlinePanel("outline");
         setOutlineOpen(true);
+        setOutlineVisible(true);
       }
       return;
     }
-    setOutlineVisible((v) => !v);
-  }, [outlineOpen, outlinePanel]);
+    setOutlineOpen(false);
+    setCanopyDocked((v) => {
+      const next = !v;
+      setOutlineVisible(next);
+      return next;
+    });
+  }, [isNarrowViewport, outlineOpen, outlinePanel]);
+
   const toggleNotesPanel = useCallback(() => {
-    // Left rail is md+; below that, toggle the navigate drawer.
-    if (typeof window !== "undefined" && !window.matchMedia("(min-width: 768px)").matches) {
-      if (outlineOpen && outlinePanel === "sheets") {
-        setOutlineOpen(false);
-      } else {
-        setOutlinePanel("sheets");
-        setOutlineOpen(true);
-      }
-      return;
+    setCanopyDocked(false);
+    if (outlineOpen && outlinePanel === "sheets") {
+      setOutlineOpen(false);
+      setNotesVisible(false);
+    } else {
+      setOutlinePanel("sheets");
+      setOutlineOpen(true);
+      setNotesVisible(true);
     }
-    setNotesVisible((v) => !v);
   }, [outlineOpen, outlinePanel]);
   const editorSyncedRef = useRef(false);
   const workbookRef = useRef(workbook);
@@ -694,8 +736,9 @@ export function Editor({
     (markdown: string) => {
       markDirty();
       setWorkbook((prev) => updateActiveSheetMarkdown(prev, activeSheetId, markdown));
+      queueMicrotask(() => syncOutlineHeadings(markdown));
     },
-    [activeSheetId, markDirty],
+    [activeSheetId, markDirty, syncOutlineHeadings],
   );
 
   const handleViewMarkdownChange = useCallback(
@@ -731,11 +774,15 @@ export function Editor({
 
   const handleAddSheet = useCallback(() => {
     try {
+      const wasSingle = workbook.sheets.length === 1;
       const next = addSheet(workbook);
       const newSheet = getOrderedSheets(next).at(-1)!;
       markDirty();
       setWorkbook(next);
       void switchSheet(newSheet.sheet_id, next);
+      if (wasSingle) {
+        toast.message("A new trail opened in the grove.");
+      }
     } catch (e) {
       toast.error(e instanceof WorkbookError ? "Maximum sheets reached" : (e as Error).message);
     }
@@ -915,6 +962,7 @@ export function Editor({
         setShortcutsOpen(true);
       } else if (k === "escape") {
         if (findOpen) setFindOpen(false);
+        else if (canopyDocked) setCanopyDocked(false);
         else if (outlineOpen) setOutlineOpen(false);
         else if (shortcutsOpen) setShortcutsOpen(false);
         else if (markdownView) setMarkdownView(false);
@@ -981,6 +1029,7 @@ export function Editor({
       window.removeEventListener(EDITOR_EVENTS.switchSheet, onSwitchSheet);
     };
   }, [
+    canopyDocked,
     copyToClipboard,
     findOpen,
     focus,
@@ -996,6 +1045,10 @@ export function Editor({
     toggleMarkdownView,
     toggleOutlinePanel,
   ]);
+
+  useEffect(() => {
+    if (focus) setCanopyDocked(false);
+  }, [focus]);
 
   const charCount = activeMarkdown.length;
   const wordCount = useMemo(
@@ -1017,7 +1070,10 @@ export function Editor({
 
   useEffect(() => {
     setActiveHeading(null);
-  }, [activeSheetId]);
+    const md = getActiveSheetMarkdown(workbookRef.current, activeSheetId);
+    setOutlineHeadings(parseMarkdownHeadings(md));
+    queueMicrotask(() => syncOutlineHeadings(md));
+  }, [activeSheetId, syncOutlineHeadings]);
 
   return (
     <NoteShell
@@ -1162,6 +1218,34 @@ export function Editor({
             {burnMode !== "never" && (
               <ExpiryPill burnMode={burnMode} expiresAt={expiresAt} />
             )}
+            {!focus && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShareOpen(false);
+                  setSaveModeOpen(false);
+                  setMoreMenuOpen(false);
+                  toggleOutlinePanel();
+                }}
+                className="note-toolbar-btn !h-8 !px-2.5 gap-1.5 text-xs font-medium"
+                aria-pressed={
+                  canopyDocked || (outlineOpen && outlinePanel === "outline")
+                }
+                title={
+                  canopyDocked || (outlineOpen && outlinePanel === "outline")
+                    ? "Hide canopy"
+                    : "Canopy outline"
+                }
+                aria-label={
+                  canopyDocked || (outlineOpen && outlinePanel === "outline")
+                    ? "Hide canopy"
+                    : "Show canopy"
+                }
+              >
+                <Leaf className="h-3.5 w-3.5" strokeWidth={1.75} />
+                Canopy
+              </button>
+            )}
             {!isPlaintext && (
             <div className="relative">
               <button
@@ -1290,15 +1374,15 @@ export function Editor({
               }
               getActiveText={() => richEditorRef.current?.getMarkdown() ?? activeMarkdown}
               onToggleFocus={() => {
-                setFocus((v) => !v);
+                setFocus((v) => {
+                  if (!v) setCanopyDocked(false);
+                  return !v;
+                });
                 setMarkdownView(false);
               }}
               onToggleMarkdownView={toggleMarkdownView}
               onOpenShortcuts={() => setShortcutsOpen(true)}
-              onOpenOutline={() => {
-                setOutlinePanel("outline");
-                setOutlineOpen(true);
-              }}
+              onOpenOutline={toggleOutlinePanel}
               onOpenTemplates={() => setTemplatesOpen(true)}
               onOpenFind={() => {
                 setFindMode("find");
@@ -1355,10 +1439,13 @@ export function Editor({
             setFindMode("find");
             setFindOpen((v) => !v);
           }}
-          onOpenOutline={() => openNavigateDrawer("sheets")}
+          onOpenOutline={toggleOutlinePanel}
           onOpenShortcuts={() => setShortcutsOpen(true)}
           onToggleFocus={() => {
-            setFocus((v) => !v);
+            setFocus((v) => {
+              if (!v) setCanopyDocked(false);
+              return !v;
+            });
             setMarkdownView(false);
           }}
           onToggleMarkdownView={toggleMarkdownView}
@@ -1412,7 +1499,8 @@ export function Editor({
       <main
         data-editor-board="true"
         data-editor-focus={focus ? "true" : undefined}
-        className="flex min-h-0 w-full flex-1 overflow-hidden"
+        data-canopy-docked={canopyDocked && !focus ? "true" : undefined}
+        className="relative flex min-h-0 w-full flex-1 overflow-hidden"
       >
         <div
           data-editor-stage="true"
@@ -1443,6 +1531,16 @@ export function Editor({
                       }
                       canEdit={canEdit}
                       onRename={(next) => handleRenameSheet(activeSheetId, next)}
+                    />
+                    <SheetTrailhead
+                      sheets={workbook.sheets}
+                      activeSheetId={activeSheetId}
+                      activeMarkdown={activeMarkdown}
+                      canEdit={canEdit}
+                      onSelect={(id) => void switchSheet(id)}
+                      onAdd={handleAddSheet}
+                      onRename={handleRenameSheet}
+                      onDelete={(id) => void handleDeleteSheet(id)}
                     />
                   </div>
                 )}
@@ -1489,6 +1587,15 @@ export function Editor({
             </div>
           </div>
         </div>
+        {canopyDocked && !focus && (
+          <OutlineCanopyPanel
+            text={activeMarkdown}
+            headings={outlineHeadings}
+            activeHeading={activeHeading}
+            onJumpToHeading={jumpToOutlineHeading}
+            onClose={() => setCanopyDocked(false)}
+          />
+        )}
       </main>
 
       <EditorTemplatesOverlay
@@ -1510,9 +1617,10 @@ export function Editor({
         open={outlineOpen}
         onClose={() => setOutlineOpen(false)}
         text={activeMarkdown}
+        headings={outlineHeadings}
         activeHeading={activeHeading}
         initialPanel={outlinePanel}
-        onJumpToHeading={(heading) => richEditorRef.current?.scrollToHeading(heading)}
+        onJumpToHeading={jumpToOutlineHeading}
         sheets={{
           sheets: workbook.sheets,
           activeSheetId,

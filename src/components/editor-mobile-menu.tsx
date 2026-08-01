@@ -296,7 +296,7 @@ export function EditorMobileMenu({
             {onOpenOutline && (
               <MobileAction
                 icon={<ListTree className="h-4 w-4" />}
-                label="Sheets & outline"
+                label="Canopy"
                 onClick={() => {
                   onOpenOutline();
                   onClose();

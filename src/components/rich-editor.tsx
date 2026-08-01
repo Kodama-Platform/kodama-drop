@@ -47,6 +47,11 @@ import {
   KodamaUnderline,
 } from "@/lib/kodama-marks";
 import {
+  collectEditorHeadings,
+  normalizeHeadingText,
+  type EditorHeading,
+} from "@/lib/editor-headings";
+import {
   resolveHeadingElement,
   scheduleScrollBelowHeader,
   scrollElementBelowHeader,
@@ -69,7 +74,9 @@ export type RichEditorHandle = {
   findMatchAt: (query: string, matchIndex: number) => boolean;
   replaceMatchAt: (query: string, replacement: string, matchIndex: number) => boolean;
   replaceAllMatches: (query: string, replacement: string) => void;
+  getHeadings: () => EditorHeading[];
   scrollToHeading: (text: string) => void;
+  scrollToHeadingAt: (pos: number) => void;
 };
 
 type RichEditorProps = {
@@ -126,6 +133,56 @@ function linkTargetFromEvent(event: MouseEvent, root: HTMLElement): HTMLAnchorEl
   const anchor = target.closest("a");
   if (!anchor || !root.contains(anchor)) return null;
   return anchor;
+}
+
+function flashHeading(el: HTMLElement) {
+  el.classList.remove("outline-heading-flash");
+  void el.offsetWidth;
+  el.classList.add("outline-heading-flash");
+  window.setTimeout(() => el.classList.remove("outline-heading-flash"), 1000);
+}
+
+function pinHeadingAtPos(
+  editor: Editor,
+  headingPos: number,
+  outlineJumpRef: { current: boolean },
+) {
+  const applyScroll = () => {
+    const el = resolveHeadingElement(editor.view, headingPos);
+    if (el) {
+      scrollElementBelowHeader(el, "auto");
+      flashHeading(el);
+      return;
+    }
+    try {
+      scrollViewportYToHeaderOffset(
+        editor.view.coordsAtPos(Math.min(headingPos + 1, editor.state.doc.content.size)).top,
+        "auto",
+      );
+    } catch {
+      // pos may be stale during sheet switch
+    }
+  };
+
+  outlineJumpRef.current = true;
+  try {
+    editor
+      .chain()
+      .focus(undefined, { scrollIntoView: false })
+      .setTextSelection(headingPos + 1)
+      .run();
+  } catch {
+    // Selection may fail on odd nodes — still scroll the DOM heading.
+  }
+
+  applyScroll();
+  scheduleScrollBelowHeader(() => {
+    applyScroll();
+    window.setTimeout(() => {
+      applyScroll();
+      outlineJumpRef.current = false;
+    }, 80);
+  });
 }
 
 export const RichEditor = forwardRef<RichEditorHandle, RichEditorProps>(
@@ -396,7 +453,7 @@ export const RichEditor = forwardRef<RichEditorHandle, RichEditorProps>(
         for (let depth = $from.depth; depth > 0; depth -= 1) {
           const node = $from.node(depth);
           if (node.type.name === "heading") {
-            onActiveHeadingChange(node.textContent || null);
+            onActiveHeadingChange(normalizeHeadingText(node.textContent) || null);
             return;
           }
         }
@@ -406,7 +463,9 @@ export const RichEditor = forwardRef<RichEditorHandle, RichEditorProps>(
         const caret = $from.pos;
         editor.state.doc.descendants((node, pos) => {
           if (pos >= caret) return false;
-          if (node.type.name === "heading") found = node.textContent || null;
+          if (node.type.name === "heading") {
+            found = normalizeHeadingText(node.textContent) || null;
+          }
         });
         onActiveHeadingChange(found);
       };
@@ -460,39 +519,59 @@ export const RichEditor = forwardRef<RichEditorHandle, RichEditorProps>(
           if (!editor || !query) return;
           replaceAllTextMatches(editor, query, replacement);
         },
+        getHeadings: () => (editor ? collectEditorHeadings(editor.state.doc) : []),
+        scrollToHeadingAt: (pos: number) => {
+          if (!editor) return;
+          pinHeadingAtPos(editor, pos, outlineJumpRef);
+        },
         scrollToHeading: (text: string) => {
           if (!editor) return;
+          const needle = normalizeHeadingText(text);
+          if (!needle) return;
+
           let headingPos = -1;
           editor.state.doc.descendants((node, pos) => {
             if (headingPos !== -1) return false;
-            if (node.type.name === "heading" && node.textContent === text) {
+            if (
+              node.type.name === "heading" &&
+              normalizeHeadingText(node.textContent) === needle
+            ) {
               headingPos = pos;
               return false;
             }
           });
-          if (headingPos === -1) return;
 
-          outlineJumpRef.current = true;
-          editor
-            .chain()
-            .setTextSelection(headingPos + 1)
-            .focus(headingPos + 1, { scrollIntoView: false })
-            .run();
+          if (headingPos === -1) {
+            // Soft match: first heading whose text contains the needle.
+            editor.state.doc.descendants((node, pos) => {
+              if (headingPos !== -1) return false;
+              if (
+                node.type.name === "heading" &&
+                normalizeHeadingText(node.textContent).includes(needle)
+              ) {
+                headingPos = pos;
+                return false;
+              }
+            });
+          }
 
-          scheduleScrollBelowHeader(() => {
-            const el = resolveHeadingElement(editor.view, headingPos);
-            if (el) {
-              scrollElementBelowHeader(el);
-              el.classList.remove("outline-heading-flash");
-              // Restart CSS animation
-              void el.offsetWidth;
-              el.classList.add("outline-heading-flash");
-              window.setTimeout(() => el.classList.remove("outline-heading-flash"), 1000);
-            } else {
-              scrollViewportYToHeaderOffset(editor.view.coordsAtPos(headingPos + 1).top);
+          if (headingPos === -1) {
+            const nodes = editor.view.dom.querySelectorAll("h1,h2,h3,h4,h5,h6");
+            for (const node of nodes) {
+              if (!(node instanceof HTMLElement)) continue;
+              if (normalizeHeadingText(node.textContent ?? "") !== needle) continue;
+              outlineJumpRef.current = true;
+              scrollElementBelowHeader(node, "auto");
+              flashHeading(node);
+              window.setTimeout(() => {
+                outlineJumpRef.current = false;
+              }, 80);
+              return;
             }
-            outlineJumpRef.current = false;
-          });
+            return;
+          }
+
+          pinHeadingAtPos(editor, headingPos, outlineJumpRef);
         },
       }),
       [editor, onMarkdownChange],
