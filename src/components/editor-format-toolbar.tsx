@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import {
@@ -47,6 +47,19 @@ function runCommand(editor: Editor, run: (chain: ReturnType<Editor["chain"]>) =>
   }
 }
 
+const BUBBLE_MENU_OPTIONS = {
+  strategy: "fixed" as const,
+  placement: "top" as const,
+  offset: 12,
+  flip: true,
+  shift: { padding: 12 },
+  hide: false,
+};
+
+function appendBubbleToBody() {
+  return document.body;
+}
+
 /** Selection toolbar: everyday styles primary; secondary tools behind More. */
 export function EditorFormatToolbar({
   editor,
@@ -56,25 +69,44 @@ export function EditorFormatToolbar({
 }: EditorFormatToolbarProps) {
   const [, setTick] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
+  const moreOpenRef = useRef(moreOpen);
+  moreOpenRef.current = moreOpen;
+  const disabledRef = useRef(disabled);
+  disabledRef.current = disabled;
 
+  // Coalesce editor events — BubbleMenu focus/position churn must not setState in a loop.
   useEffect(() => {
     if (!editor) return;
-    const bump = () => setTick((n) => n + 1);
+    let frame = 0;
+    const bump = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        setTick((n) => n + 1);
+        if (moreOpenRef.current && !hasTextSelection(editor)) {
+          setMoreOpen(false);
+        }
+      });
+    };
     editor.on("selectionUpdate", bump);
     editor.on("transaction", bump);
-    editor.on("focus", bump);
-    editor.on("blur", bump);
     return () => {
+      if (frame) cancelAnimationFrame(frame);
       editor.off("selectionUpdate", bump);
       editor.off("transaction", bump);
-      editor.off("focus", bump);
-      editor.off("blur", bump);
     };
   }, [editor]);
 
-  useEffect(() => {
-    if (!editor || !hasTextSelection(editor)) setMoreOpen(false);
-  }, [editor, editor?.state.selection]);
+  const shouldShow = useCallback(
+    ({ editor: ed, state }: { editor: Editor; state: Editor["state"] }) => {
+      if (!ed.isEditable || disabledRef.current) return false;
+      const { empty, from, to } = state.selection;
+      return !empty && from !== to;
+    },
+    [],
+  );
+
+  const bubbleOptions = useMemo(() => BUBBLE_MENU_OPTIONS, []);
 
   if (!editor || disabled) return null;
 
@@ -266,20 +298,9 @@ export function EditorFormatToolbar({
       editor={editor}
       pluginKey="kodamaFormatBubble"
       updateDelay={60}
-      appendTo={() => document.body}
-      shouldShow={({ editor: ed, state }) => {
-        if (!ed.isEditable || disabled) return false;
-        const { empty, from, to } = state.selection;
-        return !empty && from !== to;
-      }}
-      options={{
-        strategy: "fixed",
-        placement: "top",
-        offset: 12,
-        flip: true,
-        shift: { padding: 12 },
-        hide: false,
-      }}
+      appendTo={appendBubbleToBody}
+      shouldShow={shouldShow}
+      options={bubbleOptions}
       data-editor-bubble-toolbar="true"
       className="editor-format-toolbar editor-format-toolbar--floating"
       role="toolbar"

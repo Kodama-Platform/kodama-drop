@@ -265,13 +265,13 @@ export function createNoteProtocol(deps: NoteProtocolDeps) {
       key: input.contentKey,
       plaintext: serializeWorkbookBytes(input.workbook),
       context: noteCtx,
-      compression: CompressionPolicy.Auto,
+      compression: CompressionPolicy.Never,
     });
     const { encoded: manifestEnvelope } = await security.envelopes.create({
       key: input.contentKey,
       plaintext: serializeManifestDoc(input.manifestDoc),
       context: manifestCtx,
-      compression: CompressionPolicy.Auto,
+      compression: CompressionPolicy.Never,
     });
     return { noteEnvelope, manifestEnvelope, noteCtx, manifestCtx };
   }

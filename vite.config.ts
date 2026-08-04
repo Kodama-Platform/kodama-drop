@@ -6,7 +6,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 
-import { devTlsOptions } from "./scripts/dev-tls";
+import { devTlsOptions } from "./scripts/dev-tls.ts";
 
 const tls = devTlsOptions();
 const repoRoot = path.dirname(fileURLToPath(import.meta.url));
@@ -58,9 +58,11 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ["@kodama.page/core", "@kodama.page/security-browser", "hash-wasm"],
+    exclude: ["brotli-wasm"],
   },
   build: {
     outDir: "dist",
     sourcemap: false,
+    target: "esnext",
   },
 });
