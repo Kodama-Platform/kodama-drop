@@ -273,7 +273,7 @@ K_STATE_MANIFEST =
          NID || epoch || STATE_ID)
 
 NOTE_CIPHERTEXT =
-    AES-256-GCM(K_STATE_NOTE, compressed note, fresh nonce, state AAD)
+    AES-256-GCM(K_STATE_NOTE, optionally compressed note, fresh nonce, state AAD)
 
 MANIFEST_CIPHERTEXT =
     AES-256-GCM(K_STATE_MANIFEST, manifest, fresh nonce, state AAD)
@@ -375,8 +375,10 @@ information, epochs, versions, and public capability status.
 
 ## 9. Attachments and Compression
 
-Structured note data is deterministically encoded, compressed with Brotli, and
-then encrypted. Attachments are not compressed by the protocol.
+Structured note data is deterministically encoded and encrypted under a KSC
+envelope. Compression is optional: the product may omit a compression policy
+(KSC default `never`) or opt into `auto` / `always` (Brotli). Attachments are
+not compressed by the protocol.
 
 Each attachment uses:
 

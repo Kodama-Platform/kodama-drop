@@ -5,6 +5,7 @@
 
 import type {
   AttachmentTransportManifest,
+  CompressionPolicy,
   EncryptedChunk,
   KeyHandle,
   PasswordProtectedMasterKey,
@@ -13,7 +14,6 @@ import type {
   WrappedKey,
 } from "@kodama.page/core";
 import {
-  CompressionPolicy,
   TEST_ARGON2ID_PARAMS,
   base64ToBytes,
   bytesToBase64,
@@ -63,6 +63,8 @@ export type NoteRole = "owner" | "editor" | "reader";
 export type NoteProtocolDeps = {
   readonly security: SecurityProvider;
   readonly delivery: NoteDeliveryClient;
+  /** Optional KSC envelope compression policy; omit → never (KSC default). */
+  readonly compression?: CompressionPolicy;
 };
 
 export type NoteSession = {
@@ -190,7 +192,7 @@ async function* bytesSource(data: Uint8Array): AsyncGenerator<Uint8Array> {
 }
 
 export function createNoteProtocol(deps: NoteProtocolDeps) {
-  const { security, delivery } = deps;
+  const { security, delivery, compression } = deps;
 
   async function wrapCekUnderKey(input: {
     readonly wrappingKey: KeyHandle;
@@ -265,13 +267,13 @@ export function createNoteProtocol(deps: NoteProtocolDeps) {
       key: input.contentKey,
       plaintext: serializeWorkbookBytes(input.workbook),
       context: noteCtx,
-      compression: CompressionPolicy.Never,
+      ...(compression !== undefined ? { compression } : {}),
     });
     const { encoded: manifestEnvelope } = await security.envelopes.create({
       key: input.contentKey,
       plaintext: serializeManifestDoc(input.manifestDoc),
       context: manifestCtx,
-      compression: CompressionPolicy.Never,
+      ...(compression !== undefined ? { compression } : {}),
     });
     return { noteEnvelope, manifestEnvelope, noteCtx, manifestCtx };
   }
