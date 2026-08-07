@@ -1,0 +1,406 @@
+/**
+ * Kodama Talk — design system layer.
+ * Builds on the shared dusk tokens in styles.css (:root / .dark).
+ * Quiet places, thin dividers, soft surfaces, restrained motion.
+ */
+
+/* ── Address plaque: the memorable URL, rendered like a nameplate ── */
+.talk-plaque {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.1rem;
+  border-radius: 999px;
+  border: 1px solid rgb(var(--border) / 0.7);
+  background: rgb(var(--card) / 0.6);
+  padding: 0.5rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  letter-spacing: 0.01em;
+  color: rgb(var(--muted-foreground));
+  backdrop-filter: blur(6px);
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.talk-plaque:hover,
+.talk-plaque:focus-within {
+  border-color: rgb(var(--primary) / 0.4);
+  background: rgb(var(--card) / 0.85);
+}
+
+.talk-plaque-host {
+  color: rgb(var(--muted-foreground) / 0.7);
+}
+
+.talk-plaque-slash {
+  color: rgb(var(--primary) / 0.6);
+  padding: 0 0.1rem;
+}
+
+.talk-plaque-name {
+  color: rgb(var(--foreground));
+  font-weight: 500;
+}
+
+.talk-plaque-input {
+  min-width: 5ch;
+  border: none;
+  background: transparent;
+  color: rgb(var(--foreground));
+  font-family: inherit;
+  font-size: inherit;
+  outline: none;
+}
+
+.talk-plaque-input::placeholder {
+  color: rgb(var(--muted-foreground) / 0.45);
+}
+
+/* ── Place mark: abstract identity, gradient + initials ── */
+.talk-mark {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 32% 68% 62% 38% / 42% 38% 62% 58%;
+  color: rgb(255 255 255 / 0.94);
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14),
+    0 6px 18px -10px rgb(0 0 0 / 0.4);
+}
+
+.talk-mark::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.12'/%3E%3C/svg%3E");
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+}
+
+/* ── Communication surfaces ── */
+.talk-surface {
+  border: 1px solid rgb(var(--border) / 0.6);
+  border-radius: 1.25rem;
+  background: rgb(var(--card) / 0.55);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-card);
+}
+
+.talk-divider {
+  height: 1px;
+  border: none;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgb(var(--border) / 0.8) 12%,
+    rgb(var(--border) / 0.8) 88%,
+    transparent
+  );
+}
+
+/* ── Drop composer ── */
+.talk-composer {
+  border: 1px solid rgb(var(--border) / 0.7);
+  border-radius: 1.1rem;
+  background: rgb(var(--background) / 0.5);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.talk-composer:focus-within {
+  border-color: rgb(var(--primary) / 0.5);
+  box-shadow: 0 0 0 4px rgb(var(--primary) / 0.12);
+}
+
+.talk-composer-field {
+  width: 100%;
+  resize: none;
+  border: none;
+  background: transparent;
+  padding: 1rem 1.1rem;
+  font-family: var(--font-sans);
+  font-size: 0.975rem;
+  font-weight: 300;
+  line-height: 1.6;
+  color: rgb(var(--foreground));
+  outline: none;
+  field-sizing: content;
+  min-height: 3.5rem;
+}
+
+.talk-composer-field::placeholder {
+  color: rgb(var(--muted-foreground) / 0.5);
+}
+
+/* ── Conversation list row ── */
+.talk-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  border: none;
+  border-radius: 0.9rem;
+  background: transparent;
+  padding: 0.75rem 0.85rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.18s ease;
+}
+
+.talk-row:hover {
+  background: rgb(var(--primary) / 0.06);
+}
+
+.talk-row--active {
+  background: rgb(var(--primary) / 0.1);
+  box-shadow: inset 2px 0 0 rgb(var(--primary) / 0.7);
+}
+
+.talk-row-body {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.talk-row-title {
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  font-weight: 500;
+  color: rgb(var(--foreground));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.talk-row-preview {
+  font-size: 0.83rem;
+  font-weight: 300;
+  color: rgb(var(--muted-foreground) / 0.9);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.talk-row-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: rgb(var(--muted-foreground) / 0.75);
+}
+
+/* ── Unread firefly: glows gently, never flashes ── */
+.talk-unread {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: rgb(var(--ember) / 0.16);
+  color: rgb(var(--ember));
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 500;
+  animation: talk-glow 3.6s ease-in-out infinite;
+}
+
+@keyframes talk-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgb(var(--ember) / 0);
+  }
+  50% {
+    box-shadow: 0 0 10px 1px rgb(var(--ember) / 0.35);
+  }
+}
+
+/* ── Message fragment ── */
+.talk-fragment {
+  max-width: min(46ch, 82%);
+  border-radius: 1.1rem;
+  padding: 0.7rem 0.95rem;
+  font-size: 0.95rem;
+  font-weight: 300;
+  line-height: 1.6;
+  animation: talk-settle 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.talk-fragment--in {
+  align-self: flex-start;
+  border: 1px solid rgb(var(--border) / 0.6);
+  background: rgb(var(--card) / 0.7);
+  color: rgb(var(--foreground));
+  border-bottom-left-radius: 0.35rem;
+}
+
+.talk-fragment--out {
+  align-self: flex-end;
+  background: rgb(var(--primary) / 0.14);
+  color: rgb(var(--foreground));
+  border-bottom-right-radius: 0.35rem;
+}
+
+/* A Drop settles into place — restrained. */
+@keyframes talk-settle {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.talk-thread-ref {
+  display: block;
+  margin-bottom: 0.4rem;
+  padding-left: 0.6rem;
+  border-left: 2px solid rgb(var(--primary) / 0.4);
+  font-size: 0.78rem;
+  font-weight: 300;
+  color: rgb(var(--muted-foreground));
+}
+
+/* ── Attachment preview ── */
+.talk-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgb(var(--border) / 0.6);
+  border-radius: 0.7rem;
+  background: rgb(var(--background) / 0.5);
+  padding: 0.4rem 0.65rem;
+  font-size: 0.8rem;
+  color: rgb(var(--foreground));
+}
+
+.talk-attachment-icon {
+  color: rgb(var(--primary));
+}
+
+/* ── Privacy status pill ── */
+.talk-privacy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+}
+
+.talk-privacy--planned {
+  background: rgb(var(--primary) / 0.1);
+  color: rgb(var(--primary));
+}
+
+.talk-privacy--mock {
+  background: rgb(var(--ember) / 0.12);
+  color: rgb(var(--ember));
+}
+
+/* ── Shelf section header ── */
+.talk-section-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgb(var(--clay));
+}
+
+/* ── Pill button (secondary) ── */
+.talk-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  border: 1px solid rgb(var(--border) / 0.7);
+  background: rgb(var(--card) / 0.5);
+  padding: 0.55rem 1rem;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: rgb(var(--foreground));
+  transition: border-color 0.25s ease, background-color 0.25s ease, transform 0.25s ease;
+}
+
+.talk-pill:hover {
+  border-color: rgb(var(--primary) / 0.4);
+  background: rgb(var(--primary) / 0.06);
+  transform: translateY(-1px);
+}
+
+/* ── Sheet / dialog scaffold ── */
+.talk-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgb(4 5 4 / 0.42);
+  backdrop-filter: blur(6px);
+  animation: talk-fade 0.25s ease both;
+}
+
+.talk-sheet-panel {
+  position: fixed;
+  z-index: 81;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(30rem, calc(100vw - 2rem));
+  max-height: min(85vh, 44rem);
+  overflow: auto;
+  border: 1px solid rgb(var(--border) / 0.7);
+  border-radius: 1.25rem;
+  background: rgb(var(--card) / 0.98);
+  padding: 1.5rem;
+  box-shadow: 0 30px 80px -30px rgb(0 0 0 / 0.5);
+  animation: talk-rise 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes talk-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes talk-rise {
+  from { opacity: 0; transform: translate(-50%, -46%) scale(0.98); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* ── Display heading tuning for Fraunces ── */
+.talk-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1.08;
+  font-optical-sizing: auto;
+}
+
+/* Reduced motion: never hide content behind an entrance animation. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-rise-delay-1,
+  .reveal-on-scroll,
+  .talk-fragment,
+  .talk-sheet-panel,
+  .talk-sheet-overlay,
+  .product-mockup,
+  .animate-breathe,
+  .animate-pop {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}

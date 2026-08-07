@@ -22,16 +22,18 @@ const viteCacheDir = path.join(
 export default defineConfig({
   cacheDir: viteCacheDir,
   resolve: {
-    tsconfigPaths: true,
-    alias: useLocalKsc
-      ? {
-          "@kodama.page/core": path.join(kscRoot, "core/src/index.ts"),
-          "@kodama.page/security-browser": path.join(
-            kscRoot,
-            "security-browser/src/index.ts",
-          ),
-        }
-      : {},
+    alias: {
+      "@": path.resolve(repoRoot, "src"),
+      ...(useLocalKsc
+        ? {
+            "@kodama.page/core": path.join(kscRoot, "core/src/index.ts"),
+            "@kodama.page/security-browser": path.join(
+              kscRoot,
+              "security-browser/src/index.ts",
+            ),
+          }
+        : {}),
+    },
   },
   plugins: [
     TanStackRouterVite({
@@ -44,16 +46,19 @@ export default defineConfig({
     tailwindcss(),
   ],
   server: {
-    host: "::",
-    port: 8080,
-    strictPort: true,
-    // HTTPS enables Web Crypto on LAN IPs (http://192.168.x.x is not a secure context).
+    host: "0.0.0.0",
+    port: Number(process.env.PORT) || 8080,
+    strictPort: false,
+    allowedHosts: true,
+    // Behind the preview HTTPS ingress; point HMR at the public wss endpoint.
+    hmr: { clientPort: 443, protocol: "wss" },
     ...(tls ? { https: tls } : {}),
   },
   preview: {
-    host: "::",
-    port: 8080,
-    strictPort: true,
+    host: "0.0.0.0",
+    port: Number(process.env.PORT) || 8080,
+    strictPort: false,
+    allowedHosts: true,
     ...(tls ? { https: tls } : {}),
   },
   optimizeDeps: {

@@ -4,6 +4,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import "./styles.css";
+import "./features/talk/styles/talk.css";
 import { router } from "./router";
 import { setupFavicon } from "@/lib/setup-favicon";
 
