@@ -49,5 +49,7 @@ reject or migrate unknown versions instead of guessing.
 - [`owner-unlock-protocol.md`](./owner-unlock-protocol.md)
 - [`pinned-shelf-protocol.md`](./pinned-shelf-protocol.md)
 - [`message-format.md`](./message-format.md)
+- [`group-channel-protocol.md`](./group-channel-protocol.md)
+- [`invites-membership.md`](./invites-membership.md)
 - [`privacy-boundaries.md`](./privacy-boundaries.md)
 - [`security-claims.md`](./security-claims.md)

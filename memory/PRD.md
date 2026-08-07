@@ -1,0 +1,47 @@
+# Kodama Talk — PRD & Build Log
+
+## Product
+Kodama Talk: a URL-native, accountless communication product. "One URL. One purpose. No account."
+A Talk address (talk.kodama.page/alex) is a *place*, not a username. Three experiences:
+- **The Door** — a visitor sends a *Drop* (no account).
+- **The Shelf** — the owner unlocks their address and manages incoming Drops, Direct Talks, Groups, Channels, Sent, and Pinned.
+- **The Stream** — every conversation opens into one focused page.
+
+Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand assets, security-core adapter). Note UI fully replaced with Talk.
+
+## Stack / Runtime
+- Vite 8 + React 19 + TypeScript + TanStack Router (file-based, autoCodeSplitting), Tailwind v4.
+- App root at `/app` (NOT CRA). Dev served on :3000 via a launcher at `/app/frontend/package.json` (supervisor `frontend` runs `yarn start` → `cd /app && vite --host 0.0.0.0 --port 3000`). No Python backend (frontend-only).
+- Display font switched to **Fraunces** (headings/place names); Outfit sans for communication.
+
+## Architecture (single backend-swap boundary)
+- `src/features/talk/services/talk-service.ts` — `TalkService` interface (the one seam).
+- `src/features/talk/services/index.ts` — `talkService` singleton (currently `MockTalkService`).
+- `src/features/talk/mock/` — `MockTalkService` + seed (local state, persisted to localStorage `kodama-talk/v1/*`). No network, no real crypto.
+- `src/features/talk/security/talk-security-adapter.ts` — the ONLY place Talk touches crypto; models future ZK (SealedPayload, OwnerCredential, InviteSecret, MembershipCredential, KeyRotation). Mock is honest: privacy pill shows "Mock — not yet encrypted".
+- `src/features/talk/protocol/` — README, drop-protocol, owner-unlock-protocol, pinned-shelf-protocol, message-format, group-channel-protocol, invites-membership, privacy-boundaries, security-claims. Every security-sensitive model carries `protocolVersion: "kodama-talk/v1"`.
+- `src/features/talk/{components,screens,store,types,lib}`.
+
+## Routes
+- `/` — Landing Door (marketing + address plaque → navigates to /:address).
+- `/$address` — Door: unclaimed → Claim; claimed → visitor Drop composer (anonymous / named / from-place) + "This is me" → Unlock → owner **Shelf** (rendered in-page). Invalid slug → error state.
+
+## Implemented (2026-06)
+- Door: resolve place, claim address (owner password, device-remembered), send Drop (3 origins), drop-sent success + growth-loop CTA, closed-receiving state.
+- Owner unlock (remembered device / forget device), Shelf interior: nav (Drops, Direct, Groups, Channels, Pinned, Sent), search, settings, lock.
+- Drops: reply (→ converts to Direct Talk), decline, block; Sent Drops with anonymous/place labelling.
+- Stream: messages, reactions, reply/thread ref, attachments preview, drafts, pin/mute/archive, locked/channel-reply-off states, privacy pill.
+- Groups (private, invite-only) + Channels (public/private, reply policy) creation; invite links; member/key-rotation model.
+- Settings (identity, tagline, drop-receiving, notification prefs), Search, light/dark theme.
+- Empty/loading/error/unavailable/blocked/archived/locked states.
+
+## Verification
+- jsdom smoke tests (4) pass: `src/features/talk/__smoke__.test.tsx`.
+- Production `vite build` clean (heavy WASM crypto stays in async chunks).
+- Testing agent: 13/13 UX flows pass in a real browser; all screens render (no blank); all testids functional. (Blank screenshot harness = headless compositor + entrance-animation timing; reduced-motion fallback added.)
+
+## Backlog / Next (P1)
+- Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
+- Real attachment upload/preview; message search highlighting; archive/expired invite management screens.
+- URL-native deep links for individual streams (`/$address/c/$id`) and join links (`/join/$code`).
+- Optimistic send + unread realtime once backend lands.
