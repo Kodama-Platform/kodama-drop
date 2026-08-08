@@ -174,9 +174,6 @@ export function StreamView({
                 : "Replies are turned off in this channel."}
           </div>
         )}
-        <div className="mt-2 flex justify-center">
-          <PrivacyStatus status={getTalkSecurity().describePrivacy()} />
-        </div>
       </div>
     </div>
   );

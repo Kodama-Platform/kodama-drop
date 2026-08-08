@@ -1,41 +1,39 @@
 import { useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
-import { ArrowRight, DoorOpen, Layers, MessagesSquare } from "lucide-react";
+import { ArrowRight, CornerUpLeft, Hand, Lock } from "lucide-react";
 
+import { useNavigate } from "@tanstack/react-router";
 import { TALK } from "@/lib/brand";
 import { normalizeSlug } from "@/lib/slug";
 import { TalkShell } from "@/features/talk/components/talk-shell";
 import { TalkAddressPlaque } from "@/features/talk/components/talk-address-plaque";
-import { PrivacyStatus } from "@/features/talk/components/privacy-status";
-import { getTalkSecurity } from "@/features/talk/security/talk-security-adapter";
 
-const EXPERIENCES = [
+const STEPS = [
   {
-    icon: DoorOpen,
-    name: "The Door",
-    body: "Anyone opens your address and drops a message in seconds. No account.",
+    icon: Hand,
+    name: "A Drop",
+    body: "Anyone opens your address and leaves a message. No app, no account — just words.",
   },
   {
-    icon: Layers,
-    name: "The Shelf",
-    body: "Unlock your own address to see what needs attention — Drops, pinned places, sent.",
+    icon: CornerUpLeft,
+    name: "You decide",
+    body: "Reply and it quietly becomes a private Direct Talk. Or decline. You're never obligated.",
   },
   {
-    icon: MessagesSquare,
-    name: "The Stream",
-    body: "Every Drop, Direct Talk, Group, or Channel opens into one focused page.",
+    icon: Lock,
+    name: "It stays yours",
+    body: "Groups and Channels appear only when you want them. Nothing to manage until then.",
   },
 ] as const;
 
-/** Marketing Door — the front of Kodama Talk. */
+/** The front door of Kodama Talk. One field, two honest intents. */
 export function LandingScreen() {
   const navigate = useNavigate();
   const [draft, setDraft] = useState("");
+  const slug = normalizeSlug(draft);
 
   const go = () => {
-    const address = normalizeSlug(draft);
-    if (!address) return;
-    navigate({ to: "/$address", params: { address } });
+    if (!slug) return;
+    navigate({ to: "/$address", params: { address: slug } });
   };
 
   return (
@@ -48,41 +46,55 @@ export function LandingScreen() {
           Your own place<br className="hidden sm:block" /> for messages.
         </h1>
         <p className="animate-rise animate-rise-delay-1 mx-auto mt-5 max-w-md text-base font-light leading-relaxed text-muted-foreground">
-          One memorable address where anyone can reach you — and you decide what becomes a
-          conversation.
+          One address anyone can reach you at. You decide what becomes a conversation.
+          No account, ever.
         </p>
 
-        <div className="animate-rise animate-rise-delay-1 mt-9 flex flex-col items-center gap-3">
-          <TalkAddressPlaque
-            editable
-            value={draft}
-            onChange={setDraft}
-            onSubmit={go}
-            placeholder="your-name"
-            className="!py-3 !text-base"
-          />
-          <button
-            type="button"
-            className="btn-moss text-base disabled:opacity-50"
-            onClick={go}
-            disabled={!normalizeSlug(draft)}
-            data-testid="claim-address-btn"
-          >
-            Claim your Talk address
-            <ArrowRight className="h-4 w-4" strokeWidth={1.75} />
-          </button>
-          <p className="text-sm font-light text-muted-foreground">
-            Anyone can drop you a message. No account needed.
+        {/* One field, two honest paths: claim it, or reach someone. */}
+        <div className="animate-rise animate-rise-delay-1 mx-auto mt-9 flex w-full max-w-md flex-col items-center gap-3">
+          <div className="flex w-full items-center gap-2">
+            <TalkAddressPlaque
+              editable
+              value={draft}
+              onChange={setDraft}
+              onSubmit={go}
+              placeholder="your-name"
+              className="!flex-1 !py-3 !text-base"
+            />
+            <button
+              type="button"
+              className="btn-moss shrink-0 !px-4 text-base disabled:opacity-40"
+              onClick={go}
+              disabled={!slug}
+              aria-label="Open this address"
+              data-testid="claim-address-btn"
+            >
+              <ArrowRight className="h-5 w-5" strokeWidth={1.75} />
+            </button>
+          </div>
+          <p className="text-sm font-light text-muted-foreground" data-testid="landing-helper">
+            {slug ? (
+              <>
+                Open <span className="font-medium text-foreground">{TALK.domain}/{slug}</span> —
+                claim it if it&apos;s free, reach them if it&apos;s taken.
+              </>
+            ) : (
+              <>Type a name to claim it — or open someone&apos;s address to reach them.</>
+            )}
           </p>
         </div>
 
+        {/* How it feels — the communication forms, in human terms. */}
         <div className="mt-16 grid gap-4 text-left sm:grid-cols-3">
-          {EXPERIENCES.map((e) => (
-            <div key={e.name} className="talk-surface p-5">
-              <e.icon className="h-5 w-5 text-primary" strokeWidth={1.5} aria-hidden="true" />
-              <h3 className="mt-3 talk-display text-lg text-foreground">{e.name}</h3>
+          {STEPS.map((s, i) => (
+            <div key={s.name} className="talk-surface p-5">
+              <div className="flex items-center gap-2">
+                <s.icon className="h-5 w-5 text-primary" strokeWidth={1.5} aria-hidden="true" />
+                <span className="font-mono text-[0.66rem] text-muted-foreground/60">0{i + 1}</span>
+              </div>
+              <h3 className="mt-3 talk-display text-lg text-foreground">{s.name}</h3>
               <p className="mt-1.5 text-sm font-light leading-relaxed text-muted-foreground">
-                {e.body}
+                {s.body}
               </p>
             </div>
           ))}
@@ -90,10 +102,13 @@ export function LandingScreen() {
 
         <div className="mt-14 flex flex-col items-center gap-4">
           <p className="max-w-lg text-sm font-light leading-relaxed text-muted-foreground">
-            Stop putting your email, phone number, Telegram, Discord, and five social links
-            everywhere. Put one address.
+            Stop scattering your email, phone number, and five social links everywhere.
+            Share one address.
           </p>
-          <PrivacyStatus status={getTalkSecurity().describePrivacy()} withText />
+          <span className="talk-privacy talk-privacy--calm" title={TALK.privacyLine}>
+            <Lock className="h-3 w-3" strokeWidth={1.75} aria-hidden="true" />
+            Private by design — encrypted before it reaches Kodama
+          </span>
         </div>
       </section>
     </TalkShell>

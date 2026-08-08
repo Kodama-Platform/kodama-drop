@@ -300,8 +300,9 @@
   letter-spacing: 0.04em;
 }
 
-.talk-privacy--planned {
-  background: rgb(var(--primary) / 0.1);
+.talk-privacy--planned,
+.talk-privacy--calm {
+  background: rgb(var(--primary) / 0.09);
   color: rgb(var(--primary));
 }
 

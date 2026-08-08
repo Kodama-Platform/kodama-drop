@@ -53,7 +53,7 @@ function ShelfInner() {
   const nav = useMemo(
     () => [
       { key: "drops" as const, label: "Drops", icon: Inbox, count: shelf?.incoming.length ?? 0 },
-      { key: "direct" as const, label: "Direct Talks", icon: MessageCircle, count: shelf?.directTalks.length ?? 0 },
+      { key: "direct" as const, label: "Talks", icon: MessageCircle, count: shelf?.directTalks.length ?? 0 },
       { key: "groups" as const, label: "Groups", icon: Users, count: shelf?.groups.length ?? 0 },
       { key: "channels" as const, label: "Channels", icon: Hash, count: shelf?.channels.length ?? 0 },
       { key: "pinned" as const, label: "Pinned", icon: Pin, count: shelf?.pinned.length ?? 0 },
@@ -92,34 +92,59 @@ function ShelfInner() {
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 gap-0 px-0 sm:px-4">
         {/* Left shelf rail */}
         <aside className={cn("flex w-full max-w-full shrink-0 flex-col border-r border-border/50 sm:w-[19rem] lg:w-[21rem]", selected && "hidden sm:flex")} data-testid="shelf-rail">
-          <div className="flex items-center gap-3 px-4 py-4">
+          <div className="flex items-center gap-3 px-4 pb-3 pt-4">
             <PlaceMark mark={markFor(session.displayName, session.address)} size={44} />
             <div className="min-w-0">
-              <p className="talk-display truncate text-lg text-foreground">{session.displayName}</p>
+              <p className="font-mono text-[0.6rem] uppercase tracking-[0.22em] text-clay">Your place</p>
+              <p className="talk-display truncate text-lg leading-tight text-foreground">{session.displayName}</p>
               <p className="truncate font-mono text-[0.7rem] text-primary">{TALK.domain}/{session.address}</p>
             </div>
           </div>
 
-          <nav className="flex flex-wrap gap-1 px-3 pb-2" data-testid="shelf-nav">
-            {nav.map((n) => (
-              <button
-                key={n.key}
-                type="button"
-                onClick={() => { setSection(n.key); setSelected(null); }}
-                className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors", section === n.key ? "bg-primary/12 text-foreground" : "text-muted-foreground hover:bg-primary/6 hover:text-foreground")}
-                data-testid={`nav-${n.key}`}
-              >
-                <n.icon className="h-3.5 w-3.5" strokeWidth={1.75} />
-                {n.label}
-                {n.count > 0 && <span className="font-mono text-[0.62rem] text-muted-foreground/70">{n.count}</span>}
-              </button>
-            ))}
+          <nav className="flex gap-4 overflow-x-auto px-4 pb-1" data-testid="shelf-nav">
+            {nav.map((n) => {
+              const active = section === n.key;
+              const showFirefly = n.key === "drops" && n.count > 0;
+              return (
+                <button
+                  key={n.key}
+                  type="button"
+                  onClick={() => { setSection(n.key); setSelected(null); }}
+                  className={cn(
+                    "group relative shrink-0 pb-2 text-sm transition-colors",
+                    active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                  )}
+                  data-testid={`nav-${n.key}`}
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    {n.label}
+                    {showFirefly && <span className="h-1.5 w-1.5 rounded-full bg-ember shadow-[0_0_8px_1px_rgb(var(--ember)/0.5)]" data-testid="drops-firefly" />}
+                  </span>
+                  <span
+                    className={cn(
+                      "absolute inset-x-0 -bottom-px h-px origin-left rounded-full bg-primary transition-transform duration-300",
+                      active ? "scale-x-100" : "scale-x-0 group-hover:scale-x-50",
+                    )}
+                  />
+                </button>
+              );
+            })}
           </nav>
+          <div className="mx-4 mb-2 h-px bg-border/50" />
 
-          <div className="flex gap-2 px-3 pb-2">
-            <button type="button" className="talk-pill flex-1 justify-center !py-1.5 text-sm" onClick={() => setSheet("group")} data-testid="new-group"><Plus className="h-3.5 w-3.5" /> Group</button>
-            <button type="button" className="talk-pill flex-1 justify-center !py-1.5 text-sm" onClick={() => setSheet("channel")} data-testid="new-channel"><Plus className="h-3.5 w-3.5" /> Channel</button>
-          </div>
+          {(section === "groups" || section === "channels") && (
+            <div className="px-4 pb-2">
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 text-sm text-primary transition-colors hover:text-foreground"
+                onClick={() => setSheet(section === "groups" ? "group" : "channel")}
+                data-testid={section === "groups" ? "new-group" : "new-channel"}
+              >
+                <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+                {section === "groups" ? "New group" : "New channel"}
+              </button>
+            </div>
+          )}
 
           <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-6">
             {loading ? (
@@ -141,8 +166,8 @@ function ShelfInner() {
           ) : (
             <div className="flex h-full items-center justify-center p-6">
               <TalkEmpty
-                title="Your quiet interior"
-                body="Pick a Drop or conversation on the left. Everything that needs your attention lives here — nothing else."
+                title="This is your place"
+                body="On the left: Drops from people reaching you, Talks (a reply turns a Drop into a private Direct Talk), and any Groups or Channels you start. Pick one to open it here."
               />
             </div>
           )}

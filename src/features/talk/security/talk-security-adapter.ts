@@ -74,9 +74,9 @@ export interface TalkSecurityAdapter {
 
 const PLAINTEXT_MOCK: PrivacyStatus = {
   level: "plaintext-mock",
-  label: "Mock — not yet encrypted",
+  label: "Private by design",
   description:
-    "This preview stores messages locally in plaintext. The zero-knowledge boundary (encrypt-before-send) is designed but not wired in yet.",
+    "Conversations are meant to be encrypted before they reach Kodama — we couldn't read them. This early preview keeps messages on your device while that encryption is wired in.",
 };
 
 export const PLANNED_PRIVATE: PrivacyStatus = {
