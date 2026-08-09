@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Loader2, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Attachment } from "@/features/talk/types";
+import { Markdown } from "@/features/talk/lib/markdown";
 
 /** Drop / message composer. Send in seconds — Enter to send, Shift+Enter newline. */
 export function DropComposer({
@@ -25,12 +26,16 @@ export function DropComposer({
 }) {
   const [body, setBody] = useState("");
   const [label, setLabel] = useState("");
+  const [preview, setPreview] = useState(false);
+
+  const hasBody = body.trim().length > 0;
 
   const submit = () => {
     const trimmed = body.trim();
     if (!trimmed || busy) return;
     onSend(trimmed, showLabel ? label.trim() || undefined : undefined);
     setBody("");
+    setPreview(false);
   };
 
   return (
@@ -44,20 +49,26 @@ export function DropComposer({
           data-testid="drop-composer-label"
         />
       )}
-      <textarea
-        className="talk-composer-field"
-        placeholder={placeholder}
-        value={body}
-        rows={2}
-        onChange={(e) => setBody(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            submit();
-          }
-        }}
-        data-testid="drop-composer-field"
-      />
+      {preview && hasBody ? (
+        <div className="px-4 pt-3.5 pb-1" data-testid="drop-composer-preview">
+          <Markdown text={body.trim()} className="md text-[0.975rem] font-light leading-relaxed text-foreground" />
+        </div>
+      ) : (
+        <textarea
+          className="talk-composer-field"
+          placeholder={placeholder}
+          value={body}
+          rows={2}
+          onChange={(e) => setBody(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              submit();
+            }
+          }}
+          data-testid="drop-composer-field"
+        />
+      )}
       {attachments.length > 0 && (
         <div className="flex flex-wrap gap-1.5 px-4 pb-1">
           {attachments.map((a) => (
@@ -68,9 +79,17 @@ export function DropComposer({
         </div>
       )}
       <div className="flex items-center justify-between px-3 pb-3 pt-1">
-        <span className="font-mono text-[0.66rem] text-muted-foreground/60">
-          Enter to send · Shift+Enter for a new line
-        </span>
+        {hasBody ? (
+          <div className="flex items-center gap-2 pl-1" data-testid="drop-composer-writemode">
+            <button type="button" className="door-sign !text-[0.82rem]" data-active={!preview} onClick={() => setPreview(false)} data-testid="drop-composer-write-tab">Write</button>
+            <span className="text-muted-foreground/30">·</span>
+            <button type="button" className="door-sign !text-[0.82rem]" data-active={preview} onClick={() => setPreview(true)} data-testid="drop-composer-preview-tab">Preview</button>
+          </div>
+        ) : (
+          <span className="font-mono text-[0.66rem] text-muted-foreground/60">
+            Enter to send · Shift+Enter for a new line
+          </span>
+        )}
         <button
           type="button"
           className="btn-moss !px-4 !py-2 text-sm disabled:opacity-50"
