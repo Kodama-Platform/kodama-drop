@@ -5,6 +5,7 @@ import type { Message } from "@/features/talk/types";
 import { AttachmentPreview } from "@/features/talk/components/attachment-preview";
 import { ThreadReferenceView } from "@/features/talk/components/thread-reference";
 import { relativeTime } from "@/features/talk/lib/time";
+import { Markdown } from "@/features/talk/lib/markdown";
 
 const QUICK = ["🌿", "✨", "🙏", "🔥", "👀"];
 
@@ -27,7 +28,7 @@ export function MessageFragment({
             {message.authorLabel}
           </p>
         )}
-        <p className="whitespace-pre-wrap break-words">{message.body}</p>
+        <Markdown text={message.body} className="md break-words" />
         {message.attachments.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {message.attachments.map((a) => (

@@ -9,6 +9,7 @@ import { AttachmentPreview } from "@/features/talk/components/attachment-preview
 import { SentDropState } from "@/features/talk/components/sent-drop-state";
 import { markFor } from "@/features/talk/lib/mark";
 import { relativeTime } from "@/features/talk/lib/time";
+import { Markdown } from "@/features/talk/lib/markdown";
 
 function OriginBadge({ drop }: { drop: Drop }) {
   if (drop.origin === "anonymous")
@@ -81,9 +82,7 @@ export function DropCard({ drop, onOpen }: { drop: Drop; onOpen: (c: Conversatio
             <span className="font-mono text-[0.66rem] text-muted-foreground/70">{relativeTime(drop.createdAt)}</span>
           </div>
           <div className="mt-0.5"><OriginBadge drop={drop} /></div>
-          <p className="mt-2 whitespace-pre-wrap break-words text-sm font-light leading-relaxed text-foreground/90">
-            {drop.body}
-          </p>
+          <Markdown text={drop.body} className="md mt-2 break-words text-sm font-light leading-relaxed text-foreground/90" />
           {drop.attachments.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {drop.attachments.map((a) => (

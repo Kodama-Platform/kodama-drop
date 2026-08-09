@@ -11,6 +11,7 @@ import { TalkShell } from "@/features/talk/components/talk-shell";
 import { PlaceMark } from "@/features/talk/components/place-mark";
 import { TalkAddressPlaque } from "@/features/talk/components/talk-address-plaque";
 import { PrivacyStatus } from "@/features/talk/components/privacy-status";
+import { Markdown } from "@/features/talk/lib/markdown";
 import { TalkLoading, TalkEmpty } from "@/features/talk/components/states";
 import { getTalkSecurity } from "@/features/talk/security/talk-security-adapter";
 import { ShelfScreen } from "@/features/talk/screens/shelf-screen";
@@ -88,6 +89,7 @@ function DoorView({ place, onOwner }: { place: Place; onOwner: () => void }) {
   const [name, setName] = useState("");
   const [fromAddress, setFromAddress] = useState("");
   const [body, setBody] = useState("");
+  const [preview, setPreview] = useState(false);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
 
@@ -165,15 +167,34 @@ function DoorView({ place, onOwner }: { place: Place; onOwner: () => void }) {
       )}
 
       {/* The note itself */}
-      <div className="door-paper px-5 pb-4 pt-5">
-        <textarea
-          className="door-writing"
-          placeholder={`Hi ${fn}, I just wanted to say…`}
-          value={body}
-          autoFocus
-          onChange={(e) => setBody(e.target.value)}
-          data-testid="door-composer"
-        />
+      <div className="door-paper px-5 pb-4 pt-4">
+        <div className="mb-1.5 flex items-center justify-between">
+          <span className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-muted-foreground/55">Your note</span>
+          <div className="flex items-center gap-2" data-testid="door-writemode">
+            <button type="button" className="door-sign" data-active={!preview} onClick={() => setPreview(false)} data-testid="door-write-tab">Write</button>
+            <span className="text-muted-foreground/30">·</span>
+            <button type="button" className="door-sign" data-active={preview} onClick={() => body.trim() && setPreview(true)} data-testid="door-preview-tab">Preview</button>
+          </div>
+        </div>
+
+        {preview ? (
+          <div className="min-h-[8.5rem]" data-testid="door-preview">
+            <Markdown text={body.trim() || "_Nothing written yet…_"} className="md text-[1.05rem] font-light leading-relaxed text-foreground/90" />
+          </div>
+        ) : (
+          <textarea
+            className="door-writing"
+            placeholder={`Hi ${fn}, I just wanted to say…`}
+            value={body}
+            autoFocus
+            onChange={(e) => setBody(e.target.value)}
+            data-testid="door-composer"
+          />
+        )}
+
+        <p className="mt-1 text-[0.68rem] font-light text-muted-foreground/50">
+          Write naturally — **bold**, _italic_, links and lists just work.
+        </p>
 
         <div className="mt-2 border-t border-border/40 pt-3">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5" data-testid="origin-select">
