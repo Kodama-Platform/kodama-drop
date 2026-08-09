@@ -60,6 +60,11 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - **Page-purpose captions** (subtle one-line, under each title): Landing `landing-purpose` "Find or claim a place for messages."; Shelf `shelf-purpose` "Decide what becomes a conversation."; Stream `stream-purpose` (direct → "A private conversation that began with a Drop"; group/channel → subtitle or kind purpose).
 - Verified: 151/151 unit tests pass, clean production build, testing agent iteration_3 → 26/26 browser checks pass (headings/bold/italic/code/safe links/quotes/lists render as real HTML in door-preview + message bubbles; captions present; Door send + owner unlock regression intact).
 
+## Update (2026-06, iteration 5) — Reply Preview
+- The in-conversation reply composer (`drop-composer.tsx`) now has the same quiet **Write / Preview** toggle as the Door. Tabs appear only once there's text; Preview renders the same safe Markdown; submit clears and resets to Write mode.
+- Testids: `drop-composer-writemode`, `drop-composer-write-tab`, `drop-composer-preview-tab`, `drop-composer-preview`.
+- Verified: clean build + testing agent iteration_4 → **30/30** browser checks (empty hint, tabs on text, real-HTML preview with safe links, Write preserves text, send clears/resets, sent bubble renders Markdown, plain-send + Enter-to-send regressions intact).
+
 ## Backlog / Next (P1)
 - Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.
