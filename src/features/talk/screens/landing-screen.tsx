@@ -45,7 +45,10 @@ export function LandingScreen() {
         <h1 className="animate-rise animate-rise-delay-1 mt-5 talk-display text-4xl text-foreground sm:text-6xl">
           Your own place<br className="hidden sm:block" /> for messages.
         </h1>
-        <p className="animate-rise animate-rise-delay-1 mx-auto mt-5 max-w-md text-base font-light leading-relaxed text-muted-foreground">
+        <p className="animate-rise animate-rise-delay-1 mt-4 text-sm font-light italic text-muted-foreground/70" data-testid="landing-purpose">
+          Find or claim a place for messages.
+        </p>
+        <p className="animate-rise animate-rise-delay-1 mx-auto mt-3 max-w-md text-base font-light leading-relaxed text-muted-foreground">
           One address anyone can reach you at. You decide what becomes a conversation.
           No account, ever.
         </p>

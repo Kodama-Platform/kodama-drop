@@ -1,0 +1,25 @@
+{
+  "summary": "Frontend-only verification of Markdown Write/Preview + page-purpose captions on Kodama Talk. 26/26 targeted checks pass. All Markdown constructs (h1/h2/h3, strong, em, code, safe links with target=_blank + rel=noopener noreferrer nofollow, blockquote, ul, ol) render as real HTML in door-preview and in message bubbles. Preview guard on empty composer works. Landing, Shelf and Stream purpose captions render correctly. Regression flows (address entry, owner unlock, drop send) intact.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Stream header (existing seeded conversations)", "issues": ["stream-purpose falls back to conversation.subtitle when present. For the seeded /alex → Mara Direct Talk, the subtitle is 'talk.kodama.page/mara' (the counterpart address) rather than a plain-language purpose like 'A private conversation that began with a Drop'. Purely a copy consideration — the spec permits subtitle fallback, so this is informational only."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "markdown.tsx uses dangerouslySetInnerHTML. Current sanitizer escapes HTML first and only permits http(s) hrefs, which is safe. Consider adding a unit test for adversarial inputs (e.g. javascript:, data:, mixed **/*/backtick edge cases) as a regression guard.",
+    "The italic rules use a leading class '(^|[\\s(])' which means '_italic_' at the very start of a paragraph is handled, but consecutive markers in an inline sequence like '_a_ _b_' may only match the first because the leading whitespace requirement collides with the previously consumed char. Consider expanding to allow inline chains, or add a test.",
+    "streamPurpose() default is used only when conversation.subtitle is null/undefined. Seeded direct-talks include address strings as subtitles which override the friendlier purpose. Consider suppressing subtitle-as-purpose for 'direct' kind, or introducing a separate 'subtitle' vs 'purpose' field."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a", "frontend": "100% (26/26 targeted checks)"},
+  "test_credentials": "Owner unlock for /alex: any 4+ char password (used 'secret').",
+  "seed_data_creation": "Sent 1 test drop via door-composer; sent 1 markdown reply into the seeded Mara Direct Talk.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Verified Markdown rendering: PREVIEW HTML for a mixed markdown input contained <h1>Heading 1</h1><h2>Heading 2</h2><h3>Heading 3</h3><p><strong>bold</strong> and <em>italic</em> and <code>code</code></p><p><a href=\"https://example.com\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">link</a></p><blockquote>a quote</blockquote><ul><li>item a</li><li>item b</li></ul><ol><li>one</li><li>two</li></ol>. Empty-composer Preview guard works (clicking door-preview-tab with empty body does NOT switch view; door-preview node is not rendered). Write tab preserves 146-char markdown text. drop-sent reached. Owner unlock -> shelf-purpose='Decide what becomes a conversation.'. Direct talk stream renders <strong>hello</strong> <em>world</em> <code>code</code><h1>H1</h1> in [data-testid=message-fragment]. Landing purpose='Find or claim a place for messages.'. Only note: stream-purpose displays subtitle 'talk.kodama.page/mara' for the seeded direct talk (subtitle overrides streamPurpose default per code)."
+}

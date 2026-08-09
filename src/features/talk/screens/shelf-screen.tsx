@@ -104,6 +104,10 @@ function ShelfInner() {
             </div>
           </div>
 
+          <p className="px-4 pb-2 text-xs font-light italic text-muted-foreground/70" data-testid="shelf-purpose">
+            Decide what becomes a conversation.
+          </p>
+
           <nav className="flex gap-4 overflow-x-auto px-4 pb-1" data-testid="shelf-nav">
             {nav.map((n) => {
               const active = section === n.key;

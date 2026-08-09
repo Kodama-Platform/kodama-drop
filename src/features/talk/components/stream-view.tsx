@@ -104,9 +104,9 @@ export function StreamView({
           <h1 className="talk-display truncate text-lg text-foreground" data-testid="stream-title">
             {conversation.title}
           </h1>
-          {conversation.subtitle && (
-            <p className="truncate font-mono text-[0.7rem] text-muted-foreground/75">{conversation.subtitle}</p>
-          )}
+          <p className="truncate font-mono text-[0.7rem] text-muted-foreground/75" data-testid="stream-purpose">
+            {conversation.subtitle ?? streamPurpose(conversation.kind)}
+          </p>
         </div>
         <div className="flex items-center gap-1">
           {(conversation.kind === "group" || conversation.kind === "channel") && onInvite && (
@@ -177,6 +177,14 @@ export function StreamView({
       </div>
     </div>
   );
+}
+
+function streamPurpose(kind: Conversation["kind"]): string {
+  switch (kind) {
+    case "group": return "A private, invite-only group";
+    case "channel": return "A channel for updates";
+    default: return "A private conversation that began with a Drop";
+  }
 }
 
 function IconBtn({

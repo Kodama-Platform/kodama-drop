@@ -1,6 +1,6 @@
 /**
  * Tiny, safe Markdown for Drops & messages. No external deps, no raw HTML.
- * Supports: **bold** _italic_ `code` [links](url) > quotes, - / 1. lists.
+ * Supports: # headings, **bold** _italic_ `code` [links](url) > quotes, - / 1. lists.
  * HTML is escaped first; only http(s) links are allowed.
  */
 
@@ -61,11 +61,18 @@ export function markdownToHtml(src: string): string {
 
   for (const raw of lines) {
     const line = raw.trimEnd();
+    const h = /^(#{1,3})\s+(.+)/.exec(line);
     const ul = /^\s*[-*]\s+(.+)/.exec(line);
     const ol = /^\s*\d+\.\s+(.+)/.exec(line);
     const bq = /^\s*>\s?(.*)/.exec(line);
 
-    if (ul || ol) {
+    if (h) {
+      flushPara();
+      flushQuote();
+      flushList();
+      const lvl = h[1].length;
+      out.push(`<h${lvl}>${inline(h[2])}</h${lvl}>`);
+    } else if (ul || ol) {
       flushPara();
       flushQuote();
       const kind = ul ? "ul" : "ol";
