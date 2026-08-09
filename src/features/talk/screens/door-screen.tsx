@@ -14,6 +14,7 @@ import { PrivacyStatus } from "@/features/talk/components/privacy-status";
 import { TalkLoading, TalkEmpty } from "@/features/talk/components/states";
 import { getTalkSecurity } from "@/features/talk/security/talk-security-adapter";
 import { ShelfScreen } from "@/features/talk/screens/shelf-screen";
+import { KeyCardSheet } from "@/features/talk/components/key-card";
 
 type View = "door" | "claim" | "unlock";
 
@@ -224,6 +225,7 @@ function ClaimView({ address, onClaimed, onCancel }: { address: string; onClaime
   const [tagline, setTagline] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<OwnerSession | null>(null);
 
   const claim = async () => {
     if (!displayName.trim() || password.length < 4) { toast.error("Add a name and a password (4+ chars)"); return; }
@@ -231,7 +233,7 @@ function ClaimView({ address, onClaimed, onCancel }: { address: string; onClaime
     try {
       await talkService.claimAddress({ address, displayName: displayName.trim(), tagline: tagline.trim() || undefined, ownerPassword: password });
       const session = await talkService.unlockOwner(address, password, true);
-      if (session) onClaimed(session);
+      if (session) setPending(session);
     } catch (e) {
       toast.error((e as Error).message === "address_taken" ? "That address was just taken" : "Could not claim");
     } finally { setBusy(false); }
@@ -255,6 +257,14 @@ function ClaimView({ address, onClaimed, onCancel }: { address: string; onClaime
           </button>
         </div>
       </div>
+      <KeyCardSheet
+        open={!!pending}
+        onOpenChange={() => {}}
+        address={address}
+        displayName={displayName.trim() || address}
+        mustAcknowledge
+        onAcknowledged={() => pending && onClaimed(pending)}
+      />
     </div>
   );
 }

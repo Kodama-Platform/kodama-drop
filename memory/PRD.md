@@ -47,6 +47,12 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - **Door Note** (#3): `Place.doorNote` shown to visitors (`door-note`), editable in Settings (`settings-doornote`); seeded on `alex`.
 - Verified by testing agent (iteration_2.json): 13/13 targeted checks pass in a real browser; QR + canvas render; only note is headless clipboard restriction (now has execCommand fallback).
 
+## Update (2026-06, iteration 3) — Sealed Key Card
+- New security model `RecoveryKey` + `mintRecoveryKey(address)` in `talk-security-adapter.ts` (deterministic grouped code in the mock; placeholder for real security-core recovery).
+- `components/key-card.tsx` (`KeyCardSheet`): calm copy, copyable recovery code, and a **downloadable Key Card** (canvas PNG with place-mark, address, code, and honest "no account / no reset — keep it safe" framing).
+- Shown at **claim time as a must-acknowledge gate** (checkbox → "Enter my place") before the Shelf opens; re-downloadable anytime from **Settings → Recovery key card** (`settings-key-card`).
+- Verified: jsdom flow test added (claim → gated key card → shelf); 5/5 smoke tests pass; clean production build.
+
 ## Backlog / Next (P1)
 - Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.

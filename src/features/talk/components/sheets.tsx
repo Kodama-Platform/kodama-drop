@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Copy, Hash, Loader2, LogOut, Search as SearchIcon, Users } from "lucide-react";
+import { Check, Copy, Hash, KeyRound, Loader2, LogOut, Search as SearchIcon, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { talkService } from "@/features/talk/services";
@@ -12,6 +12,7 @@ import type {
   NotificationPrefs,
 } from "@/features/talk/types";
 import { TalkSheet } from "@/features/talk/components/talk-sheet";
+import { KeyCardSheet } from "@/features/talk/components/key-card";
 import { useOwner } from "@/features/talk/store/owner-context";
 import { copyText } from "@/features/talk/lib/clipboard";
 
@@ -97,6 +98,7 @@ export function SettingsSheet({ open, onOpenChange }: SheetBase) {
   const [tagline, setTagline] = useState("");
   const [doorNote, setDoorNote] = useState("");
   const [prefs, setPrefs] = useState<NotificationPrefs | null>(null);
+  const [showKey, setShowKey] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -137,11 +139,13 @@ export function SettingsSheet({ open, onOpenChange }: SheetBase) {
             ))}
           </div>
         </div>
+        <button type="button" className="talk-pill w-full justify-center" onClick={() => setShowKey(true)} data-testid="settings-key-card"><KeyRound className="h-4 w-4" /> Recovery key card</button>
         <div className="flex items-center justify-between gap-3">
           <button type="button" className="talk-pill hover:!border-destructive/40 hover:!text-destructive" onClick={forget} data-testid="settings-forget"><LogOut className="h-4 w-4" /> Forget this device</button>
           <button type="button" className="btn-moss disabled:opacity-50" onClick={save} data-testid="settings-save"><Check className="h-4 w-4" /> Save</button>
         </div>
       </div>
+      <KeyCardSheet open={showKey} onOpenChange={setShowKey} address={session.address} displayName={session.displayName} />
     </TalkSheet>
   );
 }

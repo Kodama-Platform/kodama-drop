@@ -44,6 +44,24 @@ test("unclaimed address offers a claim flow", async () => {
   await waitFor(() => expect(screen.getByTestId("claim-view")).toBeInTheDocument());
 });
 
+test("claiming a place shows the recovery Key Card before entering the Shelf", async () => {
+  mount("/fresh-place-abc");
+  await waitFor(() => expect(screen.getByTestId("claim-this-btn")).toBeInTheDocument());
+  fireEvent.click(screen.getByTestId("claim-this-btn"));
+  await waitFor(() => screen.getByTestId("claim-view"));
+  fireEvent.change(screen.getByTestId("claim-name"), { target: { value: "Sam" } });
+  fireEvent.change(screen.getByTestId("claim-password"), { target: { value: "secret" } });
+  fireEvent.click(screen.getByTestId("claim-submit"));
+  await waitFor(() => {
+    expect(screen.getByTestId("key-card-sheet")).toBeInTheDocument();
+    expect(screen.getByTestId("key-card-code").textContent?.length ?? 0).toBeGreaterThan(4);
+  });
+  expect(screen.getByTestId("key-card-continue")).toBeDisabled();
+  fireEvent.click(screen.getByTestId("key-card-ack"));
+  fireEvent.click(screen.getByTestId("key-card-continue"));
+  await waitFor(() => expect(screen.getByTestId("shelf-rail")).toBeInTheDocument(), { timeout: 4000 });
+});
+
 test("owner can unlock a claimed place and reach the Shelf", async () => {
   mount("/alex");
   await waitFor(() => screen.getByTestId("this-is-me"));

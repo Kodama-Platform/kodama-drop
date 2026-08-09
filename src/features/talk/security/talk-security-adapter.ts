@@ -54,6 +54,15 @@ export interface KeyRotation {
   rotatedAt: string;
 }
 
+/** Human-friendly recovery key — the only way back into an accountless place. */
+export interface RecoveryKey {
+  protocolVersion: typeof TALK_PROTOCOL_VERSION;
+  address: string;
+  /** Grouped, unambiguous code, e.g. "K7QX-2M4A-9RJP-TDLE". */
+  code: string;
+  createdAt: string;
+}
+
 export interface TalkSecurityAdapter {
   readonly protocolVersion: typeof TALK_PROTOCOL_VERSION;
   describePrivacy(): PrivacyStatus;
@@ -66,6 +75,11 @@ export interface TalkSecurityAdapter {
   deriveOwnerCredential(address: string, password: string, remember: boolean): Promise<OwnerCredential>;
   /** Mint a sealed invite secret for a private conversation. */
   mintInvite(conversationId: string, expiresAt?: string): Promise<InviteSecret>;
+  /**
+   * Derive the owner's recovery key for a place. Deterministic per address in
+   * the mock so it can be re-shown; the real key is held by security-core.
+   */
+  mintRecoveryKey(address: string): Promise<RecoveryKey>;
   /** Model a re-key when membership changes. */
   rotateKeys(conversationId: string, reason: KeyRotation["reason"]): Promise<KeyRotation>;
   /** Lazily load the shared kodama-security-core (heavy WASM) when real crypto lands. */
@@ -122,6 +136,28 @@ class MockTalkSecurityAdapter implements TalkSecurityAdapter {
       conversationId,
       sealed: { protocolVersion: TALK_PROTOCOL_VERSION, scheme: "plaintext", ciphertext: Math.random().toString(36).slice(2) },
       expiresAt,
+    };
+  }
+
+  async mintRecoveryKey(address: string): Promise<RecoveryKey> {
+    // Deterministic, unambiguous groups derived from the address (mock only).
+    const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let h = 2166136261;
+    for (let i = 0; i < address.length; i += 1) {
+      h ^= address.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    let seed = Math.abs(h) || 1;
+    const next = () => {
+      seed = (Math.imul(seed, 48271) % 2147483647 + 2147483647) % 2147483647;
+      return ALPHABET[seed % ALPHABET.length];
+    };
+    const groups = Array.from({ length: 4 }, () => Array.from({ length: 4 }, next).join(""));
+    return {
+      protocolVersion: TALK_PROTOCOL_VERSION,
+      address,
+      code: groups.join("-"),
+      createdAt: new Date().toISOString(),
     };
   }
 
