@@ -94,16 +94,17 @@ export function SettingsSheet({ open, onOpenChange }: SheetBase) {
   const { session, refresh, forget } = useOwner();
   const [displayName, setDisplayName] = useState(session.displayName);
   const [tagline, setTagline] = useState("");
+  const [doorNote, setDoorNote] = useState("");
   const [prefs, setPrefs] = useState<NotificationPrefs | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    void talkService.resolvePlace(session.address).then((p) => { if (p) { setDisplayName(p.displayName); setTagline(p.tagline); } });
+    void talkService.resolvePlace(session.address).then((p) => { if (p) { setDisplayName(p.displayName); setTagline(p.tagline); setDoorNote(p.doorNote ?? ""); } });
     void talkService.getNotificationPrefs(session.address).then(setPrefs);
   }, [open, session.address]);
 
   const save = async () => {
-    await talkService.updatePlace(session.address, { displayName, tagline });
+    await talkService.updatePlace(session.address, { displayName, tagline, doorNote });
     if (prefs) await talkService.setNotificationPrefs(session.address, prefs);
     toast.success("Settings saved");
     await refresh();
@@ -117,6 +118,7 @@ export function SettingsSheet({ open, onOpenChange }: SheetBase) {
       <div className="space-y-5">
         <Labeled label="Display name"><input className={field} value={displayName} onChange={(e) => setDisplayName(e.target.value)} data-testid="settings-name" /></Labeled>
         <Labeled label="Tagline"><input className={field} value={tagline} onChange={(e) => setTagline(e.target.value)} data-testid="settings-tagline" /></Labeled>
+        <Labeled label="Door note — a gentle line shown to visitors (optional)"><input className={field} value={doorNote} onChange={(e) => setDoorNote(e.target.value)} placeholder="Slow to reply this week — Drops still welcome." data-testid="settings-doornote" /></Labeled>
         <div>
           <p className="talk-section-label mb-2">Notifications</p>
           <div className="space-y-1.5">

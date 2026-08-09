@@ -24,6 +24,8 @@ export interface Place {
   address: TalkAddress;
   displayName: string;
   tagline: string;
+  /** One gentle line shown to visitors on the Door (office-hours / away). */
+  doorNote?: string;
   mark: PlaceMarkSpec;
   claimed: boolean;
   dropReceiving: DropReceiving;

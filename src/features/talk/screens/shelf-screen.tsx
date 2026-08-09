@@ -9,6 +9,7 @@ import {
   Search,
   Send,
   Settings,
+  Share2,
   Lock,
   Users,
 } from "lucide-react";
@@ -30,6 +31,7 @@ import {
   SettingsSheet,
   SearchSheet,
 } from "@/features/talk/components/sheets";
+import { ShareDoorSheet } from "@/features/talk/components/share-door";
 import { OwnerProvider, useOwner } from "@/features/talk/store/owner-context";
 import { markFor } from "@/features/talk/lib/mark";
 
@@ -47,7 +49,7 @@ function ShelfInner() {
   const { session, shelf, loading, refresh, lock } = useOwner();
   const [section, setSection] = useState<Section>("drops");
   const [selected, setSelected] = useState<Conversation | null>(null);
-  const [sheet, setSheet] = useState<null | "group" | "channel" | "settings" | "search">(null);
+  const [sheet, setSheet] = useState<null | "group" | "channel" | "settings" | "search" | "share">(null);
   const [inviteConv, setInviteConv] = useState<Conversation | null>(null);
 
   const nav = useMemo(
@@ -83,6 +85,7 @@ function ShelfInner() {
       fillViewport
       headerAction={
         <div className="flex items-center gap-2">
+          <button type="button" className="talk-pill !py-2 text-sm" onClick={() => setSheet("share")} data-testid="open-share"><Share2 className="h-4 w-4" /> Share</button>
           <button type="button" className="talk-pill !px-2.5 !py-2" onClick={() => setSheet("search")} aria-label="Search" data-testid="open-search"><Search className="h-4 w-4" /></button>
           <button type="button" className="talk-pill !px-2.5 !py-2" onClick={() => setSheet("settings")} aria-label="Settings" data-testid="open-settings"><Settings className="h-4 w-4" /></button>
           <button type="button" className="talk-pill !px-2.5 !py-2 hover:!border-ember/40 hover:!text-ember" onClick={lock} aria-label="Lock" data-testid="lock-shelf"><Lock className="h-4 w-4" /></button>
@@ -150,7 +153,7 @@ function ShelfInner() {
             {loading ? (
               <TalkLoading label="Opening your shelf…" />
             ) : section === "drops" ? (
-              <DropsPane onOpen={open} onResolved={afterChange} />
+              <DropsPane onOpen={open} onResolved={afterChange} onShare={() => setSheet("share")} />
             ) : section === "sent" ? (
               <SentPane />
             ) : (
@@ -179,15 +182,26 @@ function ShelfInner() {
       <SettingsSheet open={sheet === "settings"} onOpenChange={(o) => !o && setSheet(null)} />
       <SearchSheet open={sheet === "search"} onOpenChange={(o) => !o && setSheet(null)} address={session.address} onOpen={open} />
       <InviteSheet open={!!inviteConv} onOpenChange={(o) => !o && setInviteConv(null)} conversation={inviteConv} />
+      <ShareDoorSheet open={sheet === "share"} onOpenChange={(o) => !o && setSheet(null)} address={session.address} />
     </TalkShell>
   );
 }
 
-function DropsPane({ onOpen, onResolved }: { onOpen: (c: Conversation) => void; onResolved: () => void }) {
+function DropsPane({ onOpen, onResolved, onShare }: { onOpen: (c: Conversation) => void; onResolved: () => void; onShare: () => void }) {
   const { shelf } = useOwner();
   if (!shelf) return null;
   if (shelf.incoming.length === 0)
-    return <TalkEmpty title="No new Drops" body="When someone reaches you, their Drop settles here. Share your address to receive your first." />;
+    return (
+      <TalkEmpty
+        title="No new Drops yet"
+        body="When someone reaches you, their Drop settles here. Share your address to receive your first."
+        action={
+          <button type="button" className="btn-moss" onClick={onShare} data-testid="empty-share-door">
+            <Share2 className="h-4 w-4" /> Share your door
+          </button>
+        }
+      />
+    );
   return (
     <ShelfSection label="Incoming Drops" count={shelf.incoming.length} className="p-1">
       <div className="space-y-2.5">

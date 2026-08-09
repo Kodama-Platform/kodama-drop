@@ -24,7 +24,7 @@ test("landing Door renders the claim CTA + address plaque", async () => {
   });
 });
 
-test("claimed place shows visitor Door with origin options + send", async () => {
+test("claimed place shows visitor Door with origin options, consent + door note", async () => {
   mount("/alex");
   await waitFor(() => {
     expect(screen.getByTestId("door-view")).toBeInTheDocument();
@@ -32,6 +32,8 @@ test("claimed place shows visitor Door with origin options + send", async () => 
     expect(screen.getByTestId("origin-place")).toBeInTheDocument();
     expect(screen.getByTestId("door-send")).toBeInTheDocument();
     expect(screen.getByTestId("this-is-me")).toBeInTheDocument();
+    expect(screen.getByTestId("door-consent")).toBeInTheDocument();
+    expect(screen.getByTestId("door-note")).toBeInTheDocument();
   });
 });
 
@@ -53,6 +55,7 @@ test("owner can unlock a claimed place and reach the Shelf", async () => {
     () => {
       expect(screen.getByTestId("shelf-rail")).toBeInTheDocument();
       expect(screen.getByTestId("nav-drops")).toBeInTheDocument();
+      expect(screen.getByTestId("open-share")).toBeInTheDocument();
     },
     { timeout: 4000 },
   );

@@ -1,0 +1,30 @@
+{
+  "summary": "Frontend-only smoke of the 3 new Kodama Talk features + regression. All 3 features work end-to-end. 13/13 targeted checks pass. Copy-to-clipboard shows 'Couldn't copy' toast in headless (navigator.clipboard blocked) — treated as best-effort per instructions.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Copy to clipboard (share-copy-link, address-plaque)", "issue": "Toast reads 'Couldn't copy' in headless browsers where navigator.clipboard is unavailable/blocked. Expected per test guidance. Consider a text-fallback (document.execCommand('copy') on a hidden textarea) for older/headless browsers.", "affected_selectors": ["[data-testid=share-copy-link]", "[data-testid=address-plaque]"]}
+    ],
+    "design_issues": [
+      {"screen": "Owner settings sheet", "issues": ["settings-save button lives at the bottom of the modal and can fall outside the viewport at 1280x900 — required JS click to reach it in Playwright. Consider making the footer sticky within the sheet or ensuring auto scroll-into-view on open."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Consider a clipboard fallback so 'Copy link' and address plaque succeed in environments where navigator.clipboard is blocked (avoids the 'Couldn't copy' toast).",
+    "Make the SettingsSheet footer (settings-save) sticky or ensure the sheet content scrolls independently so the save button is always in view."
+  ],
+  "critical_code_review_comments": [
+    "Owner settings sheet: verify long content (name + tagline + door note + notifications) doesn't push primary action off-screen on shorter viewports.",
+    "Clipboard actions have no visible fallback path; both plaque tap-copy and share-copy-link surface the same generic 'Couldn't copy' toast."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a", "frontend": "100% (13/13 targeted checks)"},
+  "test_credentials": "Owner unlock for /alex uses any 4+ char password; used 'secret'.",
+  "seed_data_creation": "None — used seeded 'alex' place. Sent 1 test drop via door-composer.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Verified: FEATURE 1 (open-share -> share-sheet with share-qr non-empty src, share-card-canvas 430x226, share-download-card, share-native, share-copy-link clickable — clipboard blocked in headless), FEATURE 2 (door-view headline 'Drop Alex a message', address-plaque tap-to-copy, door-composer autofocus + send -> drop-sent, door-consent, origin-anonymous/named/place all present), FEATURE 3 (door-note visible with seeded text 'Replies may be slow this week — Drops always welcome.'; owner unlock -> open-settings -> settings-doornote edit -> settings-save shows 'Settings saved' toast; reload /alex confirms door-note updated to 'Replies within a week, promise.'). REGRESSION: '/' still shows claim-address-btn + address-plaque-input; owner unlock reaches shelf-rail with nav-drops. Note: settings-save requires scroll_into_view or JS click at 1280x900 viewport.",
+  "rca of the issue": "Only observed non-blocking issue: navigator.clipboard writeText fails in headless Chromium (no user gesture / permissions), triggering the app's 'Couldn't copy' toast. Not a product bug; per review request this is best-effort. Fix suggestion: wrap clipboard write with a fallback textarea+execCommand('copy') to gracefully succeed in restricted contexts."
+}

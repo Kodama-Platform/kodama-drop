@@ -198,7 +198,7 @@ export class MockTalkService implements TalkService {
     });
   }
 
-  async updatePlace(address: TalkAddress, patch: Partial<Pick<Place, "displayName" | "tagline" | "dropReceiving">>): Promise<Place> {
+  async updatePlace(address: TalkAddress, patch: Partial<Pick<Place, "displayName" | "tagline" | "dropReceiving" | "doorNote">>): Promise<Place> {
     const place = this.state.places.find((p) => p.address === address);
     if (!place) throw new Error("not_found");
     Object.assign(place, patch);

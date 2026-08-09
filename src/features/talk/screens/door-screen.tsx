@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, EyeOff, KeyRound, Loader2, MapPin, Send, Sparkles, UserRound } from "lucide-react";
+import { ArrowLeft, EyeOff, Info, KeyRound, Loader2, MapPin, Send, Sparkles, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { TALK } from "@/lib/brand";
@@ -143,17 +143,43 @@ function DoorView({ place, onOwner }: { place: Place; onOwner: () => void }) {
   ];
 
   return (
-    <div className="talk-surface p-6" data-testid="door-view">
-      <div className="flex items-center gap-3">
-        <PlaceMark mark={place.mark} size={56} />
+    <div className="talk-surface p-6 sm:p-7" data-testid="door-view">
+      {/* Quiet identity — a place, not a profile */}
+      <div className="flex items-center gap-2.5">
+        <PlaceMark mark={place.mark} size={38} />
         <div className="min-w-0">
-          <h1 className="talk-display truncate text-2xl text-foreground" data-testid="door-place-name">{place.displayName}</h1>
-          <TalkAddressPlaque address={place.address} className="!py-1 !text-sm" />
+          <p className="talk-display truncate text-base leading-tight text-foreground" data-testid="door-place-name">{place.displayName}</p>
+          <TalkAddressPlaque address={place.address} className="!py-0.5 !px-2 !text-[0.78rem]" />
         </div>
       </div>
-      <p className="mt-3 text-sm font-light leading-relaxed text-muted-foreground">{place.tagline}</p>
 
-      <div className="mt-5 flex flex-wrap gap-1.5" data-testid="origin-select">
+      {/* The invitation is the hero */}
+      <h1 className="mt-5 talk-display text-3xl text-foreground">
+        Drop {firstName(place.displayName)} a message
+      </h1>
+      {place.tagline && (
+        <p className="mt-1.5 text-sm font-light leading-relaxed text-muted-foreground">{place.tagline}</p>
+      )}
+
+      {place.doorNote && (
+        <div className="mt-3 flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/[0.06] px-3 py-2" data-testid="door-note">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={1.75} aria-hidden="true" />
+          <span className="text-sm font-light leading-relaxed text-foreground/85">{place.doorNote}</span>
+        </div>
+      )}
+
+      <textarea
+        className="talk-composer-field mt-4 rounded-xl border border-border/60"
+        placeholder={`Say hello to ${firstName(place.displayName)}…`}
+        value={body}
+        rows={3}
+        autoFocus
+        onChange={(e) => setBody(e.target.value)}
+        data-testid="door-composer"
+      />
+
+      <div className="mt-3 flex flex-wrap items-center gap-1.5" data-testid="origin-select">
+        <span className="mr-1 font-mono text-[0.66rem] uppercase tracking-wider text-muted-foreground/60">Send</span>
         {origins.map(([o, label, Icon]) => (
           <button key={o} type="button" onClick={() => setOrigin(o)} className={`talk-pill !py-1.5 text-sm ${origin === o ? "!border-primary/50 !bg-primary/10 !text-foreground" : ""}`} data-testid={`origin-${o}`}>
             <Icon className="h-3.5 w-3.5" /> {label}
@@ -171,20 +197,15 @@ function DoorView({ place, onOwner }: { place: Place; onOwner: () => void }) {
         </div>
       )}
 
-      <textarea
-        className="talk-composer-field mt-3 rounded-xl border border-border/60"
-        placeholder={`Drop ${place.displayName} a message…`}
-        value={body}
-        rows={3}
-        onChange={(e) => setBody(e.target.value)}
-        data-testid="door-composer"
-      />
-
-      <button type="button" className="btn-moss mt-3 w-full justify-center disabled:opacity-50" onClick={send} disabled={busy || !body.trim()} data-testid="door-send">
+      <button type="button" className="btn-moss mt-4 w-full justify-center disabled:opacity-50" onClick={send} disabled={busy || !body.trim()} data-testid="door-send">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Drop it
       </button>
 
-      <div className="mt-4 flex items-center justify-between">
+      <p className="mt-3 text-center text-xs font-light leading-relaxed text-muted-foreground" data-testid="door-consent">
+        {firstName(place.displayName)} decides what becomes a conversation. You can stay anonymous — no account needed.
+      </p>
+
+      <div className="mt-3 flex items-center justify-between border-t border-border/50 pt-3">
         <PrivacyStatus status={getTalkSecurity().describePrivacy()} />
         <button type="button" className="font-mono text-[0.7rem] uppercase tracking-wider text-muted-foreground/70 underline-offset-4 hover:text-foreground hover:underline" onClick={onOwner} data-testid="this-is-me">
           This is me →
@@ -192,6 +213,10 @@ function DoorView({ place, onOwner }: { place: Place; onOwner: () => void }) {
       </div>
     </div>
   );
+}
+
+function firstName(name: string): string {
+  return name.trim().split(/\s+/)[0] || name;
 }
 
 function ClaimView({ address, onClaimed, onCancel }: { address: string; onClaimed: (s: OwnerSession) => void; onCancel: () => void }) {

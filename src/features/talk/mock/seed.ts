@@ -19,6 +19,7 @@ export const SEED_PLACES: Place[] = [
     address: "alex",
     displayName: "Alex Rivera",
     tagline: "Building quiet software. Drop me a message.",
+    doorNote: "Replies may be slow this week — Drops always welcome.",
     mark: markFor("Alex Rivera", "alex"),
     claimed: true,
     dropReceiving: "open",

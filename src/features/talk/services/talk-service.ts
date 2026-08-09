@@ -35,7 +35,7 @@ export interface TalkService {
   rememberedSession(address: TalkAddress): OwnerSession | null;
   forgetDevice(address: TalkAddress): void;
   getShelf(session: OwnerSession): Promise<Shelf>;
-  updatePlace(address: TalkAddress, patch: Partial<Pick<Place, "displayName" | "tagline" | "dropReceiving">>): Promise<Place>;
+  updatePlace(address: TalkAddress, patch: Partial<Pick<Place, "displayName" | "tagline" | "dropReceiving" | "doorNote">>): Promise<Place>;
   getNotificationPrefs(address: TalkAddress): Promise<NotificationPrefs>;
   setNotificationPrefs(address: TalkAddress, prefs: NotificationPrefs): Promise<void>;
 
