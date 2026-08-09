@@ -53,6 +53,13 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Shown at **claim time as a must-acknowledge gate** (checkbox → "Enter my place") before the Shelf opens; re-downloadable anytime from **Settings → Recovery key card** (`settings-key-card`).
 - Verified: jsdom flow test added (claim → gated key card → shelf); 5/5 smoke tests pass; clean production build.
 
+## Update (2026-06, iteration 4) — Email-like Drops: lightweight Markdown + page purpose
+- **Lightweight Markdown** (`lib/markdown.tsx`): dependency-free, HTML-escaped, only http(s) links. Supports `# ## ###` headings, `**bold**`, `_italic_`, `` `code` ``, `[links](url)`, `> quotes`, and `-`/`1.` lists. Rendered via `.md` styles in `talk.css`.
+- **Door composer** now has a quiet **Write / Preview** toggle (`door-write-tab` / `door-preview-tab` → `door-preview`) — no heavy toolbar; keeps the note/email feel. Preview is guarded on empty body.
+- **Markdown on read**: `message-fragment.tsx` renders message bodies as Markdown.
+- **Page-purpose captions** (subtle one-line, under each title): Landing `landing-purpose` "Find or claim a place for messages."; Shelf `shelf-purpose` "Decide what becomes a conversation."; Stream `stream-purpose` (direct → "A private conversation that began with a Drop"; group/channel → subtitle or kind purpose).
+- Verified: 151/151 unit tests pass, clean production build, testing agent iteration_3 → 26/26 browser checks pass (headings/bold/italic/code/safe links/quotes/lists render as real HTML in door-preview + message bubbles; captions present; Door send + owner unlock regression intact).
+
 ## Backlog / Next (P1)
 - Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.

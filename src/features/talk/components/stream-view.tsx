@@ -105,7 +105,9 @@ export function StreamView({
             {conversation.title}
           </h1>
           <p className="truncate font-mono text-[0.7rem] text-muted-foreground/75" data-testid="stream-purpose">
-            {conversation.subtitle ?? streamPurpose(conversation.kind)}
+            {conversation.kind === "direct"
+              ? streamPurpose(conversation.kind)
+              : conversation.subtitle ?? streamPurpose(conversation.kind)}
           </p>
         </div>
         <div className="flex items-center gap-1">
