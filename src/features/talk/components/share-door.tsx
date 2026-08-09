@@ -40,12 +40,8 @@ export function ShareDoorSheet({
   }, [open, place]);
 
   const copyLink = async () => {
-    try {
-      await navigator.clipboard?.writeText(url);
-      toast.success("Link copied — paste it anywhere");
-    } catch {
-      toast.error("Couldn't copy");
-    }
+    if (await copyText(url)) toast.success("Link copied — paste it anywhere");
+    else toast.error("Couldn't copy — long-press the address to copy");
   };
 
   const nativeShare = async () => {

@@ -3,6 +3,7 @@ import { Check, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TALK } from "@/lib/brand";
+import { copyText } from "@/features/talk/lib/clipboard";
 
 type ReadonlyProps = {
   address: string;
@@ -59,13 +60,12 @@ export function TalkAddressPlaque(props: Props) {
   const url = `https://${host}/${props.address}`;
 
   const copy = async () => {
-    try {
-      await navigator.clipboard?.writeText(url);
+    if (await copyText(url)) {
       setCopied(true);
       toast.success("Address copied");
       setTimeout(() => setCopied(false), 1600);
-    } catch {
-      toast.error("Couldn't copy");
+    } else {
+      toast.error("Couldn't copy — long-press to copy manually");
     }
   };
 

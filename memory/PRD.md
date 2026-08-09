@@ -40,6 +40,13 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Production `vite build` clean (heavy WASM crypto stays in async chunks).
 - Testing agent: 13/13 UX flows pass in a real browser; all screens render (no blank); all testids functional. (Blank screenshot harness = headless compositor + entrance-animation timing; reduced-motion fallback added.)
 
+## Update (2026-06, iteration 2) — Reachability & sharing
+- **Share your Door**: `open-share` in Shelf → `ShareDoorSheet` (share-door.tsx) with copy link, local **QR** (qrcode lib), and a **downloadable share card** drawn on `<canvas>`; native share when available. Also a first-run `empty-share-door` CTA in the Drops empty state.
+- **Reframed Door**: invitation-led headline ("Drop {name} a message"), autofocused composer, slim identity, `door-consent` line ("you can stay anonymous — no account needed").
+- **Tap-to-copy address plaque** everywhere (readonly `TalkAddressPlaque` is now a copy button) with a robust clipboard fallback (`lib/clipboard.ts`, used by plaque, share, invite).
+- **Door Note** (#3): `Place.doorNote` shown to visitors (`door-note`), editable in Settings (`settings-doornote`); seeded on `alex`.
+- Verified by testing agent (iteration_2.json): 13/13 targeted checks pass in a real browser; QR + canvas render; only note is headless clipboard restriction (now has execCommand fallback).
+
 ## Backlog / Next (P1)
 - Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.

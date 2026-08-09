@@ -13,6 +13,7 @@ import type {
 } from "@/features/talk/types";
 import { TalkSheet } from "@/features/talk/components/talk-sheet";
 import { useOwner } from "@/features/talk/store/owner-context";
+import { copyText } from "@/features/talk/lib/clipboard";
 
 const field = "note-input";
 
@@ -79,7 +80,7 @@ export function InviteSheet({ open, onOpenChange, conversation }: SheetBase & { 
   useEffect(() => {
     if (open && conversation) void talkService.createInvite(conversation.id).then((inv) => setLink(`${TALK.url}/join/${inv.code}`));
   }, [open, conversation]);
-  const copy = () => { void navigator.clipboard?.writeText(link); toast.success("Invite link copied"); };
+  const copy = async () => { if (await copyText(link)) toast.success("Invite link copied"); else toast.error("Couldn't copy"); };
   return (
     <TalkSheet open={open} onOpenChange={onOpenChange} title="Invite link" description="Anyone with this link can join. The invite secret is sealed.">
       <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-background/50 p-2">
