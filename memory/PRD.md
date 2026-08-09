@@ -65,6 +65,11 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Testids: `drop-composer-writemode`, `drop-composer-write-tab`, `drop-composer-preview-tab`, `drop-composer-preview`.
 - Verified: clean build + testing agent iteration_4 → **30/30** browser checks (empty hint, tabs on text, real-HTML preview with safe links, Write preserves text, send clears/resets, sent bubble renders Markdown, plain-send + Enter-to-send regressions intact).
 
+## Update (2026-06, iteration 6) — Draft Keeping (per-conversation)
+- The reply composer (`drop-composer.tsx`) now accepts an optional `draftKey` and persists unsent replies per conversation via the existing `talkService.getDraft/saveDraft` (localStorage `kodama-talk/v1/drafts` map keyed by conversation id). Wired in `stream-view.tsx` and `conversation-stream.tsx` with `draftKey={conversation.id}`.
+- Behavior: draft survives switching between conversations (no bleed) and full page reload; cleared on send; empty for conversations with no draft. Write/Preview + Enter-to-send unaffected by restored drafts.
+- Verified: clean build + testing agent iteration_5 → **13/13** browser checks pass.
+
 ## Backlog / Next (P1)
 - Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.
