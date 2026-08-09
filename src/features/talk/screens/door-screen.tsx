@@ -105,13 +105,13 @@ function DoorView({ place, onOwner }: { place: Place; onOwner: () => void }) {
     return (
       <div className="talk-surface p-8 text-center" data-testid="drop-sent">
         <div className="mx-auto mb-4 w-fit animate-pop"><PlaceMark mark={place.mark} size={60} /></div>
-        <h1 className="talk-display text-2xl text-foreground">Your Drop settled</h1>
+        <h1 className="talk-display text-2xl text-foreground">Left at {firstName(place.displayName)}&apos;s door</h1>
         <p className="mt-2 text-sm font-light leading-relaxed text-muted-foreground">
-          {place.displayName} will decide what becomes a conversation. Want your own place too?
+          Your note is waiting for them. {firstName(place.displayName)} decides what becomes a conversation — no pressure, no account.
         </p>
         <div className="mt-6 flex flex-col gap-2">
-          <Link to="/" className="btn-moss justify-center">Claim your Talk address</Link>
-          <button type="button" className="talk-pill justify-center" onClick={() => { setSent(false); setBody(""); }}>Send another</button>
+          <button type="button" className="talk-pill justify-center" onClick={() => { setSent(false); setBody(""); }} data-testid="drop-another">Leave another note</button>
+          <Link to="/" className="btn-moss justify-center">Want a door of your own?</Link>
         </div>
       </div>
     );
@@ -138,72 +138,91 @@ function DoorView({ place, onOwner }: { place: Place; onOwner: () => void }) {
   };
 
   const origins: [DropOrigin, string, typeof EyeOff][] = [
-    ["anonymous", "Anonymously", EyeOff],
-    ["named", "With a name", UserRound],
-    ["place", "From my place", MapPin],
+    ["anonymous", "anonymously", EyeOff],
+    ["named", "with my name", UserRound],
+    ["place", "from my place", MapPin],
   ];
 
+  const fn = firstName(place.displayName);
+
   return (
-    <div className="talk-surface p-6 sm:p-7" data-testid="door-view">
-      {/* Quiet identity — a place, not a profile */}
-      <div className="flex items-center gap-2.5">
-        <PlaceMark mark={place.mark} size={38} />
-        <div className="min-w-0">
-          <p className="talk-display truncate text-base leading-tight text-foreground" data-testid="door-place-name">{place.displayName}</p>
-          <TalkAddressPlaque address={place.address} className="!py-0.5 !px-2 !text-[0.78rem]" />
-        </div>
+    <div data-testid="door-view">
+      {/* The doorway — a place, warmly */}
+      <div className="mb-5 flex flex-col items-center text-center">
+        <PlaceMark mark={place.mark} size={64} />
+        <h1 className="mt-3 talk-display text-2xl text-foreground" data-testid="door-place-name">{place.displayName}</h1>
+        <TalkAddressPlaque address={place.address} className="mt-1.5 !px-2 !py-0.5 !text-[0.78rem]" />
+        {place.tagline && (
+          <p className="mt-2.5 max-w-xs text-sm font-light leading-relaxed text-muted-foreground">{place.tagline}</p>
+        )}
       </div>
 
-      {/* The invitation is the hero */}
-      <h1 className="mt-5 talk-display text-3xl text-foreground">
-        Drop {firstName(place.displayName)} a message
-      </h1>
-      {place.tagline && (
-        <p className="mt-1.5 text-sm font-light leading-relaxed text-muted-foreground">{place.tagline}</p>
-      )}
-
       {place.doorNote && (
-        <div className="mt-3 flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/[0.06] px-3 py-2" data-testid="door-note">
+        <div className="mb-3 flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/[0.06] px-3 py-2" data-testid="door-note">
           <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={1.75} aria-hidden="true" />
           <span className="text-sm font-light leading-relaxed text-foreground/85">{place.doorNote}</span>
         </div>
       )}
 
-      <textarea
-        className="talk-composer-field mt-4 rounded-xl border border-border/60"
-        placeholder={`Say hello to ${firstName(place.displayName)}…`}
-        value={body}
-        rows={3}
-        autoFocus
-        onChange={(e) => setBody(e.target.value)}
-        data-testid="door-composer"
-      />
+      {/* The note itself */}
+      <div className="door-paper px-5 pb-4 pt-5">
+        <textarea
+          className="door-writing"
+          placeholder={`Hi ${fn}, I just wanted to say…`}
+          value={body}
+          autoFocus
+          onChange={(e) => setBody(e.target.value)}
+          data-testid="door-composer"
+        />
 
-      <div className="mt-3 flex flex-wrap items-center gap-1.5" data-testid="origin-select">
-        <span className="mr-1 font-mono text-[0.66rem] uppercase tracking-wider text-muted-foreground/60">Send</span>
-        {origins.map(([o, label, Icon]) => (
-          <button key={o} type="button" onClick={() => setOrigin(o)} className={`talk-pill !py-1.5 text-sm ${origin === o ? "!border-primary/50 !bg-primary/10 !text-foreground" : ""}`} data-testid={`origin-${o}`}>
-            <Icon className="h-3.5 w-3.5" /> {label}
-          </button>
-        ))}
+        <div className="mt-2 border-t border-border/40 pt-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5" data-testid="origin-select">
+            <span className="text-sm font-light italic text-muted-foreground/80">Signed,</span>
+            {origins.map(([o, label, Icon]) => (
+              <button
+                key={o}
+                type="button"
+                onClick={() => setOrigin(o)}
+                className="door-sign"
+                data-active={origin === o}
+                data-testid={`origin-${o}`}
+              >
+                <Icon className="h-3.5 w-3.5" strokeWidth={1.75} /> {label}
+              </button>
+            ))}
+          </div>
+
+          {origin === "named" && (
+            <input
+              className="door-sign-input mt-3"
+              placeholder="your name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              data-testid="drop-name"
+            />
+          )}
+          {origin === "place" && (
+            <div className="mt-3 inline-flex items-center">
+              <span className="font-mono text-sm text-muted-foreground/70">{TALK.domain}/</span>
+              <input
+                className="door-sign-input !min-w-[7rem]"
+                placeholder="your-address"
+                value={fromAddress}
+                onChange={(e) => setFromAddress(e.target.value)}
+                data-testid="drop-from-address"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
-      {origin === "named" && (
-        <input className="note-input mt-3" placeholder="How should they know you?" value={name} onChange={(e) => setName(e.target.value)} data-testid="drop-name" />
-      )}
-      {origin === "place" && (
-        <div className="mt-3 flex items-center rounded-xl border border-border/70 bg-background/50 px-3">
-          <span className="font-mono text-sm text-muted-foreground/70">{TALK.domain}/</span>
-          <input className="w-full bg-transparent py-2.5 font-mono text-sm outline-none" placeholder="your-address" value={fromAddress} onChange={(e) => setFromAddress(e.target.value)} data-testid="drop-from-address" />
-        </div>
-      )}
-
       <button type="button" className="btn-moss mt-4 w-full justify-center disabled:opacity-50" onClick={send} disabled={busy || !body.trim()} data-testid="door-send">
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Drop it
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+        {busy ? "Leaving it…" : `Leave it at ${fn}'s door`}
       </button>
 
       <p className="mt-3 text-center text-xs font-light leading-relaxed text-muted-foreground" data-testid="door-consent">
-        {firstName(place.displayName)} decides what becomes a conversation. You can stay anonymous — no account needed.
+        You can stay anonymous. {fn} decides what becomes a conversation — no account needed.
       </p>
 
       <div className="mt-3 flex items-center justify-between border-t border-border/50 pt-3">
