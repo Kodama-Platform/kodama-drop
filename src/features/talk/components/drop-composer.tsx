@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Attachment } from "@/features/talk/types";
 import { Markdown } from "@/features/talk/lib/markdown";
+import { talkService } from "@/features/talk/services";
 
 /** Drop / message composer. Send in seconds — Enter to send, Shift+Enter newline. */
 export function DropComposer({
@@ -14,6 +15,7 @@ export function DropComposer({
   attachments = [],
   onSend,
   className,
+  draftKey,
 }: {
   placeholder?: string;
   labelPlaceholder?: string;
@@ -23,17 +25,31 @@ export function DropComposer({
   attachments?: Attachment[];
   onSend: (body: string, fromLabel?: string) => void;
   className?: string;
+  draftKey?: string;
 }) {
-  const [body, setBody] = useState("");
+  const [body, setBody] = useState(() => (draftKey ? talkService.getDraft(draftKey) : ""));
   const [label, setLabel] = useState("");
   const [preview, setPreview] = useState(false);
 
+  // Switching conversations: load that conversation's saved draft.
+  useEffect(() => {
+    if (!draftKey) return;
+    setBody(talkService.getDraft(draftKey));
+    setPreview(false);
+  }, [draftKey]);
+
   const hasBody = body.trim().length > 0;
+
+  const change = (value: string) => {
+    setBody(value);
+    if (draftKey) talkService.saveDraft(draftKey, value);
+  };
 
   const submit = () => {
     const trimmed = body.trim();
     if (!trimmed || busy) return;
     onSend(trimmed, showLabel ? label.trim() || undefined : undefined);
+    if (draftKey) talkService.saveDraft(draftKey, "");
     setBody("");
     setPreview(false);
   };
@@ -59,7 +75,7 @@ export function DropComposer({
           placeholder={placeholder}
           value={body}
           rows={2}
-          onChange={(e) => setBody(e.target.value)}
+          onChange={(e) => change(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();

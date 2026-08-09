@@ -165,7 +165,7 @@ export function StreamView({
           </div>
         )}
         {canSend ? (
-          <DropComposer placeholder="Write a reply…" cta="Send" busy={busy} onSend={(b) => void send(b)} />
+          <DropComposer placeholder="Write a reply…" cta="Send" busy={busy} draftKey={conversation.id} onSend={(b) => void send(b)} />
         ) : (
           <div className="flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-card/40 py-3 text-sm text-muted-foreground" data-testid="stream-locked">
             <Lock className="h-4 w-4" strokeWidth={1.5} />

@@ -53,7 +53,7 @@ export function ConversationStream({
       </div>
 
       <div className="border-t border-border/50 p-4">
-        <DropComposer placeholder="Write a reply…" cta="Send" busy={busy} onSend={(b) => onSend(b)} />
+        <DropComposer placeholder="Write a reply…" cta="Send" busy={busy} draftKey={conversation.id} onSend={(b) => onSend(b)} />
       </div>
     </div>
   );
