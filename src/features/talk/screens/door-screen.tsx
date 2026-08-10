@@ -149,32 +149,35 @@ function DoorView({ place, onOwner }: { place: Place; onOwner: () => void }) {
 
   return (
     <div data-testid="door-view">
-      {/* The doorway — a place, warmly */}
+      {/* Whose door — lead with exactly who you're reaching */}
       <div className="mb-5 flex flex-col items-center text-center">
-        <PlaceMark mark={place.mark} size={64} />
-        <h1 className="mt-3 talk-display text-2xl text-foreground" data-testid="door-place-name">{place.displayName}</h1>
-        <TalkAddressPlaque address={place.address} className="mt-1.5 !px-2 !py-0.5 !text-[0.78rem]" />
+        <span className="mb-3 font-mono text-[0.6rem] uppercase tracking-[0.3em] text-clay">You&apos;re knocking at</span>
+        <PlaceMark mark={place.mark} size={76} />
+        <h1 className="mt-3.5 talk-display text-3xl text-foreground" data-testid="door-place-name">{place.displayName}</h1>
+        <TalkAddressPlaque address={place.address} className="mt-2 !px-2.5 !py-1 !text-[0.78rem]" />
         {place.tagline && (
-          <p className="mt-2.5 max-w-xs text-sm font-light leading-relaxed text-muted-foreground">{place.tagline}</p>
+          <p className="mt-3 max-w-xs text-sm font-light italic leading-relaxed text-muted-foreground">&ldquo;{place.tagline}&rdquo;</p>
+        )}
+        {place.doorNote && (
+          <div className="mt-3.5 flex items-start gap-2 rounded-xl border border-primary/15 bg-primary/[0.05] px-3 py-2 text-left" data-testid="door-note">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={1.75} aria-hidden="true" />
+            <span className="text-sm font-light leading-relaxed text-foreground/85">{place.doorNote}</span>
+          </div>
         )}
       </div>
 
-      {place.doorNote && (
-        <div className="mb-3 flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/[0.06] px-3 py-2" data-testid="door-note">
-          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={1.75} aria-hidden="true" />
-          <span className="text-sm font-light leading-relaxed text-foreground/85">{place.doorNote}</span>
-        </div>
-      )}
+      {/* The threshold */}
+      <div className="talk-divider mb-5" />
 
-      {/* The note itself */}
-      <div className="door-paper px-5 pb-4 pt-4">
-        <div className="mb-1.5 flex items-center justify-between">
-          <span className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-muted-foreground/55">Your note</span>
-          <div className="flex items-center gap-2" data-testid="door-writemode">
-            <button type="button" className="door-sign" data-active={!preview} onClick={() => setPreview(false)} data-testid="door-write-tab">Write</button>
-            <span className="text-muted-foreground/30">·</span>
-            <button type="button" className="door-sign" data-active={preview} onClick={() => body.trim() && setPreview(true)} data-testid="door-preview-tab">Preview</button>
-          </div>
+      {/* Leave your note — the single focus of this screen */}
+      <p className="mb-2.5 text-center text-sm font-light text-muted-foreground">
+        Leave <span className="text-foreground">{fn}</span> a note
+      </p>
+      <div className="door-paper px-5 pb-4 pt-3.5">
+        <div className="mb-1 flex items-center justify-end" data-testid="door-writemode">
+          <button type="button" className="door-sign !text-[0.82rem]" data-active={!preview} onClick={() => setPreview(false)} data-testid="door-write-tab">Write</button>
+          <span className="px-2 text-muted-foreground/30">·</span>
+          <button type="button" className="door-sign !text-[0.82rem]" data-active={preview} onClick={() => body.trim() && setPreview(true)} data-testid="door-preview-tab">Preview</button>
         </div>
 
         {preview ? (
@@ -192,11 +195,7 @@ function DoorView({ place, onOwner }: { place: Place; onOwner: () => void }) {
           />
         )}
 
-        <p className="mt-1 text-[0.68rem] font-light text-muted-foreground/50">
-          Write naturally — **bold**, _italic_, links and lists just work.
-        </p>
-
-        <div className="mt-2 border-t border-border/40 pt-3">
+        <div className="mt-1 border-t border-border/40 pt-3">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5" data-testid="origin-select">
             <span className="text-sm font-light italic text-muted-foreground/80">Signed,</span>
             {origins.map(([o, label, Icon]) => (
@@ -242,14 +241,17 @@ function DoorView({ place, onOwner }: { place: Place; onOwner: () => void }) {
         {busy ? "Leaving it…" : `Leave it at ${fn}'s door`}
       </button>
 
-      <p className="mt-3 text-center text-xs font-light leading-relaxed text-muted-foreground" data-testid="door-consent">
-        You can stay anonymous. {fn} decides what becomes a conversation — no account needed.
-      </p>
-
-      <div className="mt-3 flex items-center justify-between border-t border-border/50 pt-3">
+      <div className="mt-3 flex flex-col items-center gap-2 text-center">
+        <p className="text-xs font-light leading-relaxed text-muted-foreground" data-testid="door-consent">
+          You can stay anonymous. {fn} decides what becomes a conversation — no account needed.
+        </p>
         <PrivacyStatus status={getTalkSecurity().describePrivacy()} />
-        <button type="button" className="font-mono text-[0.7rem] uppercase tracking-wider text-muted-foreground/70 underline-offset-4 hover:text-foreground hover:underline" onClick={onOwner} data-testid="this-is-me">
-          This is me →
+      </div>
+
+      {/* Owner path — quiet, but easy to find */}
+      <div className="mt-6 border-t border-border/50 pt-4 text-center">
+        <button type="button" className="talk-pill mx-auto !py-2 text-sm text-muted-foreground hover:!text-foreground" onClick={onOwner} data-testid="this-is-me">
+          <KeyRound className="h-3.5 w-3.5" strokeWidth={1.75} /> This is my place — unlock it
         </button>
       </div>
     </div>

@@ -70,6 +70,12 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Behavior: draft survives switching between conversations (no bleed) and full page reload; cleared on send; empty for conversations with no draft. Write/Preview + Enter-to-send unaffected by restored drafts.
 - Verified: clean build + testing agent iteration_5 → **13/13** browser checks pass.
 
+## Update (2026-06, iteration 7) — Door redesign (focus + simplicity)
+- Fixed reported UX: the visitor Door (`door-screen.tsx` DoorView) felt scattered, "This is me" was buried, and the recipient was unclear.
+- Now leads with a focused "knocking at a door" identity header (eyebrow "You're knocking at" + larger place-mark + name + tap-to-copy address + italic tagline + door note), a thin threshold divider, then a single "Leave {name} a note" composer as the sole focus.
+- Removed the verbose Markdown hint paragraph (Write/Preview tabs communicate it). Separated the competing footer signals: consent + privacy pill stay by the send action; the owner path is now a clearly visible bordered pill "This is my place — unlock it" (`this-is-me`) below a divider.
+- Verified: clean build + testing agent iteration_6 → 100% pass (identity clear, single focus, this-is-me prominent/opens unlock; drop-send + origins + owner unlock + unclaimed-claim regressions intact).
+
 ## Backlog / Next (P1)
 - Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.
