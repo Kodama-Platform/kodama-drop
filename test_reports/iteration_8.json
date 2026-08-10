@@ -1,0 +1,23 @@
+{
+  "summary": "Frontend-only regression + true-merge DoorHero verification. Landing (/) and Door (/alex) both render the same [data-testid=door-hero]. Entry mode: eyebrow=talk.kodama.page, dimmed grayscale place-mark when empty, landing-title='Your own place for messages.', landing-purpose='Find or claim a place for messages.', address-plaque-input, claim-address-btn disabled when empty, landing-helper generic copy. Typing 'alex' → landing-title becomes 'alex', place-mark loses grayscale, claim button enabled, helper shows 'talk.kodama.page/alex …'. Pressing Enter navigates to /alex. Place mode: eyebrow='You're knocking at', door-place-name='Alex Rivera', address-plaque, italic tagline, door-note all present. Composer flow (door-subject, door-composer, origins, door-send) → drop-sent-seal, drop-done. This-is-me → unlock-view with 'secret' → shelf-rail with seeded drop-subject-drop-1 ('A short chat next week?') and drop-subject-drop-3 ('Sketch v2 — which option?'). Reply-to-drop opens inline reply composer as expected. Unclaimed /brandnewslug shows claim-this-btn. Below-hero landing (3 cards + privacy pill + pitch) intact. All 6 requested feature buckets pass.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "door-hero.tsx keeps two distinct render branches under one testid — clean separation; markFor(slug || '?', slug) call passes '?' fallback which yields a stable mark for the empty state, good.",
+    "landing-screen wraps DoorHero in animate-rise; testing agent emulated prefers-reduced-motion to avoid harness blank-frame issue — confirm CSS honours the media query (talk-shell/animate-rise) for a11y."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped per request)", "frontend": "100%"},
+  "test_credentials": "Owner unlock password for /alex: 'secret' (from problem statement).",
+  "seed_data_creation": "None — used seeded /alex place and its Drops.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "DoorHero true-merge verified on both routes with all new/preserved testids. Reduced-motion emulation is required to reliably drive the Landing hero due to entrance-animation timing. Reply-to-drop uses an inline composer on the Drop card (Cancel / Send reply) rather than tab-based Write/Preview at drop level — the Write/Preview tabs live in the DirectTalk conversation composer (verified in earlier iterations).",
+  "rca of the issue": "n/a — no bugs found."
+}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Check, EyeOff, Info, KeyRound, Loader2, MapPin, Send, Sparkles, UserRound } from "lucide-react";
+import { ArrowLeft, Check, EyeOff, KeyRound, Loader2, MapPin, Send, Sparkles, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { TALK } from "@/lib/brand";
@@ -9,6 +9,7 @@ import type { DropOrigin, OwnerSession, Place } from "@/features/talk/types";
 import { markFor } from "@/features/talk/lib/mark";
 import { TalkShell } from "@/features/talk/components/talk-shell";
 import { PlaceMark } from "@/features/talk/components/place-mark";
+import { DoorHero } from "@/features/talk/components/door-hero";
 import { TalkAddressPlaque } from "@/features/talk/components/talk-address-plaque";
 import { PrivacyStatus } from "@/features/talk/components/privacy-status";
 import { Markdown } from "@/features/talk/lib/markdown";
@@ -167,25 +168,11 @@ function DoorView({ place, onOwner }: { place: Place; onOwner: () => void }) {
 
   return (
     <div data-testid="door-view">
-      {/* Whose door — lead with exactly who you're reaching */}
-      <div className="mb-5 flex flex-col items-center text-center">
-        <span className="mb-3 font-mono text-[0.6rem] uppercase tracking-[0.3em] text-clay">You&apos;re knocking at</span>
-        <PlaceMark mark={place.mark} size={76} />
-        <h1 className="mt-3.5 talk-display text-3xl text-foreground" data-testid="door-place-name">{place.displayName}</h1>
-        <TalkAddressPlaque address={place.address} className="mt-2 !px-2.5 !py-1 !text-[0.78rem]" />
-        {place.tagline && (
-          <p className="mt-3 max-w-xs text-sm font-light italic leading-relaxed text-muted-foreground">&ldquo;{place.tagline}&rdquo;</p>
-        )}
-        {place.doorNote && (
-          <div className="mt-3.5 flex items-start gap-2 rounded-xl border border-primary/15 bg-primary/[0.05] px-3 py-2 text-left" data-testid="door-note">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={1.75} aria-hidden="true" />
-            <span className="text-sm font-light leading-relaxed text-foreground/85">{place.doorNote}</span>
-          </div>
-        )}
-      </div>
+      {/* Whose door — the shared hero, in its "place" state */}
+      <DoorHero mode="place" place={place} />
 
       {/* The threshold */}
-      <div className="talk-divider mb-5" />
+      <div className="talk-divider mb-5 mt-5" />
 
       {/* Leave your note — the single focus of this screen */}
       <p className="mb-2.5 text-center text-sm font-light text-muted-foreground">

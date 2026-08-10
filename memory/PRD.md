@@ -81,6 +81,12 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - **Sent Confirmation polish**: warmer, clearly one-tap-done success card — animated seal (`drop-sent-seal`), "Tucked under {name}'s door", the subject echoed in italics (`drop-sent-subject`), a clear primary `drop-done`, plus quiet `drop-another` + "Get a place of your own". Done returns to a cleared composer.
 - Verified: clean build + 5/5 smoke tests + testing agent iteration_7 → **21/21** browser checks pass (incl. optional-subject, inbox scan, end-to-end new subject, polished sent state, and Write/Preview + origins + unlock + reply-to-drop regressions).
 
+## Update (2026-06, iteration 9) — True-merged hero (DoorHero)
+- The landing hero and the door identity header are now ONE shared component `components/door-hero.tsx` (`DoorHero`) with two modes: `entry` (landing `/`) and `place` (`/:address`). Same skeleton (eyebrow → place-mark → name → address plaque → extras). Routes/URLs unchanged; landing stays the canonical home.
+- Entry mode is live: the place-mark is dimmed until you type; typing a name lights the mark and sets the title to the forming slug (`landing-title`), keeping `landing-purpose`, `landing-helper`, `claim-address-btn`. Place mode keeps `door-place-name`, tap-to-copy plaque, tagline, `door-note`.
+- Landing's below-hero content (3 cards + privacy pitch) and the Door composer flow (subject, Write/Preview, origins, send, this-is-me) are unchanged.
+- Verified: clean build + 5/5 smoke tests + testing agent iteration_8 → 100% pass on both routes + regressions (drop send/subjects/sent-polish, unlock, reply-to-drop, unclaimed claim path).
+
 ## Backlog / Next (P1)
 - Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.

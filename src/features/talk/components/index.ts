@@ -1,6 +1,7 @@
 export { TalkShell } from "@/features/talk/components/talk-shell";
 export { TalkThemeToggle } from "@/features/talk/components/talk-theme-toggle";
 export { PlaceMark } from "@/features/talk/components/place-mark";
+export { DoorHero } from "@/features/talk/components/door-hero";
 export { TalkAddressPlaque } from "@/features/talk/components/talk-address-plaque";
 export { PrivacyStatus } from "@/features/talk/components/privacy-status";
 export { DropComposer } from "@/features/talk/components/drop-composer";

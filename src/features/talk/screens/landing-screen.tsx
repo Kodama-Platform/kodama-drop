@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { ArrowRight, CornerUpLeft, Hand, Lock } from "lucide-react";
+import { CornerUpLeft, Hand, Lock } from "lucide-react";
 
 import { useNavigate } from "@tanstack/react-router";
 import { TALK } from "@/lib/brand";
 import { normalizeSlug } from "@/lib/slug";
 import { TalkShell } from "@/features/talk/components/talk-shell";
-import { TalkAddressPlaque } from "@/features/talk/components/talk-address-plaque";
+import { DoorHero } from "@/features/talk/components/door-hero";
 
 const STEPS = [
   {
@@ -38,53 +38,9 @@ export function LandingScreen() {
 
   return (
     <TalkShell showFooter>
-      <section className="mx-auto w-full max-w-3xl px-5 pb-24 pt-10 text-center sm:pt-20">
-        <p className="animate-rise font-mono text-[0.72rem] uppercase tracking-[0.32em] text-clay">
-          {TALK.domain}
-        </p>
-        <h1 className="animate-rise animate-rise-delay-1 mt-5 talk-display text-4xl text-foreground sm:text-6xl">
-          Your own place<br className="hidden sm:block" /> for messages.
-        </h1>
-        <p className="animate-rise animate-rise-delay-1 mt-4 text-sm font-light italic text-muted-foreground/70" data-testid="landing-purpose">
-          Find or claim a place for messages.
-        </p>
-        <p className="animate-rise animate-rise-delay-1 mx-auto mt-3 max-w-md text-base font-light leading-relaxed text-muted-foreground">
-          One address anyone can reach you at. You decide what becomes a conversation.
-          No account, ever.
-        </p>
-
-        {/* One field, two honest paths: claim it, or reach someone. */}
-        <div className="animate-rise animate-rise-delay-1 mx-auto mt-9 flex w-full max-w-md flex-col items-center gap-3">
-          <div className="flex w-full items-center gap-2">
-            <TalkAddressPlaque
-              editable
-              value={draft}
-              onChange={setDraft}
-              onSubmit={go}
-              placeholder="your-name"
-              className="!flex-1 !py-3 !text-base"
-            />
-            <button
-              type="button"
-              className="btn-moss shrink-0 !px-4 text-base disabled:opacity-40"
-              onClick={go}
-              disabled={!slug}
-              aria-label="Open this address"
-              data-testid="claim-address-btn"
-            >
-              <ArrowRight className="h-5 w-5" strokeWidth={1.75} />
-            </button>
-          </div>
-          <p className="text-sm font-light text-muted-foreground" data-testid="landing-helper">
-            {slug ? (
-              <>
-                Open <span className="font-medium text-foreground">{TALK.domain}/{slug}</span> —
-                claim it if it&apos;s free, reach them if it&apos;s taken.
-              </>
-            ) : (
-              <>Type a name to claim it — or open someone&apos;s address to reach them.</>
-            )}
-          </p>
+      <section className="mx-auto w-full max-w-3xl px-5 pb-24 pt-14 text-center sm:pt-24">
+        <div className="animate-rise">
+          <DoorHero mode="entry" draft={draft} slug={slug} onDraft={setDraft} onOpen={go} />
         </div>
 
         {/* How it feels — the communication forms, in human terms. */}
