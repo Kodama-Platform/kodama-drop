@@ -76,6 +76,11 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Removed the verbose Markdown hint paragraph (Write/Preview tabs communicate it). Separated the competing footer signals: consent + privacy pill stay by the send action; the owner path is now a clearly visible bordered pill "This is my place — unlock it" (`this-is-me`) below a divider.
 - Verified: clean build + testing agent iteration_6 → 100% pass (identity clear, single focus, this-is-me prominent/opens unlock; drop-send + origins + owner unlock + unclaimed-claim regressions intact).
 
+## Update (2026-06, iteration 8) — Drop Subjects + Sent Confirmation polish
+- **Drop Subjects**: optional one-line subject on Drops (`Drop.subject`, `SendDropInput.subject`). Door composer has a subtle top-of-paper `door-subject` input ("Add a subject (optional)"). Owner Drops now scan like an inbox — subject shows as a prominent title line (`drop-subject-{id}`); Drops without a subject still render the body. Seeded: drop-1 "A short chat next week?", drop-3 "Sketch v2 — which option?", drop-2 has none.
+- **Sent Confirmation polish**: warmer, clearly one-tap-done success card — animated seal (`drop-sent-seal`), "Tucked under {name}'s door", the subject echoed in italics (`drop-sent-subject`), a clear primary `drop-done`, plus quiet `drop-another` + "Get a place of your own". Done returns to a cleared composer.
+- Verified: clean build + 5/5 smoke tests + testing agent iteration_7 → **21/21** browser checks pass (incl. optional-subject, inbox scan, end-to-end new subject, polished sent state, and Write/Preview + origins + unlock + reply-to-drop regressions).
+
 ## Backlog / Next (P1)
 - Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.

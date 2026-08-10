@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, EyeOff, Info, KeyRound, Loader2, MapPin, Send, Sparkles, UserRound } from "lucide-react";
+import { ArrowLeft, Check, EyeOff, Info, KeyRound, Loader2, MapPin, Send, Sparkles, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { TALK } from "@/lib/brand";
@@ -88,10 +88,12 @@ function DoorView({ place, onOwner }: { place: Place; onOwner: () => void }) {
   const [origin, setOrigin] = useState<DropOrigin>("anonymous");
   const [name, setName] = useState("");
   const [fromAddress, setFromAddress] = useState("");
+  const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [preview, setPreview] = useState(false);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const [sentSubject, setSentSubject] = useState("");
 
   if (place.dropReceiving === "closed") {
     return (
@@ -104,16 +106,30 @@ function DoorView({ place, onOwner }: { place: Place; onOwner: () => void }) {
   }
 
   if (sent) {
+    const reset = () => { setSent(false); setBody(""); setSubject(""); setSentSubject(""); };
     return (
       <div className="talk-surface p-8 text-center" data-testid="drop-sent">
-        <div className="mx-auto mb-4 w-fit animate-pop"><PlaceMark mark={place.mark} size={60} /></div>
-        <h1 className="talk-display text-2xl text-foreground">Left at {firstName(place.displayName)}&apos;s door</h1>
-        <p className="mt-2 text-sm font-light leading-relaxed text-muted-foreground">
-          Your note is waiting for them. {firstName(place.displayName)} decides what becomes a conversation — no pressure, no account.
+        <div className="door-seal mx-auto mb-5" data-testid="drop-sent-seal">
+          <Check className="h-7 w-7" strokeWidth={2} aria-hidden="true" />
+        </div>
+        <h1 className="talk-display text-2xl text-foreground">Tucked under {firstName(place.displayName)}&apos;s door</h1>
+        {sentSubject && (
+          <p className="mx-auto mt-2 max-w-xs truncate text-sm font-light italic text-muted-foreground" data-testid="drop-sent-subject">
+            &ldquo;{sentSubject}&rdquo;
+          </p>
+        )}
+        <p className="mx-auto mt-2 max-w-xs text-sm font-light leading-relaxed text-muted-foreground">
+          {firstName(place.displayName)} will find it when they next open their place. No account, no pressure — you&apos;re all done.
         </p>
-        <div className="mt-6 flex flex-col gap-2">
-          <button type="button" className="talk-pill justify-center" onClick={() => { setSent(false); setBody(""); }} data-testid="drop-another">Leave another note</button>
-          <Link to="/" className="btn-moss justify-center">Want a door of your own?</Link>
+        <button type="button" className="btn-moss mt-6 w-full justify-center" onClick={reset} data-testid="drop-done">
+          <Check className="h-4 w-4" /> Done
+        </button>
+        <div className="mt-3 flex items-center justify-center gap-3 text-sm">
+          <button type="button" className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline" onClick={reset} data-testid="drop-another">
+            Leave another
+          </button>
+          <span className="text-muted-foreground/30">·</span>
+          <Link to="/" className="text-primary underline-offset-4 hover:underline">Get a place of your own</Link>
         </div>
       </div>
     );
@@ -129,8 +145,10 @@ function DoorView({ place, onOwner }: { place: Place; onOwner: () => void }) {
         origin,
         fromLabel: origin === "named" ? name || "guest" : origin === "place" ? fromAddress : "someone",
         fromAddress: origin === "place" ? fromAddress.trim() || undefined : undefined,
+        subject: subject.trim() || undefined,
         body: body.trim(),
       });
+      setSentSubject(subject.trim());
       setSent(true);
     } catch {
       toast.error("Could not send your Drop");
@@ -174,7 +192,15 @@ function DoorView({ place, onOwner }: { place: Place; onOwner: () => void }) {
         Leave <span className="text-foreground">{fn}</span> a note
       </p>
       <div className="door-paper px-5 pb-4 pt-3.5">
-        <div className="mb-1 flex items-center justify-end" data-testid="door-writemode">
+        <input
+          className="door-subject"
+          placeholder="Add a subject (optional)"
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          maxLength={80}
+          data-testid="door-subject"
+        />
+        <div className="mb-1 mt-2.5 flex items-center justify-end" data-testid="door-writemode">
           <button type="button" className="door-sign !text-[0.82rem]" data-active={!preview} onClick={() => setPreview(false)} data-testid="door-write-tab">Write</button>
           <span className="px-2 text-muted-foreground/30">·</span>
           <button type="button" className="door-sign !text-[0.82rem]" data-active={preview} onClick={() => body.trim() && setPreview(true)} data-testid="door-preview-tab">Preview</button>

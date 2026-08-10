@@ -136,6 +136,7 @@ export class MockTalkService implements TalkService {
       origin: input.origin,
       fromLabel: input.fromLabel || (input.origin === "anonymous" ? "someone" : "guest"),
       fromAddress: input.fromAddress,
+      subject: input.subject?.trim() || undefined,
       body: input.body,
       attachments: input.attachments ?? [],
       status: "delivered",

@@ -82,6 +82,11 @@ export function DropCard({ drop, onOpen }: { drop: Drop; onOpen: (c: Conversatio
             <span className="font-mono text-[0.66rem] text-muted-foreground/70">{relativeTime(drop.createdAt)}</span>
           </div>
           <div className="mt-0.5"><OriginBadge drop={drop} /></div>
+          {drop.subject && (
+            <p className="mt-1.5 talk-display text-[0.98rem] leading-snug text-foreground" data-testid={`drop-subject-${drop.id}`}>
+              {drop.subject}
+            </p>
+          )}
           <Markdown text={drop.body} className="md mt-2 break-words text-sm font-light leading-relaxed text-foreground/90" />
           {drop.attachments.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -136,7 +141,9 @@ export function SentDropCard({ drop }: { drop: Drop }) {
           <span className="text-sm text-foreground">to talk.kodama.page/{drop.toAddress}</span>
           <SentDropState status={drop.status} />
         </div>
-        <p className="mt-1 truncate text-sm font-light text-muted-foreground">{drop.body}</p>
+        <p className="mt-1 truncate text-sm font-light text-muted-foreground">
+          {drop.subject ? <span className="text-foreground/90">{drop.subject}</span> : drop.body}
+        </p>
         <p className="mt-1 font-mono text-[0.62rem] uppercase tracking-wider text-muted-foreground/70">
           {drop.origin === "place" ? `from talk.kodama.page/${drop.fromAddress}` : drop.origin === "anonymous" ? "sent anonymously" : "sent as guest"}
         </p>

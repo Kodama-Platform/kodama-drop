@@ -1,0 +1,18 @@
+{
+  "summary": "Frontend-only verification of Drop Subjects + Sent Confirmation polish + regression on /alex. All 21 checks passed across two Playwright runs (visitor composer + owner shelf). Optional subject input renders with correct placeholder; sending with empty subject works; sending with subject 'Coffee soon?' echoes the subject in italics on the polished sent card (door-seal, warm 'Tucked under Alex's door' headline, drop-done primary, drop-another secondary, 'Get a place of your own' link). Done resets composer to empty subject and body. Owner unlock with 'secret' opens Shelf; Drops tab shows seeded subjects (drop-1 'A short chat next week?', drop-3 'Sketch v2 — which option?'), no subject element for anonymous drop-2 (body still renders), and the newly-sent 'Coffee soon?' drop appears at the top of Incoming Drops. Regression: Write/Preview toggle, origin-anonymous/named/place with drop-name/drop-from-address, unlock, and reply-to-drop -> Direct Talk all work.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "door-screen.tsx is ~375 lines with DoorView/ClaimView/UnlockView co-located — splitting DoorView (composer + sent state) into its own file would help maintainability; the sent-state block could become a small SentDropConfirmation component. Not urgent.",
+    "sentSubject state persists across resets only until manual clear; reset() correctly clears body + subject but leaves sentSubject stale — harmless because it's only rendered while sent=true, but consider clearing it on reset() for tidiness."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "100% (21/21)"},
+  "seed_data_creation": "None. Reset kodama-talk/v1/state localStorage before each run to force seeding.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Preview URL: https://door-shelf.preview.emergentagent.com. Emulate prefers-reduced-motion before navigating to avoid blank entrance animations. Reset localStorage 'kodama-talk/v1/state' to force reseed. Key testids verified: door-subject (placeholder 'Add a subject (optional)'), door-composer, door-send, drop-sent, drop-sent-seal, drop-sent-subject (only when subject provided), drop-done, drop-another, drop-subject-drop-1/3 exist, drop-subject-drop-2 does NOT exist, drop-card-drop-2 renders body only, this-is-me -> unlock-view -> 'secret' -> shelf-rail with nav-drops, drop-reply-<id>/drop-reply-field-<id>/drop-reply-send-<id> converts to Direct Talk. Note: owner Drops tab uses testid 'nav-drops' (not 'drops-tab'); clicking text 'Drops' works too.",
+  "rca of the issue": "N/A — no bugs found."
+}

@@ -73,6 +73,8 @@ export interface Drop {
   origin: DropOrigin;
   fromLabel: string;
   fromAddress?: TalkAddress;
+  /** Optional one-line subject so Drops scan like an inbox for the owner. */
+  subject?: string;
   body: string;
   attachments: Attachment[];
   status: DropStatus;
@@ -186,6 +188,7 @@ export interface SendDropInput {
   origin: DropOrigin;
   fromLabel: string;
   fromAddress?: TalkAddress;
+  subject?: string;
   body: string;
   attachments?: Attachment[];
 }
