@@ -1,0 +1,30 @@
+{
+  "summary": "Frontend-only comprehensive audit. Primary refresh/session-persistence fix VERIFIED end-to-end: on /alex, this-is-me → unlock-view → 'secret' → shelf-rail; hard reload keeps shelf-rail; same-tab hard-load /alex keeps shelf; different address /kodama correctly does NOT show Alex's shelf (per-address session); lock-shelf returns to Door AND reload after lock keeps Door (session cleared). Landing (/) reload renders door-hero + landing-title + address-plaque-input, claim button disabled when empty and enabled after typing. Claim flow on a fresh slug renders KeyCardSheet (data-testid=key-card-sheet, key-card-code, key-card-canvas, key-card-download, key-card-ack, key-card-continue disabled until ack); after ack → Shelf; reload post-claim keeps Shelf; settings-key-card visible in owner settings. Owner Shelf audit: nav-drops, nav-direct, nav-groups, nav-channels, nav-pinned, nav-sent all switch correctly; drop-subject-drop-1 and drop-subject-drop-3 render; new-group / new-channel buttons present; open-search opens search sheet, open-settings shows settings-doornote + settings-save; open-share shows share-qr + share-card-canvas + share-copy-link; lock-shelf present. Direct Talk stream: conversation-row-conv-mara / conv-devon render, opening shows stream-purpose + drop-composer + drop-composer-field + drop-composer-write-tab/preview-tab; DRAFT persistence works: typing in conv A does NOT bleed into conv B, switching back restores draft, reloading page restores draft, sending clears draft. Reactions: react-toggle + reply-toggle appear on hover; reply-toggle opens reply-banner. stream-pin / stream-mute / stream-archive all present. Theme toggle exists (top-right sun icon) but has no data-testid so persistence could not be automated (see minor UI note).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "KeyCardSheet (claim gate)", "issues": ["On 1440x1000 viewport the sheet content is tall enough that the 'I've saved…' ack checkbox + 'Continue' button sit below the viewport fold; users must scroll inside the sheet to complete claim. Consider a sticky footer with the checkbox + Continue button, or make the sheet body scrollable with the CTA pinned."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "(Optional polish) Add data-testid='theme-toggle' to the sun/moon button in TalkShell header so theme-persistence can be asserted programmatically.",
+    "(Optional polish) Pin the KeyCardSheet CTA (ack + Continue) so it isn't below the fold on standard laptop viewports."
+  ],
+  "critical_code_review_comments": [
+    "door-screen.tsx correctly initializes state from talkService.activeSession(address) and re-reads on address change — session-per-address behavior is sound.",
+    "MockTalkService.beginSession/endSession use sessionStorage keyed by address; forgetDevice also endSession — good coupling. Consider also clearing session on setNotificationPrefs 'sign out' if such an action exists.",
+    "getShelf now filters sent by fromAddress===a; seed-2 fromAddress='alex' — verified only Alex's sent Drops render.",
+    "KeyCardSheet 'mustAcknowledge' path correctly gates continue on the ack checkbox; onOpenChange is a no-op which is intentional (modal cannot be dismissed until acknowledged). Ensure ESC also cannot close it (visual check ok)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped per request)", "frontend": "100% of tested flows"},
+  "test_credentials": "Owner unlock password for /alex: 'secret'. Claim tests used displayName 'Test Agent', password 'secret'.",
+  "seed_data_creation": "Fresh claimed places created under randomized slugs (e.g. atestx######) via the claim flow. Alex remains seeded.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Primary refresh fix works via sessionStorage key 'kodama-talk/v1/session:<addr>'. To simulate an active owner session quickly, set that sessionStorage key with {address, displayName, rememberedDevice, createdAt, protocolVersion}. KeyCardSheet CTA is below the fold on 1440x1000; open sheet then click ack + continue via JS (element.click()) or use a taller viewport (1440x1200) plus scrollIntoView. Conversation rows use testid pattern conversation-row-<id>. Composer input is [data-testid='drop-composer-field'] (the outer drop-composer div is not directly fillable).",
+  "rca of the issue": "n/a — no defects found in the requested audit. All refresh/session-persistence acceptance criteria pass."
+}

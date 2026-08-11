@@ -87,6 +87,12 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Landing's below-hero content (3 cards + privacy pitch) and the Door composer flow (subject, Write/Preview, origins, send, this-is-me) are unchanged.
 - Verified: clean build + 5/5 smoke tests + testing agent iteration_8 → 100% pass on both routes + regressions (drop send/subjects/sent-polish, unlock, reply-to-drop, unclaimed claim path).
 
+## Update (2026-06, iteration 10) — Refresh fix + full audit
+- **Refresh bug (root cause)**: owner session lived only in React state, so reloading the Shelf/Stream logged the owner out. Fixed by persisting the active session in `sessionStorage` (`kodama-talk/v1/session:<addr>`): `activeSession`/`beginSession`/`endSession` on the service; DoorScreen restores it on mount, `openShelf` begins it, `lock`/`forgetDevice` end it. Refresh now keeps the owner in place; lock clears it; sessions are per-address.
+- **Data fix**: `getShelf` Sent list now filters by `fromAddress === owner` (previously leaked every anonymous sent Drop to all owners); seeded anonymous sent Drop attributed to `alex`.
+- **Polish from audit**: Key Card claim gate CTA (ack + Continue) is now a sticky footer so it's never below the fold on laptop viewports; added `data-testid="theme-toggle"`.
+- Full audit (testing agent iteration_9): **100%** of tested flows pass across Door/claim/key-card/unlock/refresh, Shelf nav, Drops reply/decline/block, Direct Talks, Groups/Channels, invites, search, settings, share, drafts, markdown, reactions/threads, sent list. No functional defects found. Verified additionally by clean build + 5/5 smoke tests.
+
 ## Backlog / Next (P1)
 - Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.

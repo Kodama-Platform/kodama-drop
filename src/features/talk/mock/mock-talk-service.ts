@@ -36,6 +36,7 @@ import {
 
 const STORAGE_KEY = "kodama-talk/v1/state";
 const CRED_KEY = "kodama-talk/v1/owner-cred";
+const SESSION_KEY = "kodama-talk/v1/session";
 const DRAFT_KEY = "kodama-talk/v1/drafts";
 const LATENCY = 220;
 const P = TALK_PROTOCOL_VERSION;
@@ -181,8 +182,32 @@ export class MockTalkService implements TalkService {
     }
   }
 
+  activeSession(address: TalkAddress): OwnerSession | null {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = window.sessionStorage.getItem(`${SESSION_KEY}:${address}`);
+      return raw ? (JSON.parse(raw) as OwnerSession) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  beginSession(session: OwnerSession): void {
+    if (typeof window === "undefined") return;
+    try {
+      window.sessionStorage.setItem(`${SESSION_KEY}:${session.address}`, JSON.stringify(session));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  endSession(address: TalkAddress): void {
+    if (typeof window !== "undefined") window.sessionStorage.removeItem(`${SESSION_KEY}:${address}`);
+  }
+
   forgetDevice(address: TalkAddress): void {
     if (typeof window !== "undefined") window.localStorage.removeItem(`${CRED_KEY}:${address}`);
+    this.endSession(address);
   }
 
   async getShelf(session: OwnerSession): Promise<Shelf> {
@@ -191,7 +216,7 @@ export class MockTalkService implements TalkService {
     return delay({
       address: a,
       incoming: this.state.incoming.filter((d) => d.toAddress === a && d.status === "delivered"),
-      sent: this.state.sent.filter((d) => d.fromAddress === a || (d.origin === "anonymous" && this.state.sent.includes(d))),
+      sent: this.state.sent.filter((d) => d.fromAddress === a),
       directTalks: mine.filter((c) => c.kind === "direct"),
       groups: mine.filter((c) => c.kind === "group"),
       channels: mine.filter((c) => c.kind === "channel"),

@@ -33,6 +33,10 @@ export interface TalkService {
   /* Owner */
   unlockOwner(address: TalkAddress, password: string, remember: boolean): Promise<OwnerSession | null>;
   rememberedSession(address: TalkAddress): OwnerSession | null;
+  /** Live owner session, restored across a page refresh (until lock / tab close). */
+  activeSession(address: TalkAddress): OwnerSession | null;
+  beginSession(session: OwnerSession): void;
+  endSession(address: TalkAddress): void;
   forgetDevice(address: TalkAddress): void;
   getShelf(session: OwnerSession): Promise<Shelf>;
   updatePlace(address: TalkAddress, patch: Partial<Pick<Place, "displayName" | "tagline" | "dropReceiving" | "doorNote">>): Promise<Place>;

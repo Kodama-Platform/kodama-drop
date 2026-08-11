@@ -54,6 +54,7 @@ export function ThemeToggle({ className, lightDarkOnly = false }: ThemeTogglePro
       aria-label={label}
       title={label}
       onClick={cycle}
+      data-testid="theme-toggle"
       className={
         "inline-flex h-10 w-10 items-center justify-center rounded-full border border-border text-muted-foreground transition-all duration-300 hover:scale-105 hover:text-foreground " +
         (className ?? "")

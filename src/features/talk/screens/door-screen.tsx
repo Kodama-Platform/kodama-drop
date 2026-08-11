@@ -23,18 +23,29 @@ type View = "door" | "claim" | "unlock";
 export function DoorScreen({ address }: { address: string }) {
   const [place, setPlace] = useState<Place | null | undefined>(undefined);
   const [view, setView] = useState<View>("door");
-  const [session, setSession] = useState<OwnerSession | null>(null);
+  const [session, setSession] = useState<OwnerSession | null>(() => talkService.activeSession(address));
   const [remembered, setRemembered] = useState<OwnerSession | null>(null);
 
   useEffect(() => {
     let alive = true;
     setPlace(undefined);
+    setSession(talkService.activeSession(address));
     setRemembered(talkService.rememberedSession(address));
     void talkService.resolvePlace(address).then((p) => alive && setPlace(p));
     return () => { alive = false; };
   }, [address]);
 
-  if (session) return <ShelfScreen session={session} onLock={() => { setSession(null); setView("door"); }} />;
+  const openShelf = (s: OwnerSession) => {
+    talkService.beginSession(s);
+    setSession(s);
+  };
+  const lock = () => {
+    talkService.endSession(address);
+    setSession(null);
+    setView("door");
+  };
+
+  if (session) return <ShelfScreen session={session} onLock={lock} />;
 
   if (place === undefined) return <TalkShell centered><TalkLoading /></TalkShell>;
 
@@ -46,7 +57,7 @@ export function DoorScreen({ address }: { address: string }) {
     return (
       <TalkShell centered headerAction={back}>
         {view === "claim" ? (
-          <ClaimView address={address} onClaimed={setSession} onCancel={() => setView("door")} />
+          <ClaimView address={address} onClaimed={openShelf} onCancel={() => setView("door")} />
         ) : (
           <div className="w-full max-w-md px-5 text-center">
             <div className="talk-surface p-7">
@@ -70,7 +81,7 @@ export function DoorScreen({ address }: { address: string }) {
   return (
     <TalkShell centered headerAction={back}>
       {view === "unlock" ? (
-        <UnlockView place={place} remembered={remembered} onUnlocked={setSession} onCancel={() => setView("door")} />
+        <UnlockView place={place} remembered={remembered} onUnlocked={openShelf} onCancel={() => setView("door")} />
       ) : (
         <div className="w-full max-w-md px-5">
           {remembered && (

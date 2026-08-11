@@ -99,7 +99,7 @@ export function KeyCardSheet({
         </div>
 
         {mustAcknowledge ? (
-          <div className="border-t border-border/50 pt-4">
+          <div className="sticky bottom-[-1.5rem] z-10 -mx-6 -mb-6 border-t border-border/60 bg-card px-6 pb-6 pt-4">
             <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground/90">
               <input type="checkbox" className="accent-primary" checked={saved} onChange={(e) => setSaved(e.target.checked)} data-testid="key-card-ack" />
               I&apos;ve saved my key card somewhere safe

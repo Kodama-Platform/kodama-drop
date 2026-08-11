@@ -99,6 +99,7 @@ export const SEED_SENT: Drop[] = [
     toAddress: "kodama",
     origin: "anonymous",
     fromLabel: "someone",
+    fromAddress: "alex",
     body: "Small typo on your about page — last paragraph.",
     attachments: [],
     status: "delivered",
