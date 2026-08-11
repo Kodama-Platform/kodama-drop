@@ -35,7 +35,7 @@ export interface TalkService {
   rememberedSession(address: TalkAddress): OwnerSession | null;
   /** Live owner session, restored across a page refresh (until lock / tab close). */
   activeSession(address: TalkAddress): OwnerSession | null;
-  beginSession(session: OwnerSession): void;
+  beginSession(session: OwnerSession, persist?: boolean): void;
   endSession(address: TalkAddress): void;
   forgetDevice(address: TalkAddress): void;
   getShelf(session: OwnerSession): Promise<Shelf>;

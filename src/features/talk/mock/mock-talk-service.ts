@@ -37,6 +37,7 @@ import {
 const STORAGE_KEY = "kodama-talk/v1/state";
 const CRED_KEY = "kodama-talk/v1/owner-cred";
 const SESSION_KEY = "kodama-talk/v1/session";
+const PERSIST_KEY = "kodama-talk/v1/stay";
 const DRAFT_KEY = "kodama-talk/v1/drafts";
 const LATENCY = 220;
 const P = TALK_PROTOCOL_VERSION;
@@ -158,8 +159,9 @@ export class MockTalkService implements TalkService {
     const place = this.state.places.find((p) => p.address === address && p.claimed);
     if (!place || password.length < 4) return delay(null);
     const cred = await getTalkSecurity().deriveOwnerCredential(address, password, remember);
-    if (remember && typeof window !== "undefined") {
-      window.localStorage.setItem(`${CRED_KEY}:${address}`, JSON.stringify({ address, displayName: place.displayName }));
+    if (typeof window !== "undefined") {
+      if (remember) window.localStorage.setItem(`${CRED_KEY}:${address}`, JSON.stringify({ address, displayName: place.displayName }));
+      else window.localStorage.removeItem(`${CRED_KEY}:${address}`);
     }
     return delay({
       address: place.address,
@@ -185,24 +187,31 @@ export class MockTalkService implements TalkService {
   activeSession(address: TalkAddress): OwnerSession | null {
     if (typeof window === "undefined") return null;
     try {
-      const raw = window.sessionStorage.getItem(`${SESSION_KEY}:${address}`);
-      return raw ? (JSON.parse(raw) as OwnerSession) : null;
+      const live = window.sessionStorage.getItem(`${SESSION_KEY}:${address}`);
+      if (live) return JSON.parse(live) as OwnerSession;
+      // "Keep me signed in" — survives closing the tab, until an explicit lock.
+      const kept = window.localStorage.getItem(`${PERSIST_KEY}:${address}`);
+      return kept ? (JSON.parse(kept) as OwnerSession) : null;
     } catch {
       return null;
     }
   }
 
-  beginSession(session: OwnerSession): void {
+  beginSession(session: OwnerSession, persist = false): void {
     if (typeof window === "undefined") return;
     try {
       window.sessionStorage.setItem(`${SESSION_KEY}:${session.address}`, JSON.stringify(session));
+      if (persist) window.localStorage.setItem(`${PERSIST_KEY}:${session.address}`, JSON.stringify(session));
+      else window.localStorage.removeItem(`${PERSIST_KEY}:${session.address}`);
     } catch {
       /* ignore */
     }
   }
 
   endSession(address: TalkAddress): void {
-    if (typeof window !== "undefined") window.sessionStorage.removeItem(`${SESSION_KEY}:${address}`);
+    if (typeof window === "undefined") return;
+    window.sessionStorage.removeItem(`${SESSION_KEY}:${address}`);
+    window.localStorage.removeItem(`${PERSIST_KEY}:${address}`);
   }
 
   forgetDevice(address: TalkAddress): void {

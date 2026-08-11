@@ -35,8 +35,8 @@ export function DoorScreen({ address }: { address: string }) {
     return () => { alive = false; };
   }, [address]);
 
-  const openShelf = (s: OwnerSession) => {
-    talkService.beginSession(s);
+  const openShelf = (s: OwnerSession, persist = false) => {
+    talkService.beginSession(s, persist);
     setSession(s);
   };
   const lock = () => {
@@ -57,7 +57,7 @@ export function DoorScreen({ address }: { address: string }) {
     return (
       <TalkShell centered headerAction={back}>
         {view === "claim" ? (
-          <ClaimView address={address} onClaimed={openShelf} onCancel={() => setView("door")} />
+          <ClaimView address={address} onClaimed={(s) => openShelf(s, true)} onCancel={() => setView("door")} />
         ) : (
           <div className="w-full max-w-md px-5 text-center">
             <div className="talk-surface p-7">
@@ -81,7 +81,7 @@ export function DoorScreen({ address }: { address: string }) {
   return (
     <TalkShell centered headerAction={back}>
       {view === "unlock" ? (
-        <UnlockView place={place} remembered={remembered} onUnlocked={openShelf} onCancel={() => setView("door")} />
+        <UnlockView place={place} remembered={remembered} onUnlocked={(s, stay) => openShelf(s, stay)} onCancel={() => setView("door")} />
       ) : (
         <div className="w-full max-w-md px-5">
           {remembered && (
@@ -335,16 +335,16 @@ function ClaimView({ address, onClaimed, onCancel }: { address: string; onClaime
   );
 }
 
-function UnlockView({ place, remembered, onUnlocked, onCancel }: { place: Place; remembered: OwnerSession | null; onUnlocked: (s: OwnerSession) => void; onCancel: () => void }) {
+function UnlockView({ place, remembered, onUnlocked, onCancel }: { place: Place; remembered: OwnerSession | null; onUnlocked: (s: OwnerSession, stay: boolean) => void; onCancel: () => void }) {
   const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(true);
+  const [stay, setStay] = useState(true);
   const [busy, setBusy] = useState(false);
 
   const unlock = async () => {
     setBusy(true);
     try {
-      const session = await talkService.unlockOwner(place.address, password, remember);
-      if (session) onUnlocked(session);
+      const session = await talkService.unlockOwner(place.address, password, stay);
+      if (session) onUnlocked(session, stay);
       else toast.error("That owner password doesn't match");
     } finally { setBusy(false); }
   };
@@ -357,9 +357,10 @@ function UnlockView({ place, remembered, onUnlocked, onCancel }: { place: Place;
         <p className="mt-1 font-mono text-[0.72rem] text-primary">{TALK.domain}/{place.address}</p>
         {remembered && <p className="mt-2 text-xs font-light text-muted-foreground">This device is remembered. Enter your password to continue.</p>}
         <input className="note-input mt-5" type="password" placeholder="Owner password" value={password} autoFocus onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void unlock()} data-testid="unlock-password" />
-        <label className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-          <input type="checkbox" className="accent-primary" checked={remember} onChange={(e) => setRemember(e.target.checked)} data-testid="unlock-remember" /> Remember this device
+        <label className="mt-3 flex items-center justify-center gap-2 text-sm text-foreground/90">
+          <input type="checkbox" className="accent-primary" checked={stay} onChange={(e) => setStay(e.target.checked)} data-testid="unlock-remember" /> Keep me signed in on this device
         </label>
+        <p className="mt-1 text-[0.7rem] font-light text-muted-foreground/70">Skip the password next time. Uncheck on a shared computer.</p>
         <div className="mt-5 flex gap-2">
           <button type="button" className="talk-pill flex-1 justify-center" onClick={onCancel}>Back</button>
           <button type="button" className="btn-moss flex-1 justify-center disabled:opacity-50" onClick={unlock} disabled={busy || !password} data-testid="unlock-submit">

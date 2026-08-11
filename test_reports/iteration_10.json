@@ -1,0 +1,56 @@
+{
+  "summary": "Frontend-only testing of the new 'Keep me signed in on this device' opt-in feature on Kodama Talk. Verified: default-ON keep-signed-in return flow, lock signs out fully and clears persisted stay, opt-out flow (session-only), claim-implies-stay, plus regressions (drop send on /alex, owner shelf load, theme toggle persistence). All scenarios passed. No frontend or integration issues found.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "unlockOwner correctly removes owner-cred when remember=false (prevents resume-owner button leaking after explicit opt-out). Good.",
+    "activeSession() reads sessionStorage first, then falls back to localStorage stay key - clean fallback pattern.",
+    "endSession clears both session + stay keys but preserves owner-cred, matching spec (resume-owner may still appear after lock but requires password).",
+    "Minor: key-card-ack checkbox lives in sticky footer; when window is short, Playwright reports 'outside viewport' for regular click. Real users unaffected but worth noting for future test harnesses (workaround: click via evaluate)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "100%"},
+  "test_credentials": "Owner unlock for /alex: password 'secret' (any 4+ chars). Claim: any name + 4+ char password.",
+  "seed_data_creation": "Claimed /keepme123 during testing (persisted in localStorage - can be cleared by removing kodama-talk/v1/state key).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All keep-signed-in scenarios verified end-to-end via Playwright against preview URL. Session key naming: sessionStorage 'kodama-talk/v1/session:<addr>', localStorage 'kodama-talk/v1/stay:<addr>' (persist), localStorage 'kodama-talk/v1/owner-cred:<addr>' (device remembered). Simulate return-after-tab-close by window.sessionStorage.clear() + reload.",
+  "detailed_results": {
+    "t1_keep_signed_in_ON": {
+      "checkbox_default_checked": true,
+      "label_text_correct": true,
+      "helper_text_correct": true,
+      "stay_key_written": true,
+      "return_lands_on_shelf": true
+    },
+    "t2_lock_signs_out": {
+      "lock_returns_to_door": true,
+      "stay_key_cleared": true,
+      "return_shows_door_not_shelf": true,
+      "resume_owner_button_shown": true,
+      "resume_owner_requires_password": true
+    },
+    "t3_keep_signed_in_OFF": {
+      "no_stay_key": true,
+      "owner_cred_removed": true,
+      "refresh_still_in_shelf_via_sessionStorage": true,
+      "return_shows_door": true,
+      "no_resume_owner_button": true
+    },
+    "t4_claim_implies_stay": {
+      "stay_key_written_on_claim": true,
+      "return_lands_on_shelf": true
+    },
+    "t5_regression": {
+      "drop_send_alex": true,
+      "owner_shelf_loads": true,
+      "theme_toggle_changes_and_persists": true
+    }
+  }
+}

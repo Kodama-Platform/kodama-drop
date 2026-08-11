@@ -93,6 +93,11 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - **Polish from audit**: Key Card claim gate CTA (ack + Continue) is now a sticky footer so it's never below the fold on laptop viewports; added `data-testid="theme-toggle"`.
 - Full audit (testing agent iteration_9): **100%** of tested flows pass across Door/claim/key-card/unlock/refresh, Shelf nav, Drops reply/decline/block, Direct Talks, Groups/Channels, invites, search, settings, share, drafts, markdown, reactions/threads, sent list. No functional defects found. Verified additionally by clean build + 5/5 smoke tests.
 
+## Update (2026-06, iteration 11) — Stay signed in
+- Opt-in **"Keep me signed in on this device"** (UnlockView checkbox `unlock-remember`, default on, honest "uncheck on a shared computer" note). When on, the session is persisted to localStorage (`kodama-talk/v1/stay:<addr>`) so returning owners (new tab / after closing) land straight in the Shelf — no password. Claiming implies stay. When off, session is sessionStorage-only (survives refresh, not tab close) and the remembered credential is removed.
+- `activeSession` reads sessionStorage then the stay key; `beginSession(session, persist)`; `endSession` clears both; **Lock always signs out** (clears session + stay, keeps the device-remembered "Welcome back" button which still requires the password).
+- Verified: clean build + 5/5 smoke tests + testing agent iteration_10 → **100%** (default-ON return, lock sign-out, opt-out, claim-implies-stay, + drop/shelf/theme regressions).
+
 ## Backlog / Next (P1)
 - Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.
