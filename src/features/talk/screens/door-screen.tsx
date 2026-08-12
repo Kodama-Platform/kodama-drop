@@ -1,102 +1,21 @@
-import { useEffect, useState } from "react";
-import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Check, EyeOff, KeyRound, Loader2, MapPin, Send, Sparkles, UserRound } from "lucide-react";
+import { useState } from "react";
+import { Check, EyeOff, KeyRound, Loader2, MapPin, Send, Sparkles, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { TALK } from "@/lib/brand";
 import { talkService } from "@/features/talk/services";
 import type { DropOrigin, OwnerSession, Place } from "@/features/talk/types";
-import { markFor } from "@/features/talk/lib/mark";
-import { TalkShell } from "@/features/talk/components/talk-shell";
 import { PlaceMark } from "@/features/talk/components/place-mark";
 import { DoorHero } from "@/features/talk/components/door-hero";
-import { TalkAddressPlaque } from "@/features/talk/components/talk-address-plaque";
 import { PrivacyStatus } from "@/features/talk/components/privacy-status";
 import { Markdown } from "@/features/talk/lib/markdown";
-import { TalkLoading, TalkEmpty } from "@/features/talk/components/states";
+import { TalkEmpty } from "@/features/talk/components/states";
 import { getTalkSecurity } from "@/features/talk/security/talk-security-adapter";
-import { ShelfScreen } from "@/features/talk/screens/shelf-screen";
 import { KeyCardSheet } from "@/features/talk/components/key-card";
+import { TalkSheet } from "@/features/talk/components/talk-sheet";
 
-type View = "door" | "claim" | "unlock";
-
-export function DoorScreen({ address }: { address: string }) {
-  const [place, setPlace] = useState<Place | null | undefined>(undefined);
-  const [view, setView] = useState<View>("door");
-  const [session, setSession] = useState<OwnerSession | null>(() => talkService.activeSession(address));
-  const [remembered, setRemembered] = useState<OwnerSession | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    setPlace(undefined);
-    setSession(talkService.activeSession(address));
-    setRemembered(talkService.rememberedSession(address));
-    void talkService.resolvePlace(address).then((p) => alive && setPlace(p));
-    return () => { alive = false; };
-  }, [address]);
-
-  const openShelf = (s: OwnerSession, persist = false) => {
-    talkService.beginSession(s, persist);
-    setSession(s);
-  };
-  const lock = () => {
-    talkService.endSession(address);
-    setSession(null);
-    setView("door");
-  };
-
-  if (session) return <ShelfScreen session={session} onLock={lock} />;
-
-  if (place === undefined) return <TalkShell centered><TalkLoading /></TalkShell>;
-
-  const back = (
-    <Link to="/" className="talk-pill" data-testid="door-back"><ArrowLeft className="h-4 w-4" /> Home</Link>
-  );
-
-  if (place === null) {
-    return (
-      <TalkShell centered headerAction={back}>
-        {view === "claim" ? (
-          <ClaimView address={address} onClaimed={(s) => openShelf(s, true)} onCancel={() => setView("door")} />
-        ) : (
-          <div className="w-full max-w-md px-5 text-center">
-            <div className="talk-surface p-7">
-              <div className="mx-auto mb-4 w-fit"><PlaceMark mark={markFor(address, address)} size={64} /></div>
-              <h1 className="talk-display text-2xl text-foreground" data-testid="door-place-name">{address}</h1>
-              <div className="mt-2 flex justify-center"><TalkAddressPlaque address={address} /></div>
-              <p className="mt-4 text-sm font-light leading-relaxed text-muted-foreground">
-                This place is unclaimed. Make <span className="text-foreground">{TALK.domain}/{address}</span> your own — one address where anyone can reach you.
-              </p>
-              <button type="button" className="btn-moss mt-6 w-full justify-center" onClick={() => setView("claim")} data-testid="claim-this-btn">
-                <Sparkles className="h-4 w-4" /> Claim this address
-              </button>
-            </div>
-          </div>
-        )}
-      </TalkShell>
-    );
-  }
-
-  // Claimed place → visitor Door + unlock
-  return (
-    <TalkShell centered headerAction={back}>
-      {view === "unlock" ? (
-        <UnlockView place={place} remembered={remembered} onUnlocked={(s, stay) => openShelf(s, stay)} onCancel={() => setView("door")} />
-      ) : (
-        <div className="w-full max-w-md px-5">
-          {remembered && (
-            <button type="button" className="talk-pill mb-3 w-full justify-center !border-primary/40 !bg-primary/6" onClick={() => setView("unlock")} data-testid="resume-owner">
-              <KeyRound className="h-4 w-4" /> Welcome back — open your Shelf
-            </button>
-          )}
-          <DoorView place={place} onOwner={() => setView("unlock")} />
-        </div>
-      )}
-    </TalkShell>
-  );
-}
-
-function DoorView({ place, onOwner }: { place: Place; onOwner: () => void }) {
+/** The visitor Door — a place identity + a note composer. Reused inline and at /:address. */
+export function DoorView({ place, onOwner, showHero = true }: { place: Place; onOwner: () => void; showHero?: boolean }) {
   const [origin, setOrigin] = useState<DropOrigin>("anonymous");
   const [name, setName] = useState("");
   const [fromAddress, setFromAddress] = useState("");
@@ -140,8 +59,6 @@ function DoorView({ place, onOwner }: { place: Place; onOwner: () => void }) {
           <button type="button" className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline" onClick={reset} data-testid="drop-another">
             Leave another
           </button>
-          <span className="text-muted-foreground/30">·</span>
-          <Link to="/" className="text-primary underline-offset-4 hover:underline">Get a place of your own</Link>
         </div>
       </div>
     );
@@ -179,11 +96,14 @@ function DoorView({ place, onOwner }: { place: Place; onOwner: () => void }) {
 
   return (
     <div data-testid="door-view">
-      {/* Whose door — the shared hero, in its "place" state */}
-      <DoorHero mode="place" place={place} />
-
-      {/* The threshold */}
-      <div className="talk-divider mb-5 mt-5" />
+      {showHero && (
+        <>
+          {/* Whose door — the shared hero, in its "place" state */}
+          <DoorHero mode="place" place={place} />
+          {/* The threshold */}
+          <div className="talk-divider mb-5 mt-5" />
+        </>
+      )}
 
       {/* Leave your note — the single focus of this screen */}
       <p className="mb-2.5 text-center text-sm font-light text-muted-foreground">
@@ -213,7 +133,7 @@ function DoorView({ place, onOwner }: { place: Place; onOwner: () => void }) {
             className="door-writing"
             placeholder={`Hi ${fn}, I just wanted to say…`}
             value={body}
-            autoFocus
+            autoFocus={showHero}
             onChange={(e) => setBody(e.target.value)}
             data-testid="door-composer"
           />
@@ -286,7 +206,8 @@ function firstName(name: string): string {
   return name.trim().split(/\s+/)[0] || name;
 }
 
-function ClaimView({ address, onClaimed, onCancel }: { address: string; onClaimed: (s: OwnerSession) => void; onCancel: () => void }) {
+/** Claim an unclaimed address (in-place). */
+export function ClaimView({ address, onClaimed, onCancel }: { address: string; onClaimed: (s: OwnerSession) => void; onCancel: () => void }) {
   const [displayName, setDisplayName] = useState("");
   const [tagline, setTagline] = useState("");
   const [password, setPassword] = useState("");
@@ -306,7 +227,7 @@ function ClaimView({ address, onClaimed, onCancel }: { address: string; onClaime
   };
 
   return (
-    <div className="w-full max-w-md px-5" data-testid="claim-view">
+    <div className="w-full" data-testid="claim-view">
       <div className="talk-surface p-7">
         <p className="talk-section-label">New place</p>
         <h1 className="mt-2 talk-display text-2xl text-foreground">Claim <span className="text-primary">/{address}</span></h1>
@@ -335,7 +256,14 @@ function ClaimView({ address, onClaimed, onCancel }: { address: string; onClaime
   );
 }
 
-function UnlockView({ place, remembered, onUnlocked, onCancel }: { place: Place; remembered: OwnerSession | null; onUnlocked: (s: OwnerSession, stay: boolean) => void; onCancel: () => void }) {
+/** Owner unlock, in a modal sheet (no separate route/page). */
+export function UnlockSheet({ open, onOpenChange, place, remembered, onUnlocked }: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  place: Place;
+  remembered: boolean;
+  onUnlocked: (s: OwnerSession, stay: boolean) => void;
+}) {
   const [password, setPassword] = useState("");
   const [stay, setStay] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -350,24 +278,18 @@ function UnlockView({ place, remembered, onUnlocked, onCancel }: { place: Place;
   };
 
   return (
-    <div className="w-full max-w-sm px-5" data-testid="unlock-view">
-      <div className="talk-surface p-7 text-center">
-        <div className="mx-auto mb-4 w-fit"><PlaceMark mark={place.mark} size={56} /></div>
-        <h1 className="talk-display text-xl text-foreground">Open your Shelf</h1>
-        <p className="mt-1 font-mono text-[0.72rem] text-primary">{TALK.domain}/{place.address}</p>
-        {remembered && <p className="mt-2 text-xs font-light text-muted-foreground">This device is remembered. Enter your password to continue.</p>}
-        <input className="note-input mt-5" type="password" placeholder="Owner password" value={password} autoFocus onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void unlock()} data-testid="unlock-password" />
-        <label className="mt-3 flex items-center justify-center gap-2 text-sm text-foreground/90">
+    <TalkSheet open={open} onOpenChange={onOpenChange} title="Open your Shelf" description={`${TALK.domain}/${place.address}`}>
+      <div data-testid="unlock-view">
+        {remembered && <p className="mb-2 text-xs font-light text-muted-foreground">This device is remembered. Enter your password to continue.</p>}
+        <input className="note-input" type="password" placeholder="Owner password" value={password} autoFocus onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void unlock()} data-testid="unlock-password" />
+        <label className="mt-3 flex items-center gap-2 text-sm text-foreground/90">
           <input type="checkbox" className="accent-primary" checked={stay} onChange={(e) => setStay(e.target.checked)} data-testid="unlock-remember" /> Keep me signed in on this device
         </label>
         <p className="mt-1 text-[0.7rem] font-light text-muted-foreground/70">Skip the password next time. Uncheck on a shared computer.</p>
-        <div className="mt-5 flex gap-2">
-          <button type="button" className="talk-pill flex-1 justify-center" onClick={onCancel}>Back</button>
-          <button type="button" className="btn-moss flex-1 justify-center disabled:opacity-50" onClick={unlock} disabled={busy || !password} data-testid="unlock-submit">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />} Unlock
-          </button>
-        </div>
+        <button type="button" className="btn-moss mt-5 w-full justify-center disabled:opacity-50" onClick={unlock} disabled={busy || !password} data-testid="unlock-submit">
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />} Unlock
+        </button>
       </div>
-    </div>
+    </TalkSheet>
   );
 }

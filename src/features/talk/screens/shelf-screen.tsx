@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import {
   Archive,
   Hash,
@@ -37,15 +38,15 @@ import { markFor } from "@/features/talk/lib/mark";
 
 type Section = "drops" | "sent" | "direct" | "groups" | "channels" | "pinned";
 
-export function ShelfScreen({ session, onLock }: { session: OwnerSession; onLock: () => void }) {
+export function ShelfScreen({ session, onLock, addressBar }: { session: OwnerSession; onLock: () => void; addressBar?: ReactNode }) {
   return (
     <OwnerProvider session={session} onLock={onLock}>
-      <ShelfInner />
+      <ShelfInner addressBar={addressBar} />
     </OwnerProvider>
   );
 }
 
-function ShelfInner() {
+function ShelfInner({ addressBar }: { addressBar?: ReactNode }) {
   const { session, shelf, loading, refresh, lock } = useOwner();
   const [section, setSection] = useState<Section>("drops");
   const [selected, setSelected] = useState<Conversation | null>(null);
@@ -94,7 +95,8 @@ function ShelfInner() {
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 gap-0 px-0 sm:px-4">
         {/* Left shelf rail */}
-        <aside className={cn("flex w-full max-w-full shrink-0 flex-col border-r border-border/50 sm:w-[19rem] lg:w-[21rem]", selected && "hidden sm:flex")} data-testid="shelf-rail">
+        <aside className={cn("relative z-10 flex w-full max-w-full shrink-0 flex-col border-r border-border/50 sm:w-[19rem] lg:w-[21rem]", selected && "hidden sm:flex")} data-testid="shelf-rail">
+          {addressBar && <div className="px-4 pt-4">{addressBar}</div>}
           <div className="flex items-center gap-3 px-4 pb-3 pt-4">
             <PlaceMark mark={markFor(session.displayName, session.address)} size={44} />
             <div className="min-w-0">
@@ -171,7 +173,7 @@ function ShelfInner() {
           {selected ? (
             <StreamView conversation={selected} onBack={() => setSelected(null)} onChanged={afterChange} onInvite={(c) => setInviteConv(c)} />
           ) : (
-            <div className="flex h-full items-center justify-center p-6">
+            <div className="pointer-events-none flex h-full items-center justify-center p-6">
               <TalkEmpty
                 title="This is your place"
                 body="On the left: Drops from people reaching you, Talks (a reply turns a Drop into a private Direct Talk), and any Groups or Channels you start. Pick one to open it here."

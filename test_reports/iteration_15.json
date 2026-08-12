@@ -1,0 +1,21 @@
+{
+  "summary": "Frontend-only targeted RETEST of iteration_14's HIGH bug: unread 'new' firefly divider in Mara Direct Talk after StrictMode/markRead ref fix. All targeted checks PASS. Cleared localStorage 'kodama-talk/v1/state' + sessionStorage, unlocked /alex via data-testid=this-is-me -> unlock-password 'secret' -> unlock-submit, navigated nav-direct -> conversation-row-conv-mara. trail-new divider now renders (text='new') between the 2nd and 3rd of 4 Mara messages (i.e. before m3, the first of 2 unread). Read-only Announcements shows stream-locked ('This is a read-only channel.') and Field Notes still has a working composer textarea. Regressions verified: trail-origin present, reaction-🌿 on m2, thread-reference (reply echo) on m2, clustering intact (m4 has no repeated Mara header).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "seenUnread ref pattern in stream-view.tsx correctly captures conversation.unreadCount once per conversation id before markRead mutates it, immune to React StrictMode double-effect. Verified by DOM order: [origin, m1(Mara), m2(You + reply-ref + 🌿), trail-new, m3(Mara), m4(clustered, no author header)] with unreadCount=2 -> divider index = max(0, 4-2) = 2. Behavior matches spec."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "100%"},
+  "test_credentials": "/alex owner password: 'secret' (owner unlock via data-testid=this-is-me button then unlock-password + unlock-submit).",
+  "seed_data_creation": "None. Used seed.ts conv-mara (m1..m4, unreadCount=2) and conv-announcements (replyPolicy off).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "To unlock /alex: click data-testid=this-is-me (button, NOT type it), then fill data-testid=unlock-password with 'secret' and click unlock-submit. Nav testids are nav-drops/nav-direct/nav-groups/nav-channels. Conversation rows use conversation-row-<id> (e.g. conv-mara, conv-announcements, conv-field-notes). Stream elements: trail-origin, trail-new, message-fragment, thread-reference, reaction-<emoji>, stream-locked, stream-view. ALWAYS clear localStorage 'kodama-talk/v1/state' + sessionStorage before testing seed changes."
+}

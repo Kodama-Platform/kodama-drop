@@ -1,6 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { LandingScreen } from "@/features/talk/screens/landing-screen";
+import { TalkSurface } from "@/features/talk/screens/talk-surface";
 
 export const Route = createFileRoute("/")({
-  component: LandingScreen,
+  component: RootSurface,
 });
+
+function RootSurface() {
+  return <TalkSurface />;
+}

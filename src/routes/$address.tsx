@@ -5,7 +5,7 @@ import { slugSchema } from "@/lib/slug";
 import { TALK } from "@/lib/brand";
 import { TalkShell } from "@/features/talk/components/talk-shell";
 import { TalkError } from "@/features/talk/components/states";
-import { DoorScreen } from "@/features/talk/screens/door-screen";
+import { TalkSurface } from "@/features/talk/screens/talk-surface";
 
 export const Route = createFileRoute("/$address")({
   component: AddressRoute,
@@ -35,5 +35,5 @@ function AddressRoute() {
     );
   }
 
-  return <DoorScreen address={parsed.data} />;
+  return <TalkSurface initialAddress={parsed.data} />;
 }

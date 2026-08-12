@@ -13,15 +13,18 @@ function mount(path: string) {
 
 beforeEach(() => {
   window.localStorage.clear();
+  window.sessionStorage.clear();
   if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = () => {};
 });
 
-test("landing Door renders the claim CTA + address plaque", async () => {
+test("landing shows the address plaque and live-reveals a Drop form for a taken address", async () => {
   mount("/");
+  await waitFor(() => expect(screen.getByTestId("address-plaque-input")).toBeInTheDocument());
+  fireEvent.change(screen.getByTestId("address-plaque-input"), { target: { value: "alex" } });
   await waitFor(() => {
-    expect(screen.getByTestId("claim-address-btn")).toBeInTheDocument();
-    expect(screen.getByTestId("address-plaque-input")).toBeInTheDocument();
-  });
+    expect(screen.getByTestId("availability-status")).toHaveAttribute("data-status", "taken");
+    expect(screen.getByTestId("door-composer")).toBeInTheDocument();
+  }, { timeout: 4000 });
 });
 
 test("claimed place shows visitor Door with origin options, consent + door note", async () => {

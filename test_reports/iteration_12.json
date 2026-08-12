@@ -1,0 +1,29 @@
+{
+  "summary": "Frontend-only verification of the new DEBOUNCED live availability check on the Kodama Talk landing page and its in-place reveal (Drop for owned, Claim for available). All 9 spec-required behaviors PASS end-to-end against the preview URL. Idle landing shows hero + address input with no availability status; typing 'alex' shows data-status='checking' during debounce and settles to data-status='taken' (~350ms after typing stops), landing-title changes to 'Alex Rivera' with tagline, landing-reveal shows door-composer/door-subject/door-send inline, URL stays '/'. Focus stays on address-plaque-input (composer does NOT steal focus). Switching to a free slug ('freeplace-xyz', 'some-free-slug-1') smoothly swaps to claim-view with claim-name/tagline/password/submit; clearing the field returns to idle (status + reveal removed). Claim submit -> Sealed Key Card gate (key-card-ack + key-card-continue in sticky footer) -> owner shelf-rail. Regression: direct link /alex opens full DoorView with hero (door-place-name) + address-bar at URL /alex; unlock trigger is data-testid='this-is-me' which opens unlock sheet, password 'secret' -> shelf-rail. Landing-reveal owner unlock ('this-is-me' inside landing-reveal) with 'secret' also works and lands on shelf-rail. No regressions observed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Key Card sheet", "issues": ["key-card-ack (checkbox) and key-card-continue button sit in a sticky footer that reports 'element outside viewport' to Playwright's real-mouse click on 1280x900 viewports; only worked around with element.click() via evaluate. Real users on shorter viewports may need to scroll to reach the acknowledgement checkbox — consider making the key-card body scroll internally so the sticky action row is always visible. Same note as iteration_10/11."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Consider improving Key Card sheet layout so acknowledgement + continue are always in-viewport without needing to scroll (previously flagged, still present)."
+  ],
+  "critical_code_review_comments": [
+    "TalkSurface debounce is correctly implemented: an instant effect sets 'checking' on every keystroke; a separate effect on debouncedInput (350ms) resolves via talkService.resolvePlace and sets 'available' or 'taken'. Both effects short-circuit when address!==null. Both use an `alive` guard to prevent stale-response races. Clean.",
+    "openShelf() does NOT navigate; state stays on `/` after claim, matching spec. Verified window.location.pathname unchanged across all landing flows.",
+    "landing-reveal is keyed by `${status}:${slug}` which is a nice touch to force remount + fresh animation when swapping between Drop and Claim.",
+    "DoorView is embedded with showHero={false} inside the landing reveal — composer autoFocus is disabled, verified focus stays on address-plaque-input during and after reveal.",
+    "Owner unlock trigger inside DoorView uses data-testid='this-is-me' (not 'door-owner'); this is consistent with the direct-route /alex mount. Review request references both names — this-is-me is the actual test id in the DOM."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "100% (9/9 spec assertions PASS)"},
+  "test_credentials": "Owner unlock for /alex: password 'secret'. Claim: any name + 4+ char password.",
+  "seed_data_creation": "Created testclaim<epoch> during claim regression; stored in localStorage 'kodama-talk/v1/state'. Safe to clear.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Landing debounced live-check + in-place reveal fully verified against preview URL https://door-shelf.preview.emergentagent.com/. Key testids: landing-title, address-plaque-input, availability-status (data-status idle|checking|available|taken), landing-reveal, door-composer/door-subject/door-send/this-is-me, claim-view + claim-name/claim-tagline/claim-password/claim-submit, key-card-ack/key-card-continue (sticky footer — use evaluate().click() to bypass viewport check), shelf-rail. URL invariant: stays '/' for all landing interactions incl. openShelf after claim. Only lingering UX concern is the Key Card sheet sticky footer being off-screen on shorter viewports."
+}

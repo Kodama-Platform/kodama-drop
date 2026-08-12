@@ -98,6 +98,12 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - `activeSession` reads sessionStorage then the stay key; `beginSession(session, persist)`; `endSession` clears both; **Lock always signs out** (clears session + stay, keeps the device-remembered "Welcome back" button which still requires the password).
 - Verified: clean build + 5/5 smoke tests + testing agent iteration_10 → **100%** (default-ON return, lock sign-out, opt-out, claim-implies-stay, + drop/shelf/theme regressions).
 
+## Update (2026-06, iteration 16) — Conversation Trail + universal surface + live landing
+- **Universal surface** (`talk-surface.tsx`): root `/` and `/:address` share one in-place surface. Root resolves typed addresses LIVE (debounced 350ms) with a fetching/available/owned status; owned reveals the Drop form, available reveals the Claim form — no route/URL change. Owner unlock is a sheet (`UnlockSheet`). Direct links still open the Door immediately. `DoorView`/`ClaimView` are reusable; `DoorView` gains `showHero`.
+- **Conversation Trail** (`message-fragment.tsx`, `stream-view.tsx`, `thread-reference.tsx`, `.trail-*` CSS): messages sit along a quiet vertical trace (stem + node), clustered by speaker (name once per cluster), owner=moss edge / others=warm paper (no left/right bubbles). First-Drop context line, reply echoes that jump to the original (with flash), edge ember reactions, one unread firefly divider (no red dots), "Leave a message…" composer, and a read-only-channel permission state. Same trail for Direct/Group/Channel.
+- Fixed a StrictMode double-effect bug where `markRead` zeroed the unread count before render (now captured once per conversation id in `seenUnread`).
+- Verified: clean build + 9/9 jsdom tests + testing agent iterations 12–15 (universal surface, live landing, trail, unread firefly, read-only channel) all 100%.
+
 ## Backlog / Next (P1)
 - Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.

@@ -118,9 +118,9 @@ export const SEED_CONVERSATIONS: Conversation[] = [
     subtitle: "talk.kodama.page/mara",
     mark: markFor("Mara", "mara"),
     members: [member("Alex Rivera", "owner", "alex"), member("Mara", "member", "mara")],
-    lastMessagePreview: "Next Tuesday works. I'll send a time.",
-    lastMessageAt: ago(15),
-    unreadCount: 0,
+    lastMessagePreview: "Either afternoon works on my end.",
+    lastMessageAt: ago(6),
+    unreadCount: 2,
     pinned: true,
     muted: false,
     state: "active",
@@ -181,6 +181,24 @@ export const SEED_CONVERSATIONS: Conversation[] = [
     replyPolicy: "open",
     protocolVersion: P,
   },
+  {
+    id: "conv-announcements",
+    kind: "channel",
+    placeAddress: "alex",
+    title: "Announcements",
+    subtitle: "Read-only channel",
+    mark: markFor("Announcements", "announcements"),
+    members: [member("Alex Rivera", "owner", "alex")],
+    lastMessagePreview: "New: Sealed Key Cards for recovery.",
+    lastMessageAt: ago(60 * 5),
+    unreadCount: 0,
+    pinned: false,
+    muted: false,
+    state: "active",
+    visibility: "public",
+    replyPolicy: "off",
+    protocolVersion: P,
+  },
 ];
 
 const msg = (
@@ -212,6 +230,8 @@ export const SEED_MESSAGES: Record<string, Message[]> = {
       replyTo: { messageId: "m1", authorLabel: "Mara", excerpt: "Would you be open to a short chat…" },
       reactions: [{ emoji: "🌿", by: "Mara" }],
     }),
+    msg("m3", "conv-mara", "Mara", false, "Actually — could we make it Wednesday?", 8),
+    msg("m4", "conv-mara", "Mara", false, "Either afternoon works on my end.", 6),
   ],
   "conv-devon": [
     msg("d1", "conv-devon", "Devon", false, "Sketch attached — thoughts on the second option?", 300, {
@@ -225,5 +245,8 @@ export const SEED_MESSAGES: Record<string, Message[]> = {
   ],
   "conv-field-notes": [
     msg("c1", "conv-field-notes", "Alex Rivera", true, "This week: on building for calm. A short note on why fewer notifications made everything feel lighter.", 60 * 20),
+  ],
+  "conv-announcements": [
+    msg("an1", "conv-announcements", "Alex Rivera", true, "New: **Sealed Key Cards** for recovery. Save yours from Settings.", 60 * 5),
   ],
 };

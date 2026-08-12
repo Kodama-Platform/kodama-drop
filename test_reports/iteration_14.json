@@ -1,0 +1,39 @@
+{
+  "summary": "Focused verification of two Conversation Trail branches after seed/guard update. Unlocked /alex with 'secret', cleared kodama-talk/v1/state, ran under prefers-reduced-motion. Read-only channel (Announcements) works correctly. Field Notes composer regression sanity works. Mara direct-talk renders 4 messages with correct clustering and trail-origin, BUT the unread firefly divider (data-testid='trail-new') is NOT rendered — root cause identified below.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "StreamView (unread firefly divider)",
+        "issue": "data-testid='trail-new' divider does not render for Mara conversation despite conversation.unreadCount=2 and messages.length=4. Neither the [data-testid] nor the .trail-new class element exists in the DOM. Sidebar unread badge correctly shows '2', so seed data is loaded; the miss is in StreamView's ref bookkeeping.",
+        "selector": "[data-testid='trail-new']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "rca of the issue": "React.StrictMode is enabled (src/main.tsx). StreamView's mount useEffect runs twice in dev. The mock service's markRead() SYNCHRONOUSLY mutates the shared conversation object (mock-talk-service.ts:356-361: `if (c) c.unreadCount = 0` runs before the awaited delay). Sequence: (1) first effect run sets unreadAt.current = conversation.unreadCount (=2) and calls markRead → mutates the same object so conversation.unreadCount becomes 0 immediately; (2) StrictMode cleanup; (3) second effect run reads conversation.unreadCount (now 0) and sets unreadAt.current = 0. Subsequent render therefore never satisfies `unreadAt.current > 0`, so the trail-new divider is skipped. This does not reproduce in production (no double-invoke), but it breaks all dev previews and the current test environment. Recommended fixes (any one): (a) guard the ref so it is only ever set to the max seen value per conversation id: `unreadAt.current = Math.max(unreadAt.current, conversation.unreadCount)` keyed by id; (b) capture the initial unread count into local state on first fetch response instead of during the effect; (c) change mock markRead to not mutate in place synchronously — clone the conversation and defer the mutation until after `delay(undefined)`; (d) use useMemo/useState seeded from listMessages payload (return unreadAtIndex from the service).",
+  "test_report_links": [],
+  "action_items": [
+    "Fix unread-divider ref so it survives StrictMode double-invocation. Preferred: in stream-view.tsx replace `unreadAt.current = conversation.unreadCount` with a per-conversation guard (e.g. track lastConvId ref; only assign when id changes AND value > current), OR keep the initial count in useState and reset only on conversation.id change.",
+    "Optionally, make mock-talk-service.markRead non-synchronous-mutating (delay before mutation) so shared conversation objects aren't zeroed while consumers still need the initial count."
+  ],
+  "critical_code_review_comments": [
+    "stream-view.tsx line 44: `unreadAt.current = conversation.unreadCount` inside a `[conversation.id]` effect is fragile under StrictMode because markRead mutates the same conversation object synchronously. Use a per-id guard or derive from message payload.",
+    "mock-talk-service.ts markRead mutates a shared object before its await; consumers observing conversation.unreadCount get race conditions."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a", "frontend": "66% (2/3 branches pass; unread divider fails)"},
+  "test_credentials": "/alex owner password: 'secret'",
+  "seed_data_creation": "None. Cleared localStorage 'kodama-talk/v1/state' + sessionStorage before each run so the new seed loads.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "After main agent lands the ref-guard fix in stream-view.tsx, retest ONLY the Mara flow: clear localStorage, unlock /alex, nav-direct → conversation-row-conv-mara, then assert (a) `[data-testid=trail-new]` exists, (b) it appears between message index 1 and 2 (before 'Actually — could we make it Wednesday?'), (c) it contains a small ember dot + text 'new' (no red badge/banner). Read-only channel branch (conv-announcements → stream-locked 'This is a read-only channel.') and Field Notes composer (placeholder 'Leave a message…', testid `drop-composer-field`) already verified pass in this iteration. Channel row testids are `conversation-row-conv-announcements` and `conversation-row-conv-field-notes`. Owner unlock testids are `this-is-me` → sheet → `unlock-password` + `unlock-submit`.",
+  "verified_passing": [
+    "Announcements channel: opens, shows an1 owner post 'New: Sealed Key Cards…', composer is replaced by [data-testid=stream-locked] with exact text 'This is a read-only channel.'",
+    "Field Notes channel: composer present with placeholder 'Leave a message…' (testid drop-composer-field); no stream-locked shown.",
+    "Mara Direct Talk: trail-origin renders 'A message left here by Mara'; all 4 messages render; clustering works (Mara's m3 shows 'MARA' label, m4 is clustered without a repeated label); YOU bubble for m2 shows thread reference.",
+    "Sidebar unread badge (data-testid=unread-count) correctly reads '2' for Mara."
+  ]
+}
