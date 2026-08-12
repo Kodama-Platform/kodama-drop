@@ -123,6 +123,18 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Seed conversations gained real keepsakes: Devon (sketch-v2.png), Mara (morning-fog.jpg), Design Team group (palette.png).
 - Verified: clean build + 12/12 talk tests + testing agent iteration_18 (100%: thumbnails, lightbox, composer attach/send picture-only, remove chip, text-send + draft regressions, read-only channel has no image button, no console errors).
 
+## Update (2026-06, iteration 19) — Unified activity stream + persistent opt-in
+**Persistent opt-in / auto-resume**
+- The "Keep me signed in on this device" checkbox now also exists on the Claim flow (`claim-remember`), alongside the existing unlock checkbox. When checked, the Talk is written to a `last-talk` pointer in localStorage.
+- On revisiting the root `/` (no direct link), the last opted-in Talk auto-resumes straight into its Shelf — no re-typing or re-unlocking. Locking (or Forget device) clears the pointer so it won't resume. Reopening an already-active session preserves its persistence (`isPersisted`). New service methods: `isPersisted`, `lastOpenedTalk`.
+
+**One living stream (Shelf redesign)**
+- Removed the category tab nav (Drops/Talks/Groups/Channels/Pinned/Sent). The Shelf is now a single chronological stream (`shelf-stream`) sorted by latest activity, newest first, mixing Direct Talks, incoming Drops (named = pending direct, anonymous = one-way), Groups, Channels, and Sent Drops (folded in per user's choice).
+- Each row: identity mark, name/place, latest preview, time, and only tiny cues — unread firefly (`stream-unread`) / numeric `unread-count`, `cue-group` (people), `cue-channel` (broadcast, lock if private), `pin-mark` (pinned stays in time order, does NOT float), sent = up-right arrow + `SentDropState`, anonymous shows "Anonymous".
+- Main panel opens: Conversation Trail (conversation), `drop-detail` (Reply/Decline/Block), or read-only `sent-detail`. Quiet `new-group`/`new-channel` actions replace the old tabs. Mobile back button unified as `detail-back`.
+- New component: `stream-item-row.tsx`. `DropCard` gained `onResolved`.
+- Verified: clean build + 12/12 talk tests + testing agent iteration_19 (all 12 flows pass, correct newest-first sort, cues, reply→direct-talk conversion, decline removal, mobile; no console errors).
+
 ## Backlog / Next (P1)
 - Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.

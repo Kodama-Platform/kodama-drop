@@ -76,7 +76,7 @@ test("owner can unlock a claimed place and reach the Shelf", async () => {
   await waitFor(
     () => {
       expect(screen.getByTestId("shelf-rail")).toBeInTheDocument();
-      expect(screen.getByTestId("nav-drops")).toBeInTheDocument();
+      expect(screen.getByTestId("shelf-stream")).toBeInTheDocument();
       expect(screen.getByTestId("open-share")).toBeInTheDocument();
     },
     { timeout: 4000 },

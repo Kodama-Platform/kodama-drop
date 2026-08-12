@@ -38,6 +38,10 @@ export interface TalkService {
   beginSession(session: OwnerSession, persist?: boolean): void;
   endSession(address: TalkAddress): void;
   forgetDevice(address: TalkAddress): void;
+  /** True when this Talk has an opted-in ("keep me signed in") session on this device. */
+  isPersisted(address: TalkAddress): boolean;
+  /** The last opted-in Talk's session, restored on revisit (until lock). */
+  lastOpenedTalk(): OwnerSession | null;
   getShelf(session: OwnerSession): Promise<Shelf>;
   updatePlace(address: TalkAddress, patch: Partial<Pick<Place, "displayName" | "tagline" | "dropReceiving" | "doorNote">>): Promise<Place>;
   getNotificationPrefs(address: TalkAddress): Promise<NotificationPrefs>;

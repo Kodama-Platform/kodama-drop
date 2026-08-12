@@ -207,11 +207,12 @@ function firstName(name: string): string {
 }
 
 /** Claim an unclaimed address (in-place). */
-export function ClaimView({ address, onClaimed, onCancel }: { address: string; onClaimed: (s: OwnerSession) => void; onCancel: () => void }) {
+export function ClaimView({ address, onClaimed, onCancel }: { address: string; onClaimed: (s: OwnerSession, stay: boolean) => void; onCancel: () => void }) {
   const [displayName, setDisplayName] = useState("");
   const [tagline, setTagline] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [stay, setStay] = useState(true);
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<OwnerSession | null>(null);
 
@@ -222,7 +223,7 @@ export function ClaimView({ address, onClaimed, onCancel }: { address: string; o
     setBusy(true);
     try {
       await talkService.claimAddress({ address, displayName: displayName.trim(), tagline: tagline.trim() || undefined, ownerPassword: password });
-      const session = await talkService.unlockOwner(address, password, true);
+      const session = await talkService.unlockOwner(address, password, stay);
       if (session) setPending(session);
     } catch (e) {
       toast.error((e as Error).message === "address_taken" ? "That address was just taken" : "Could not claim");
@@ -249,6 +250,10 @@ export function ClaimView({ address, onClaimed, onCancel }: { address: string; o
         <p className="mt-3 text-xs font-light leading-relaxed text-muted-foreground">
           This password unlocks this Talk address. Kodama does not store it — there&apos;s no account and it can&apos;t be reset.
         </p>
+        <label className="mt-3 flex items-center gap-2 text-sm text-foreground/90">
+          <input type="checkbox" className="accent-primary" checked={stay} onChange={(e) => setStay(e.target.checked)} data-testid="claim-remember" /> Keep me signed in on this device
+        </label>
+        <p className="mt-1 text-[0.7rem] font-light text-muted-foreground/70">Reopen this Talk without a password next time. Uncheck on a shared computer.</p>
         <div className="mt-5 flex gap-2">
           <button type="button" className="talk-pill flex-1 justify-center" onClick={onCancel}>Back</button>
           <button type="button" className="btn-moss flex-1 justify-center disabled:opacity-50" onClick={claim} disabled={busy} data-testid="claim-submit">
@@ -262,7 +267,7 @@ export function ClaimView({ address, onClaimed, onCancel }: { address: string; o
         address={address}
         displayName={displayName.trim() || address}
         mustAcknowledge
-        onAcknowledged={() => pending && onClaimed(pending)}
+        onAcknowledged={() => pending && onClaimed(pending, stay)}
       />
     </div>
   );

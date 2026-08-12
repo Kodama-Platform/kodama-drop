@@ -1,0 +1,29 @@
+{
+  "summary": "Frontend-only testing of Kodama Talk Shelf redesign (unified activity stream). All primary requirements verified: single shelf-stream (no old section nav testids), mixed items (conv/drop/sent) present, correct newest-first sort (6m→15m→22m→2h→2h→5h→5h→5h→20h→1d), cue-group/cue-channel/pin-mark rendered, unread firefly dots (3) + numeric unread-count badges (3), Anonymous drop shown by name, clicking conversation opens StreamView with drop-composer, clicking incoming Drop opens drop-detail with Reply/Decline/Block, decline removes the drop from the stream and clears main panel, clicking Sent Drop opens sent-detail with no composer, header actions (open-share/open-search/open-settings/lock-shelf) and quiet new-group/new-channel are present, mobile (390x844) hides rail when detail is open. Zero console errors during the flows.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "StreamView (Conversation Trail back button)", "issue": "On mobile, the back button in the Conversation Trail uses data-testid='stream-back' while the task/spec (and DropDetail/SentDetail headers) use data-testid='detail-back'. The button is visible and works, but the testid is inconsistent with the spec. Consider unifying to 'detail-back' or adding it as an alias so all detail panels expose the same back testid.", "selector": "[data-testid='stream-back']", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_19.json"],
+  "action_items": [
+    "Optional: rename/alias the mobile back button in stream-view.tsx from data-testid='stream-back' to data-testid='detail-back' to match the unified spec used by drop-detail and sent-detail headers."
+  ],
+  "critical_code_review_comments": [
+    "shelf-screen.tsx is clean and well-factored; useMemo sort is correct (Date.parse desc).",
+    "StreamItemRow correctly differentiates the three item kinds and only emits cue-group/cue-channel/pin-mark/stream-unread/unread-count where appropriate.",
+    "Sent drop rendering shows recipient + 'You:' preview + SentDropState — good.",
+    "Minor consistency: detail-back testid is not present on the conversation trail on mobile (uses stream-back instead)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped)", "frontend": "~95%"},
+  "seed_data_creation": "Used existing mock seed for /alex (Mara, Devon, Design Team, Announcements, Field Notes, incoming drops from Mara/anonymous/Devon, sent drops to mara & kodama).",
+  "test_credentials": "Owner /alex unlock password: 'secret'",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All 12 features from the review pass except a minor testid mismatch on the conversation-trail mobile back button (stream-back vs the spec's detail-back). No console errors. Preview URL: https://door-shelf.preview.emergentagent.com; owner flow: type 'alex' → this-is-me → unlock-password 'secret' → unlock-submit → shelf-stream.",
+  "rca of the issue": "The DetailHeader in shelf-screen.tsx correctly emits data-testid='detail-back' for drop-detail and sent-detail panels. However, the Conversation Trail (stream-view.tsx line 110) was previously implemented with its own header that uses data-testid='stream-back' for the mobile back button. When a conversation row is selected on mobile, the rail is hidden and this stream-back button becomes the way back to the stream — functionally correct, but the testid does not match the unified 'detail-back' convention the spec expects."
+}

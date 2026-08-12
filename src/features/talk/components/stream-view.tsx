@@ -107,7 +107,7 @@ export function StreamView({
     <div className="flex h-full min-h-0 flex-col" data-testid="stream-view">
       <header className="flex items-center gap-3 border-b border-border/50 px-4 py-3 sm:px-5">
         {onBack && (
-          <button type="button" onClick={onBack} className="talk-pill !px-2.5 !py-2 lg:hidden" aria-label="Back" data-testid="stream-back">
+          <button type="button" onClick={onBack} className="talk-pill !px-2.5 !py-2 lg:hidden" aria-label="Back" data-testid="detail-back">
             <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
           </button>
         )}

@@ -38,6 +38,7 @@ const STORAGE_KEY = "kodama-talk/v1/state";
 const CRED_KEY = "kodama-talk/v1/owner-cred";
 const SESSION_KEY = "kodama-talk/v1/session";
 const PERSIST_KEY = "kodama-talk/v1/stay";
+const LAST_KEY = "kodama-talk/v1/last-talk";
 const DRAFT_KEY = "kodama-talk/v1/drafts";
 const LATENCY = 220;
 const P = TALK_PROTOCOL_VERSION;
@@ -201,8 +202,14 @@ export class MockTalkService implements TalkService {
     if (typeof window === "undefined") return;
     try {
       window.sessionStorage.setItem(`${SESSION_KEY}:${session.address}`, JSON.stringify(session));
-      if (persist) window.localStorage.setItem(`${PERSIST_KEY}:${session.address}`, JSON.stringify(session));
-      else window.localStorage.removeItem(`${PERSIST_KEY}:${session.address}`);
+      if (persist) {
+        window.localStorage.setItem(`${PERSIST_KEY}:${session.address}`, JSON.stringify(session));
+        // Remember this as the last opted-in Talk so revisiting resumes it.
+        window.localStorage.setItem(LAST_KEY, session.address);
+      } else {
+        window.localStorage.removeItem(`${PERSIST_KEY}:${session.address}`);
+        if (window.localStorage.getItem(LAST_KEY) === session.address) window.localStorage.removeItem(LAST_KEY);
+      }
     } catch {
       /* ignore */
     }
@@ -212,6 +219,18 @@ export class MockTalkService implements TalkService {
     if (typeof window === "undefined") return;
     window.sessionStorage.removeItem(`${SESSION_KEY}:${address}`);
     window.localStorage.removeItem(`${PERSIST_KEY}:${address}`);
+    if (window.localStorage.getItem(LAST_KEY) === address) window.localStorage.removeItem(LAST_KEY);
+  }
+
+  isPersisted(address: TalkAddress): boolean {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(`${PERSIST_KEY}:${address}`) != null;
+  }
+
+  lastOpenedTalk(): OwnerSession | null {
+    if (typeof window === "undefined") return null;
+    const address = window.localStorage.getItem(LAST_KEY);
+    return address ? this.activeSession(address) : null;
   }
 
   forgetDevice(address: TalkAddress): void {

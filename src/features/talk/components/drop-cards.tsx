@@ -30,7 +30,7 @@ function OriginBadge({ drop }: { drop: Drop }) {
 }
 
 /** Incoming Drop with reply / decline / block. Reply converts to a Direct Talk. */
-export function DropCard({ drop, onOpen }: { drop: Drop; onOpen: (c: Conversation) => void }) {
+export function DropCard({ drop, onOpen, onResolved }: { drop: Drop; onOpen: (c: Conversation) => void; onResolved?: (status: Drop["status"]) => void }) {
   const [replying, setReplying] = useState(false);
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
@@ -62,11 +62,13 @@ export function DropCard({ drop, onOpen }: { drop: Drop; onOpen: (c: Conversatio
     await talkService.declineDrop(drop.id);
     setResolved("declined");
     toast("Drop declined");
+    onResolved?.("declined");
   };
   const block = async () => {
     await talkService.blockDrop(drop.id);
     setResolved("blocked");
     toast("Sender blocked");
+    onResolved?.("blocked");
   };
 
   return (

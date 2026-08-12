@@ -45,11 +45,13 @@ function extractAddress(raw: string): string {
  * Direct links (`/:address`) hydrate the same components.
  */
 export function TalkSurface({ initialAddress }: { initialAddress?: string }) {
-  const [input, setInput] = useState(initialAddress ?? "");
-  const [address, setAddress] = useState<string | null>(initialAddress ?? null);
+  // At the root (no direct link), resume the last opted-in Talk if one is kept.
+  const resumed = initialAddress ? null : talkService.lastOpenedTalk();
+  const [input, setInput] = useState(initialAddress ?? resumed?.address ?? "");
+  const [address, setAddress] = useState<string | null>(initialAddress ?? resumed?.address ?? null);
   const [place, setPlace] = useState<Place | null | undefined>(undefined);
   const [session, setSession] = useState<OwnerSession | null>(() =>
-    initialAddress ? talkService.activeSession(initialAddress) : null,
+    initialAddress ? talkService.activeSession(initialAddress) : resumed,
   );
   const [remembered, setRemembered] = useState(false);
   const [claiming, setClaiming] = useState(false);
@@ -112,7 +114,7 @@ export function TalkSurface({ initialAddress }: { initialAddress?: string }) {
   };
   const openMyTalk = (slug: string) => {
     const s = talkService.activeSession(slug);
-    if (s) { openShelf(s); return; }
+    if (s) { openShelf(s, talkService.isPersisted(slug)); return; } // keep it opted-in if it was
     setUnlockOpen(true); // remembered but locked → unlock sheet
   };
   const lock = () => {
@@ -189,7 +191,7 @@ export function TalkSurface({ initialAddress }: { initialAddress?: string }) {
                 ) : status === "taken" && preview ? (
                   <DoorView place={preview} showHero={false} onOwner={() => setUnlockOpen(true)} />
                 ) : (
-                  <ClaimView address={slug} onClaimed={(s) => openShelf(s, true)} onCancel={() => setInput("")} />
+                  <ClaimView address={slug} onClaimed={(s, stay) => openShelf(s, stay)} onCancel={() => setInput("")} />
                 )}
               </div>
             ) : null}
@@ -221,7 +223,7 @@ export function TalkSurface({ initialAddress }: { initialAddress?: string }) {
         <div className="talk-enter w-full max-w-md px-5">
           {bar}
           {claiming ? (
-            <ClaimView address={address} onClaimed={(s) => openShelf(s, true)} onCancel={() => setClaiming(false)} />
+            <ClaimView address={address} onClaimed={(s, stay) => openShelf(s, stay)} onCancel={() => setClaiming(false)} />
           ) : (
             <div className="talk-surface p-7 text-center" data-testid="address-unavailable">
               <div className="mx-auto mb-4 w-fit"><PlaceMark mark={markFor(address, address)} size={60} /></div>
