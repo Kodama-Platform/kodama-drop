@@ -7,6 +7,11 @@ const now = Date.now();
 const ago = (mins: number) => new Date(now - mins * 60_000).toISOString();
 const P = TALK_PROTOCOL_VERSION;
 
+// Keepsakes shared inside conversations — pictures left along the trail.
+const IMG_SKETCH = "https://images.unsplash.com/photo-1627757757997-369fb38812e1?crop=entropy&cs=srgb&fm=jpg&q=70&w=900&ixlib=rb-4.1.0";
+const IMG_FOREST = "https://images.unsplash.com/photo-1718668691088-ad203aff1f3e?crop=entropy&cs=srgb&fm=jpg&q=70&w=900&ixlib=rb-4.1.0";
+const IMG_PALETTE = "https://images.unsplash.com/photo-1608556984739-26328c578559?crop=entropy&cs=srgb&fm=jpg&q=70&w=900&ixlib=rb-4.1.0";
+
 const member = (label: string, role: Member["role"], address?: string): Member => ({
   label,
   address,
@@ -72,7 +77,7 @@ export const SEED_INCOMING: Drop[] = [
     fromLabel: "Devon",
     subject: "Sketch v2 — which option?",
     body: "Sketch attached — thoughts on the second option?",
-    attachments: [{ id: "att-1", name: "sketch-v2.png", kind: "image", sizeLabel: "240 KB", sealed: true }],
+    attachments: [{ id: "att-1", name: "sketch-v2.png", kind: "image", sizeLabel: "240 KB", previewUrl: IMG_SKETCH, sealed: true }],
     status: "delivered",
     createdAt: ago(300),
     privacy: PLANNED_PRIVATE,
@@ -231,17 +236,23 @@ export const SEED_MESSAGES: Record<string, Message[]> = {
       reactions: [{ emoji: "🌿", by: "Mara" }],
     }),
     msg("m3", "conv-mara", "Mara", false, "Actually — could we make it Wednesday?", 8),
+    msg("m5", "conv-mara", "Mara", false, "Here's the view from where I'll be working — thought you'd like it.", 7, {
+      attachments: [{ id: "att-mara-1", name: "morning-fog.jpg", kind: "image", sizeLabel: "180 KB", previewUrl: IMG_FOREST, sealed: true }],
+    }),
     msg("m4", "conv-mara", "Mara", false, "Either afternoon works on my end.", 6),
   ],
   "conv-devon": [
     msg("d1", "conv-devon", "Devon", false, "Sketch attached — thoughts on the second option?", 300, {
-      attachments: [{ id: "att-1", name: "sketch-v2.png", kind: "image", sizeLabel: "240 KB", sealed: true }],
+      attachments: [{ id: "att-1", name: "sketch-v2.png", kind: "image", sizeLabel: "240 KB", previewUrl: IMG_SKETCH, sealed: true }],
     }),
   ],
   "conv-design-team": [
     msg("g1", "conv-design-team", "Mara", false, "Palette review at 3?", 180),
     msg("g2", "conv-design-team", "Devon", false, "Works for me.", 150),
-    msg("g3", "conv-design-team", "Wren", false, "let's ship the calmer palette.", 90, { reactions: [{ emoji: "✨", by: "Alex Rivera" }] }),
+    msg("g3", "conv-design-team", "Wren", false, "let's ship the calmer palette.", 90, {
+      reactions: [{ emoji: "✨", by: "Alex Rivera" }],
+      attachments: [{ id: "att-wren-1", name: "palette.png", kind: "image", sizeLabel: "210 KB", previewUrl: IMG_PALETTE, sealed: true }],
+    }),
   ],
   "conv-field-notes": [
     msg("c1", "conv-field-notes", "Alex Rivera", true, "This week: on building for calm. A short note on why fewer notifications made everything feel lighter.", 60 * 20),

@@ -288,6 +288,82 @@
   color: rgb(var(--primary));
 }
 
+/* ── Keepsake: a picture left along the trail, framed like something pinned ── */
+.talk-keepsake {
+  display: inline-block;
+  max-width: 15rem;
+  margin: 0;
+  padding: 0.3rem;
+  border: 1px solid rgb(var(--border) / 0.7);
+  border-radius: 0.85rem;
+  background: rgb(var(--card) / 0.6);
+  box-shadow: var(--shadow-card);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.talk-keepsake:hover {
+  transform: translateY(-2px) rotate(-0.4deg);
+  border-color: rgb(var(--primary) / 0.4);
+  box-shadow: 0 14px 30px -18px rgb(0 0 0 / 0.55);
+}
+.talk-keepsake img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 15rem;
+  object-fit: cover;
+  border-radius: 0.6rem;
+  cursor: zoom-in;
+}
+.talk-keepsake-cap {
+  display: block;
+  margin-top: 0.35rem;
+  padding: 0 0.15rem;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: rgb(var(--muted-foreground) / 0.8);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Composer keepsake chip — a small preview before you leave it. */
+.talk-keepsake-chip {
+  position: relative;
+  width: 4.25rem;
+  height: 4.25rem;
+  overflow: hidden;
+  border: 1px solid rgb(var(--border) / 0.7);
+  border-radius: 0.6rem;
+}
+.talk-keepsake-chip img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Lightbox — view a keepsake up close. */
+.talk-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgb(4 5 4 / 0.72);
+  backdrop-filter: blur(8px);
+  cursor: zoom-out;
+  animation: talk-fade 0.2s ease both;
+}
+.talk-lightbox img {
+  max-width: min(92vw, 60rem);
+  max-height: 86vh;
+  border-radius: 0.7rem;
+  box-shadow: 0 30px 90px -30px rgb(0 0 0 / 0.7);
+  cursor: default;
+}
+
 /* ── Privacy status pill ── */
 .talk-privacy {
   display: inline-flex;
@@ -586,7 +662,8 @@
   .talk-scene,
   .talk-scene--in,
   .talk-scene--out,
-  .talk-enter {
+  .talk-enter,
+  .talk-lightbox {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;

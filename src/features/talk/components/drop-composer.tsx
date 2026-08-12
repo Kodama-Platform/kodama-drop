@@ -1,9 +1,13 @@
-import { useEffect, useState } from "react";
-import { Loader2, Send } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ImagePlus, Loader2, Send, X } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { Attachment } from "@/features/talk/types";
 import { Markdown } from "@/features/talk/lib/markdown";
+import { fileToKeepsake } from "@/features/talk/lib/image";
 import { talkService } from "@/features/talk/services";
+
+const MAX_KEEPSAKES = 4;
 
 /** Drop / message composer. Send in seconds — Enter to send, Shift+Enter newline. */
 export function DropComposer({
@@ -13,6 +17,7 @@ export function DropComposer({
   busy = false,
   cta = "Send",
   attachments = [],
+  allowImages = false,
   onSend,
   className,
   draftKey,
@@ -23,35 +28,56 @@ export function DropComposer({
   busy?: boolean;
   cta?: string;
   attachments?: Attachment[];
-  onSend: (body: string, fromLabel?: string) => void;
+  allowImages?: boolean;
+  onSend: (body: string, fromLabel?: string, keepsakes?: Attachment[]) => void;
   className?: string;
   draftKey?: string;
 }) {
   const [body, setBody] = useState(() => (draftKey ? talkService.getDraft(draftKey) : ""));
   const [label, setLabel] = useState("");
   const [preview, setPreview] = useState(false);
+  const [picked, setPicked] = useState<Attachment[]>([]);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   // Switching conversations: load that conversation's saved draft.
   useEffect(() => {
     if (!draftKey) return;
     setBody(talkService.getDraft(draftKey));
     setPreview(false);
+    setPicked([]);
   }, [draftKey]);
 
   const hasBody = body.trim().length > 0;
+  const canSubmit = hasBody || picked.length > 0;
 
   const change = (value: string) => {
     setBody(value);
     if (draftKey) talkService.saveDraft(draftKey, value);
   };
 
+  const addFiles = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const room = MAX_KEEPSAKES - picked.length;
+    const images = Array.from(files).filter((f) => f.type.startsWith("image/")).slice(0, Math.max(0, room));
+    if (images.length === 0) {
+      toast.error(room <= 0 ? `Up to ${MAX_KEEPSAKES} pictures` : "Only images can be left here");
+      return;
+    }
+    try {
+      const next = await Promise.all(images.map(fileToKeepsake));
+      setPicked((p) => [...p, ...next]);
+    } catch {
+      toast.error("Couldn't attach that picture");
+    }
+  };
+
   const submit = () => {
-    const trimmed = body.trim();
-    if (!trimmed || busy) return;
-    onSend(trimmed, showLabel ? label.trim() || undefined : undefined);
+    if (!canSubmit || busy) return;
+    onSend(body.trim(), showLabel ? label.trim() || undefined : undefined, picked.length ? picked : undefined);
     if (draftKey) talkService.saveDraft(draftKey, "");
     setBody("");
     setPreview(false);
+    setPicked([]);
   };
 
   return (
@@ -85,6 +111,24 @@ export function DropComposer({
           data-testid="drop-composer-field"
         />
       )}
+      {picked.length > 0 && (
+        <div className="flex flex-wrap gap-2 px-4 pb-1 pt-1.5" data-testid="composer-keepsakes">
+          {picked.map((a) => (
+            <div key={a.id} className="talk-keepsake-chip group" data-testid="composer-keepsake">
+              <img src={a.previewUrl} alt={a.name} />
+              <button
+                type="button"
+                className="absolute right-0.5 top-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-background/85 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+                onClick={() => setPicked((p) => p.filter((x) => x.id !== a.id))}
+                aria-label={`Remove ${a.name}`}
+                data-testid="composer-keepsake-remove"
+              >
+                <X className="h-3 w-3" strokeWidth={2} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       {attachments.length > 0 && (
         <div className="flex flex-wrap gap-1.5 px-4 pb-1">
           {attachments.map((a) => (
@@ -95,22 +139,47 @@ export function DropComposer({
         </div>
       )}
       <div className="flex items-center justify-between px-3 pb-3 pt-1">
-        {hasBody ? (
-          <div className="flex items-center gap-2 pl-1" data-testid="drop-composer-writemode">
-            <button type="button" className="door-sign !text-[0.82rem]" data-active={!preview} onClick={() => setPreview(false)} data-testid="drop-composer-write-tab">Write</button>
-            <span className="text-muted-foreground/30">·</span>
-            <button type="button" className="door-sign !text-[0.82rem]" data-active={preview} onClick={() => setPreview(true)} data-testid="drop-composer-preview-tab">Preview</button>
-          </div>
-        ) : (
-          <span className="font-mono text-[0.66rem] text-muted-foreground/60">
-            Enter to send · Shift+Enter for a new line
-          </span>
-        )}
+        <div className="flex items-center gap-2 pl-1">
+          {allowImages && (
+            <>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => { void addFiles(e.target.files); e.target.value = ""; }}
+                data-testid="composer-image-input"
+              />
+              <button
+                type="button"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/8 hover:text-foreground"
+                onClick={() => fileRef.current?.click()}
+                aria-label="Leave a picture"
+                title="Leave a picture"
+                data-testid="composer-add-image"
+              >
+                <ImagePlus className="h-4 w-4" strokeWidth={1.75} />
+              </button>
+            </>
+          )}
+          {hasBody ? (
+            <div className="flex items-center gap-2" data-testid="drop-composer-writemode">
+              <button type="button" className="door-sign !text-[0.82rem]" data-active={!preview} onClick={() => setPreview(false)} data-testid="drop-composer-write-tab">Write</button>
+              <span className="text-muted-foreground/30">·</span>
+              <button type="button" className="door-sign !text-[0.82rem]" data-active={preview} onClick={() => setPreview(true)} data-testid="drop-composer-preview-tab">Preview</button>
+            </div>
+          ) : (
+            <span className="font-mono text-[0.66rem] text-muted-foreground/60">
+              {picked.length > 0 ? "Add a note or just send it" : "Enter to send · Shift+Enter for a new line"}
+            </span>
+          )}
+        </div>
         <button
           type="button"
           className="btn-moss !px-4 !py-2 text-sm disabled:opacity-50"
           onClick={submit}
-          disabled={busy || !body.trim()}
+          disabled={busy || !canSubmit}
           data-testid="drop-composer-send"
         >
           {busy ? (

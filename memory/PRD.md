@@ -117,6 +117,12 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - `prefers-reduced-motion` → immediate, non-jarring swap (SceneFade skips animation; reduced-motion CSS neutralizes `.talk-scene*`/`.talk-enter` and the height transition). Typed lookups still never change the URL; direct links still work.
 - Verified: clean build + 158/158 jsdom tests + testing agent iteration_17 (10 transition flows, field-stability x/width check, Shelf entry + lock) all 100%, no console errors.
 
+## Update (2026-06, iteration 18b) — In-Trail Keepsakes
+- Image attachments now render inline in the Conversation Trail as small framed "keepsake" thumbnails with a filename caption (`.talk-keepsake`), feeling like a picture left at the door. Tap opens a quiet lightbox (backdrop/Esc to close). Non-image attachments keep the file chip.
+- Owners can leave a picture from the composer: new `allowImages` on `DropComposer` adds an image button + hidden file input; picked images preview as removable chips and can be sent with or without text. Files are downscaled to compact JPEG data URLs (`lib/image.ts`) and stored via the existing MockTalkService/localStorage; `sendMessage` already persists `attachments`.
+- Seed conversations gained real keepsakes: Devon (sketch-v2.png), Mara (morning-fog.jpg), Design Team group (palette.png).
+- Verified: clean build + 12/12 talk tests + testing agent iteration_18 (100%: thumbnails, lightbox, composer attach/send picture-only, remove chip, text-send + draft regressions, read-only channel has no image button, no console errors).
+
 ## Backlog / Next (P1)
 - Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.

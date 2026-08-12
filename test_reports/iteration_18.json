@@ -1,0 +1,22 @@
+{
+  "summary": "Frontend-only testing of In-Trail Keepsakes (image attachments) on Kodama Talk. Verified owner unlock (/alex, password 'secret'), image keepsakes render as thumbnail figures (data-testid='attachment-image') with filename captions in Devon (sketch-v2.png), Mara (morning-fog.jpg), and Design Team (palette.png) conversations — NOT as file chips. Verified lightbox opens on click, closes via Escape and backdrop click. Verified composer image attach flow (composer-add-image + hidden composer-image-input), removable preview chip (composer-keepsake / composer-keepsake-remove), sending with only a picture (no text) creates a new message with an inline attachment-image thumbnail. Regression: plain text send works, draft persists across conversation switches, Announcements channel shows stream-locked with no composer-add-image. No console errors observed during any flow.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "attachment-preview.tsx uses <button> inside a <figure> with an inner <img>; accessible label is fine. Consider adding an aria-label to the lightbox close area (currently closed via backdrop or Esc which works)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a", "frontend": "100%"},
+  "test_credentials": "Owner of /alex unlock password: 'secret' (any 4+ chars accepted)",
+  "seed_data_creation": "Used seeded conv-devon (sketch-v2.png), conv-mara (morning-fog.jpg), conv-design-team (palette.png). Composer upload test used /tmp/tiny.png (1x1 PNG) via set_input_files.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Address input testid is 'address-plaque-input' (not 'address-input'). Owner flow: fill 'alex' → wait for CLAIMED → click this-is-me → unlock-password='secret' → unlock-submit. Nav: nav-drops/nav-direct/nav-groups/nav-channels. Composer testids present: drop-composer, drop-composer-send, composer-add-image, composer-image-input, composer-keepsake, composer-keepsake-remove. Attachment thumbnails: attachment-image (image kind); lightbox: attachment-lightbox (Esc + backdrop click both close). Read-only composer testid: stream-locked (no image button rendered).",
+  "rca of the issue": "N/A — all requested feature scenarios and regressions passed."
+}

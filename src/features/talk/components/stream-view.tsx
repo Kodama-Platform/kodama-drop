@@ -13,7 +13,7 @@ import {
 import { toast } from "sonner";
 
 import { talkService } from "@/features/talk/services";
-import type { Conversation, Message, ThreadReference } from "@/features/talk/types";
+import type { Attachment, Conversation, Message, ThreadReference } from "@/features/talk/types";
 import { getTalkSecurity } from "@/features/talk/security/talk-security-adapter";
 import { PlaceMark } from "@/features/talk/components/place-mark";
 import { PrivacyStatus } from "@/features/talk/components/privacy-status";
@@ -69,10 +69,10 @@ export function StreamView({
     return true;
   }, [conversation]);
 
-  const send = async (body: string) => {
+  const send = async (body: string, keepsakes?: Attachment[]) => {
     setBusy(true);
     try {
-      const m = await talkService.sendMessage({ conversationId: conversation.id, body, replyTo: reply ?? undefined });
+      const m = await talkService.sendMessage({ conversationId: conversation.id, body, replyTo: reply ?? undefined, attachments: keepsakes });
       setMessages((prev) => [...(prev ?? []), m]);
       setReply(null);
       onChanged?.();
@@ -198,7 +198,7 @@ export function StreamView({
           </div>
         )}
         {canSend ? (
-          <DropComposer placeholder="Leave a message…" cta="Send" busy={busy} draftKey={conversation.id} onSend={(b) => void send(b)} />
+          <DropComposer placeholder="Leave a message…" cta="Send" busy={busy} allowImages draftKey={conversation.id} onSend={(b, _l, atts) => void send(b, atts)} />
         ) : (
           <div className="flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-card/40 py-3 text-sm text-muted-foreground" data-testid="stream-locked">
             <Lock className="h-4 w-4" strokeWidth={1.5} />
