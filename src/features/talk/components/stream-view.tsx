@@ -19,7 +19,6 @@ import { PlaceMark } from "@/features/talk/components/place-mark";
 import { PrivacyStatus } from "@/features/talk/components/privacy-status";
 import { DropComposer } from "@/features/talk/components/drop-composer";
 import { MessageFragment } from "@/features/talk/components/message-fragment";
-import { ReachFooter } from "@/features/talk/components/reach-cta";
 import { TalkLoading } from "@/features/talk/components/states";
 
 export function StreamView({
@@ -181,11 +180,6 @@ export function StreamView({
                 </div>
               );
             })}
-          </div>
-        )}
-        {messages !== null && (
-          <div className="mx-auto w-full max-w-2xl">
-            <ReachFooter />
           </div>
         )}
         <div ref={endRef} />

@@ -1,0 +1,20 @@
+{
+  "summary": "Verified owner Shelf URL fix (/alex). All 5 flows passed: (1) entering Shelf from landing sets URL to /alex; (2) auto-resume from '/' after sessionStorage clear redirects to /alex; (3) direct /alex navigation shows Shelf; (4) Lock keeps URL at /alex while showing public Door; (5) clicking a conversation row inside Shelf preserves /alex URL. No console errors, no redirect loops observed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "100%"},
+  "test_credentials": "Owner unlock password: 'secret' (any 4+ chars)",
+  "seed_data_creation": "None (mock data via localStorage)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "URL-routing fix verified against preview. TalkSurface now navigates to /{address} on openShelf and auto-resumes at root by redirecting to /{address}. Lock preserves the path and swaps to Door. Direct link /alex works. Conversation-row clicks preserve URL.",
+  "rca of the issue": "N/A - fix works as intended"
+}

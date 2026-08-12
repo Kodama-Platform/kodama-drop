@@ -149,6 +149,12 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Two actions: **Leave a Drop** and **Claim a Talk address**, opening a shared `ReachSheet` with a single address field that resolves availability live (reserved / available → claim, claimed → leave a Drop) and navigates to `/{address}` (which shows the Door to drop, or the Claim view if free).
 - Verified via build (clean) + 12/12 unit tests + browser screenshots: footer present on both surfaces; drop sheet ("mina" → navigates to /mina), claim sheet ("my-new-place" → "free — claim it"); no errors.
 
+## Update (2026-06, iteration 22) — Owner Shelf lives at its own URL
+- Fix: the owner's Shelf (their conversation home) now reflects their place in the browser URL — for alex it's `talk.kodama.page/alex`. Previously entering the Shelf or auto-resuming kept the URL at `/`.
+- `talk-surface.tsx`: `openShelf` now navigates to `/{address}` after opening; a mount effect auto-resumes the last opted-in Talk by redirecting root `/` → `/{address}` (replace). Lock keeps the `/{address}` path and swaps to the Door. Direct links unaffected.
+- Also fixed earlier (iteration 21): removed the messy combined claim/drop footer that overlapped the conversation pane; replaced with a single clean "Drop" button in the Shelf header (`LeaveDropSheet`, drop-only) → navigates to the recipient's Door.
+- Verified: build + 12/12 unit tests + testing agent iteration_22 (5/5 URL flows, 100%, no console errors/redirect loops).
+
 ## Backlog / Next (P1)
 - Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.

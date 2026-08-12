@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { KeyRound, Loader2, Sparkles } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -45,6 +46,7 @@ function extractAddress(raw: string): string {
  * Direct links (`/:address`) hydrate the same components.
  */
 export function TalkSurface({ initialAddress }: { initialAddress?: string }) {
+  const navigate = useNavigate();
   // At the root (no direct link), resume the last opted-in Talk if one is kept.
   const resumed = initialAddress ? null : talkService.lastOpenedTalk();
   const [input, setInput] = useState(initialAddress ?? resumed?.address ?? "");
@@ -53,6 +55,14 @@ export function TalkSurface({ initialAddress }: { initialAddress?: string }) {
   const [session, setSession] = useState<OwnerSession | null>(() =>
     initialAddress ? talkService.activeSession(initialAddress) : resumed,
   );
+
+  // Your Talk lives at its own URL — resume straight to talk.kodama.page/{you}.
+  useEffect(() => {
+    if (!initialAddress && resumed) {
+      void navigate({ to: "/$address", params: { address: resumed.address }, replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [remembered, setRemembered] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [unlockOpen, setUnlockOpen] = useState(false);
@@ -111,6 +121,8 @@ export function TalkSurface({ initialAddress }: { initialAddress?: string }) {
     setUnlockOpen(false);
     setInput(s.address);
     setAddress(s.address);
+    // Reflect the owner's place in the URL: talk.kodama.page/{address}
+    void navigate({ to: "/$address", params: { address: s.address } });
   };
   const openMyTalk = (slug: string) => {
     const s = talkService.activeSession(slug);

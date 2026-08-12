@@ -1,0 +1,30 @@
+{
+  "summary": "Frontend-only regression testing for bug fix removing ReachFooter from Conversation Trail + Channel and adding a Drop button + LeaveDropSheet on the owner Shelf. All primary acceptance criteria PASS. reach-footer is absent in both stream-view and channel-screen. drop-composer is the only bottom input in the conversation pane and does not overlap. The Shelf header exposes 'open-leave-drop', which opens 'leave-drop-sheet' containing only an address input (no claim messaging). Typing an address updates the hint and clicking 'leave-drop-go' navigates to /{address} where a Door/claim view is shown (devon shows the available/claim view, mina similarly). No console errors captured during the flows.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Leave a Drop hint update", "issue": "leave-drop-hint occasionally does NOT update after programmatic value change when the sheet is reopened multiple times in quick succession — hint stays on the default 'Type the Talk address...' text. Reproduced consistently in Playwright with .fill(). Likely because the input state resets on sheet unmount but the hint effect doesn't re-run until a real onChange fires. Real user typing works. Low priority but worth checking (useEffect dep or controlled input reset).", "affected_selectors": ["[data-testid=\"leave-drop-hint\"]", "[data-testid=\"leave-drop-input\"]"]},
+      {"flow": "Leave a Drop → seeded claimed address 'devon'", "issue": "Task spec says devon is a seeded CLAIMED place, but /devon renders the 'this Talk address is available — Claim this address' view, and the hint reads 'No one lives at talk.kodama.page/devon yet'. Either the seed data is missing devon (and studio) as claimed places, or the task description is stale. Not related to the ReachFooter/Drop fix, but flagging for main agent since it changes user-visible behavior of the new Drop feature.", "affected_selectors": ["[data-testid=\"leave-drop-hint\"]"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Verify seed data: task expects 'devon' and 'studio' to be claimed Talk addresses; currently /devon and /studio render as available/unclaimed. Either fix seed or update task expectation.",
+    "Investigate leave-drop-hint not updating when the input value is set programmatically after the sheet has been opened → closed → reopened (React controlled input + effect wiring). Minor; users typing manually see correct hint."
+  ],
+  "critical_code_review_comments": [
+    "Removal of ReachFooter from stream-view and channel-screen confirmed via DOM: [data-testid=\"reach-footer\"] count=0 in both surfaces.",
+    "LeaveDropSheet content is drop-only — verified sheet inner text contains no 'claim' wording.",
+    "Shelf header has the new open-leave-drop button alongside open-share/open-search/open-settings/lock-shelf as specified."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a", "frontend": "95%"},
+  "test_credentials": "Owner /alex unlock password: 'secret' (any 4+ chars). No accounts.",
+  "seed_data_creation": "None. MockTalkService + localStorage.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Landing input testid is 'address-plaque-input' (not 'landing-address-input'). Owner entry: fill address-plaque-input with 'alex' + Enter → this-is-me (needs scroll_into_view_if_needed) → unlock-password 'secret' → unlock-submit → shelf-stream. Sheet close testid: 'talk-sheet-close'. Conversation rows: [data-testid^='stream-item-conv-']. The leave-drop hint text uses 'No one lives at ...' for unclaimed and (per code path) a different message for claimed — but was not observed as 'Open talk.kodama.page/{addr} to leave your Drop' because devon/studio render as unclaimed in the current seed.",
+  "rca of the issue": "N/A — bug fix regression verified as fixed. Reach-footer is fully removed from Conversation Trail and Channel page; no overlap. New Drop UX in Shelf header works end-to-end (open sheet → type address → navigate to /{address})."
+}

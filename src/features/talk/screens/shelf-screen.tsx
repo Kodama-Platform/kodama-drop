@@ -22,6 +22,7 @@ import {
   SearchSheet,
 } from "@/features/talk/components/sheets";
 import { ShareDoorSheet } from "@/features/talk/components/share-door";
+import { LeaveDropSheet } from "@/features/talk/components/reach-cta";
 import { OwnerProvider, useOwner } from "@/features/talk/store/owner-context";
 import { markFor } from "@/features/talk/lib/mark";
 import { relativeTime } from "@/features/talk/lib/time";
@@ -37,7 +38,7 @@ export function ShelfScreen({ session, onLock, addressBar }: { session: OwnerSes
 function ShelfInner({ addressBar }: { addressBar?: ReactNode }) {
   const { session, shelf, loading, refresh, lock } = useOwner();
   const [selected, setSelected] = useState<StreamItem | null>(null);
-  const [sheet, setSheet] = useState<null | "group" | "channel" | "settings" | "search" | "share">(null);
+  const [sheet, setSheet] = useState<null | "group" | "channel" | "settings" | "search" | "share" | "drop">(null);
   const [inviteConv, setInviteConv] = useState<Conversation | null>(null);
 
   // One living stream — every kind of activity, newest first.
@@ -69,6 +70,7 @@ function ShelfInner({ addressBar }: { addressBar?: ReactNode }) {
       fillViewport
       headerAction={
         <div className="flex items-center gap-2">
+          <button type="button" className="talk-pill !py-2 text-sm" onClick={() => setSheet("drop")} data-testid="open-leave-drop"><Send className="h-4 w-4" /> Drop</button>
           <button type="button" className="talk-pill !py-2 text-sm" onClick={() => setSheet("share")} data-testid="open-share"><Share2 className="h-4 w-4" /> Share</button>
           <button type="button" className="talk-pill !px-2.5 !py-2" onClick={() => setSheet("search")} aria-label="Search" data-testid="open-search"><Search className="h-4 w-4" /></button>
           <button type="button" className="talk-pill !px-2.5 !py-2" onClick={() => setSheet("settings")} aria-label="Settings" data-testid="open-settings"><Settings className="h-4 w-4" /></button>
@@ -162,6 +164,7 @@ function ShelfInner({ addressBar }: { addressBar?: ReactNode }) {
       <SearchSheet open={sheet === "search"} onOpenChange={(o) => !o && setSheet(null)} address={session.address} onOpen={openConv} />
       <InviteSheet open={!!inviteConv} onOpenChange={(o) => !o && setInviteConv(null)} conversation={inviteConv} />
       <ShareDoorSheet open={sheet === "share"} onOpenChange={(o) => !o && setSheet(null)} address={session.address} />
+      <LeaveDropSheet open={sheet === "drop"} onOpenChange={(o) => !o && setSheet(null)} />
     </TalkShell>
   );
 }
