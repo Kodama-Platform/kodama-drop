@@ -1,0 +1,22 @@
+{
+  "summary": "Frontend-only E2E of the new dynamic address-field landing on preview URL. Verified all 10 requested flows against live app. Empty state, debounced checking→taken transition for 'alex' with in-place Drop Door (URL stays '/'), place-sourced Drop option (origin-place → drop-from-address), anonymous drop send + drop-sent success, Available→Claim with confirm password (mismatch blocked, match advances through key-card gate to shelf-rail), Reserved 'admin' shows reserved-state with no reveal, Your Talk via localStorage owner-cred:alex shows data-status='yours' with open-my-talk, pasted full URL 'https://talk.kodama.page/alex' normalizes to taken while keeping URL '/', direct /alex opens door-view at /alex, owner-unremembered unlocks via this-is-me + password 'secret' → shelf.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/src/features/talk/__universal__.test.tsx", "/app/src/features/talk/__smoke__.test.tsx"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ClaimView surfaces mismatched-password guard via Sonner toast.error (not an in-form inline error). Guard correctly blocks flow; consider an inline data-testid='claim-error' element for testability + accessibility (aria-live).",
+    "talk-surface.tsx debounced-availability effect (lines 83-97) intentionally short-circuits when address!==null. The idle→checking→taken transitions cleanly, and stale responses are guarded via 'alive' flag — implementation looks solid."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "100% (10/10 flows)"},
+  "test_credentials": "/alex owner password: 'secret'. Claim: any name + matching password >=4 chars.",
+  "seed_data_creation": "For 'Your Talk' test set localStorage 'kodama-talk/v1/owner-cred:alex' = {\"address\":\"alex\",\"displayName\":\"Alex Rivera\"} then reloaded. Cleared it between other tests as instructed.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Landing testids: address-plaque-input, availability-status (data-status: idle|checking|available|taken|yours|reserved), landing-purpose, landing-title, landing-reveal, reserved-state, open-my-talk. Claim: claim-view, claim-name, claim-password, claim-confirm, claim-submit, then key-card-ack + key-card-continue → shelf-rail. Door: door-view, door-composer, door-subject, origin-anonymous, origin-place, drop-from-address, door-send, drop-sent, this-is-me. Unlock: unlock-view/unlock-password/unlock-submit (password 'secret'). Debounce is ~400ms so wait for data-status change rather than fixed sleeps. Always clear localStorage 'kodama-talk/v1/state' + owner-cred:* keys + sessionStorage between scenarios."
+}

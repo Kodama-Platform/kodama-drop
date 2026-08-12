@@ -104,6 +104,12 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Fixed a StrictMode double-effect bug where `markRead` zeroed the unread count before render (now captured once per conversation id in `seenUnread`).
 - Verified: clean build + 9/9 jsdom tests + testing agent iterations 12–15 (universal surface, live landing, trail, unread firefly, read-only channel) all 100%.
 
+## Update (2026-06, iteration 17) — Dynamic address-field landing (full entry flow)
+- The landing IS the whole entry flow via one address field. Debounced (400ms) lookup with stale-response cancellation shows a status chip: Checking address… / Claimed / Available / Your Talk / Unavailable. Layout is height-stable; browser URL never changes on typed lookups.
+- States, all in place: empty ("Type a Talk address to reach someone."), Claimed → inline Drop Door (anonymous default + optional "from my place"), Available → Claim form with **confirm password** + honest copy ("This password unlocks this Talk address. Kodama does not store it."), Your Talk → "Open my Talk", owner-unremembered → Drop Door + "This is my place — unlock it" sheet, reserved/invalid → calm "This address cannot be claimed."
+- `extractAddress()` normalizes bare names and full/pasted Talk URLs to a place name. Direct URLs still open the claimed Drop Door immediately.
+- Verified: clean build + 12/12 jsdom tests (debounce, stale, statuses, anon drop, place-sourced drop, confirm-claim, local-owner, unlock, reserved, pasted URL, URL non-navigation) + testing agent iteration_16 (10 live flows) all 100%.
+
 ## Backlog / Next (P1)
 - Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.

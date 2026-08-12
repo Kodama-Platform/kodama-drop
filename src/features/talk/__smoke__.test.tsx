@@ -54,6 +54,7 @@ test("claiming a place shows the recovery Key Card before entering the Shelf", a
   await waitFor(() => screen.getByTestId("claim-view"));
   fireEvent.change(screen.getByTestId("claim-name"), { target: { value: "Sam" } });
   fireEvent.change(screen.getByTestId("claim-password"), { target: { value: "secret" } });
+  fireEvent.change(screen.getByTestId("claim-confirm"), { target: { value: "secret" } });
   fireEvent.click(screen.getByTestId("claim-submit"));
   await waitFor(() => {
     expect(screen.getByTestId("key-card-sheet")).toBeInTheDocument();

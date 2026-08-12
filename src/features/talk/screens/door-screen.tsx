@@ -211,11 +211,14 @@ export function ClaimView({ address, onClaimed, onCancel }: { address: string; o
   const [displayName, setDisplayName] = useState("");
   const [tagline, setTagline] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<OwnerSession | null>(null);
 
   const claim = async () => {
-    if (!displayName.trim() || password.length < 4) { toast.error("Add a name and a password (4+ chars)"); return; }
+    if (!displayName.trim()) { toast.error("Add a display name for your place"); return; }
+    if (password.length < 4) { toast.error("Choose an owner password (4+ characters)"); return; }
+    if (password !== confirm) { toast.error("Passwords don't match"); return; }
     setBusy(true);
     try {
       await talkService.claimAddress({ address, displayName: displayName.trim(), tagline: tagline.trim() || undefined, ownerPassword: password });
@@ -229,18 +232,27 @@ export function ClaimView({ address, onClaimed, onCancel }: { address: string; o
   return (
     <div className="w-full" data-testid="claim-view">
       <div className="talk-surface p-7">
-        <p className="talk-section-label">New place</p>
+        <p className="talk-section-label">Available</p>
         <h1 className="mt-2 talk-display text-2xl text-foreground">Claim <span className="text-primary">/{address}</span></h1>
-        <p className="mt-2 text-sm font-light text-muted-foreground">Your owner password stays on this device. There's no account, and it can't be reset.</p>
         <div className="mt-5 space-y-3">
           <input className="note-input" placeholder="Display name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} autoFocus data-testid="claim-name" />
-          <input className="note-input" placeholder="Tagline (optional)" value={tagline} onChange={(e) => setTagline(e.target.value)} data-testid="claim-tagline" />
-          <input className="note-input" type="password" placeholder="Owner password" value={password} onChange={(e) => setPassword(e.target.value)} data-testid="claim-password" />
+          <input className="note-input" placeholder="A quiet line about this place (optional)" value={tagline} onChange={(e) => setTagline(e.target.value)} data-testid="claim-tagline" />
+          <div>
+            <label className="mb-1 block text-xs font-light text-muted-foreground">Choose an owner password</label>
+            <input className="note-input" type="password" placeholder="Owner password" value={password} onChange={(e) => setPassword(e.target.value)} data-testid="claim-password" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-light text-muted-foreground">Confirm password</label>
+            <input className="note-input" type="password" placeholder="Confirm owner password" value={confirm} onChange={(e) => setConfirm(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void claim()} data-testid="claim-confirm" />
+          </div>
         </div>
+        <p className="mt-3 text-xs font-light leading-relaxed text-muted-foreground">
+          This password unlocks this Talk address. Kodama does not store it — there&apos;s no account and it can&apos;t be reset.
+        </p>
         <div className="mt-5 flex gap-2">
           <button type="button" className="talk-pill flex-1 justify-center" onClick={onCancel}>Back</button>
           <button type="button" className="btn-moss flex-1 justify-center disabled:opacity-50" onClick={claim} disabled={busy} data-testid="claim-submit">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Claim & open
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Claim my Talk address
           </button>
         </div>
       </div>
