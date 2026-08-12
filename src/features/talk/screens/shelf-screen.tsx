@@ -93,7 +93,7 @@ function ShelfInner({ addressBar }: { addressBar?: ReactNode }) {
         </div>
       }
     >
-      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 gap-0 px-0 sm:px-4">
+      <div className="talk-enter mx-auto flex min-h-0 w-full max-w-6xl flex-1 gap-0 px-0 sm:px-4">
         {/* Left shelf rail */}
         <aside className={cn("relative z-10 flex w-full max-w-full shrink-0 flex-col border-r border-border/50 sm:w-[19rem] lg:w-[21rem]", selected && "hidden sm:flex")} data-testid="shelf-rail">
           {addressBar && <div className="px-4 pt-4">{addressBar}</div>}

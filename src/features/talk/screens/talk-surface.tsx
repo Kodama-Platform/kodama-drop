@@ -11,6 +11,7 @@ import { TalkShell } from "@/features/talk/components/talk-shell";
 import { PlaceMark } from "@/features/talk/components/place-mark";
 import { TalkAddressPlaque } from "@/features/talk/components/talk-address-plaque";
 import { TalkLoading } from "@/features/talk/components/states";
+import { SceneFade } from "@/features/talk/components/scene-fade";
 import { ShelfScreen } from "@/features/talk/screens/shelf-screen";
 import { DoorView, ClaimView, UnlockSheet } from "@/features/talk/screens/door-screen";
 
@@ -134,7 +135,7 @@ export function TalkSurface({ initialAddress }: { initialAddress?: string }) {
     return (
       <TalkShell centered>
         <section className="w-full max-w-md px-5 pb-16">
-          <div className="animate-rise flex flex-col items-center text-center">
+          <div className="talk-enter flex flex-col items-center text-center">
             <PlaceMark
               mark={preview && (status === "taken" || status === "yours") ? preview.mark : markFor(slug || "?", slug)}
               size={72}
@@ -177,20 +178,22 @@ export function TalkSurface({ initialAddress }: { initialAddress?: string }) {
             </p>
           )}
 
-          {/* Live reveal */}
-          {revealing && preview !== undefined && (
-            <div key={`${status}:${slug}`} className="animate-rise mt-6" data-testid="landing-reveal">
-              {status === "yours" && preview ? (
-                <button type="button" className="btn-moss w-full justify-center" onClick={() => openMyTalk(slug)} data-testid="open-my-talk">
-                  <KeyRound className="h-4 w-4" /> Open my Talk
-                </button>
-              ) : status === "taken" && preview ? (
-                <DoorView place={preview} showHero={false} onOwner={() => setUnlockOpen(true)} />
-              ) : (
-                <ClaimView address={slug} onClaimed={(s) => openShelf(s, true)} onCancel={() => setInput("")} />
-              )}
-            </div>
-          )}
+          {/* Live reveal — dissolves the old place, then unfolds the new one */}
+          <SceneFade sceneKey={revealing && preview !== undefined ? `${status}:${slug}` : "quiet"}>
+            {revealing && preview !== undefined ? (
+              <div className="mt-6" data-testid="landing-reveal">
+                {status === "yours" && preview ? (
+                  <button type="button" className="btn-moss w-full justify-center" onClick={() => openMyTalk(slug)} data-testid="open-my-talk">
+                    <KeyRound className="h-4 w-4" /> Open my Talk
+                  </button>
+                ) : status === "taken" && preview ? (
+                  <DoorView place={preview} showHero={false} onOwner={() => setUnlockOpen(true)} />
+                ) : (
+                  <ClaimView address={slug} onClaimed={(s) => openShelf(s, true)} onCancel={() => setInput("")} />
+                )}
+              </div>
+            ) : null}
+          </SceneFade>
 
           {(status === "taken" || status === "yours") && preview && (
             <UnlockSheet
@@ -208,14 +211,14 @@ export function TalkSurface({ initialAddress }: { initialAddress?: string }) {
 
   // ── Resolving a committed address ──
   if (place === undefined) {
-    return <TalkShell centered><TalkLoading /></TalkShell>;
+    return <TalkShell centered><div className="talk-enter"><TalkLoading /></div></TalkShell>;
   }
 
   // ── Unclaimed / not available (committed) ──
   if (place === null) {
     return (
       <TalkShell centered>
-        <div className="w-full max-w-md px-5">
+        <div className="talk-enter w-full max-w-md px-5">
           {bar}
           {claiming ? (
             <ClaimView address={address} onClaimed={(s) => openShelf(s, true)} onCancel={() => setClaiming(false)} />
@@ -244,7 +247,7 @@ export function TalkSurface({ initialAddress }: { initialAddress?: string }) {
   // ── Claimed place → visitor Door (+ unlock in a sheet) ──
   return (
     <TalkShell centered>
-      <div className="w-full max-w-md px-5">
+      <div className="talk-enter w-full max-w-md px-5">
         {bar}
         {remembered && (
           <button type="button" className="talk-pill mb-3 w-full justify-center !border-primary/40 !bg-primary/6" onClick={() => setUnlockOpen(true)} data-testid="resume-owner">

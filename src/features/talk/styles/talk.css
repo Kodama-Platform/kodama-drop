@@ -541,6 +541,36 @@
   font-style: italic;
 }
 
+/* ── Seamless scene transition: a quiet door opening ── */
+.talk-scene-wrap {
+  transition: height 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.talk-scene-wrap--clip {
+  overflow: hidden;
+}
+.talk-scene {
+  will-change: opacity, transform;
+}
+.talk-scene--out {
+  animation: talk-scene-out 0.17s cubic-bezier(0.4, 0, 1, 1) both;
+}
+.talk-scene--in {
+  animation: talk-scene-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes talk-scene-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(3px) scale(0.99); }
+}
+@keyframes talk-scene-in {
+  from { opacity: 0; transform: translateY(7px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Gentle entrance for a place interior revealing itself. */
+.talk-enter {
+  animation: talk-scene-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* Reduced motion: never hide content behind an entrance animation. */
 @media (prefers-reduced-motion: reduce) {
   .animate-rise,
@@ -552,11 +582,18 @@
   .product-mockup,
   .animate-breathe,
   .animate-pop,
-  .door-seal {
+  .door-seal,
+  .talk-scene,
+  .talk-scene--in,
+  .talk-scene--out,
+  .talk-enter {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
     filter: none !important;
+  }
+  .talk-scene-wrap {
+    transition: none !important;
   }
 }
 

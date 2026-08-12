@@ -110,6 +110,13 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - `extractAddress()` normalizes bare names and full/pasted Talk URLs to a place name. Direct URLs still open the claimed Drop Door immediately.
 - Verified: clean build + 12/12 jsdom tests (debounce, stale, statuses, anon drop, place-sourced drop, confirm-claim, local-owner, unlock, reserved, pasted URL, URL non-navigation) + testing agent iteration_16 (10 live flows) all 100%.
 
+## Update (2026-06, iteration 18) — Seamless address→place transition
+- The landing now feels like one continuous surface. New `SceneFade` component (`src/features/talk/components/scene-fade.tsx`, CSS-only) crossfades the reveal region beneath the stable address field: dissolves the old place out (~170ms), swaps, then unfolds the new one in (~340ms) while animating container height so the surface never jumps.
+- The typed address field stays physically stable across every status and morphs into the resolved place's plaque (`talk.kodama.page / name`); mark + display name settle via existing `transition-all`.
+- Switching addresses (alex→studio) softly dissolves the old Drop Door/Claim before revealing the new place. Entering the Shelf and the committed Door/Claim/loading views fade in gently via `.talk-enter`.
+- `prefers-reduced-motion` → immediate, non-jarring swap (SceneFade skips animation; reduced-motion CSS neutralizes `.talk-scene*`/`.talk-enter` and the height transition). Typed lookups still never change the URL; direct links still work.
+- Verified: clean build + 158/158 jsdom tests + testing agent iteration_17 (10 transition flows, field-stability x/width check, Shelf entry + lock) all 100%, no console errors.
+
 ## Backlog / Next (P1)
 - Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.
