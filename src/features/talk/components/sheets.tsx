@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { talkService } from "@/features/talk/services";
 import { TALK } from "@/lib/brand";
+import { normalizeSlug } from "@/lib/slug";
 import type {
   ChannelReplyPolicy,
   ChannelVisibility,
@@ -49,8 +50,26 @@ export function NewGroupSheet({ open, onOpenChange, address, onCreated }: SheetB
 export function NewChannelSheet({ open, onOpenChange, address, onCreated }: SheetBase & { address: string; onCreated: (c: Conversation) => void }) {
   const [title, setTitle] = useState("");
   const [visibility, setVisibility] = useState<ChannelVisibility>("public");
-  const [replyPolicy, setReplyPolicy] = useState<ChannelReplyPolicy>("open");
+  const [replyPolicy, setReplyPolicy] = useState<ChannelReplyPolicy>("reviewed");
   const [busy, setBusy] = useState(false);
+
+  const changeVisibility = (v: ChannelVisibility) => {
+    setVisibility(v);
+    setReplyPolicy(v === "public" ? "reviewed" : "members");
+  };
+
+  const replyOptions: [ChannelReplyPolicy, string, string][] = visibility === "public"
+    ? [
+        ["reviewed", "Replies reviewed", "People can reply; you approve before it shows · recommended"],
+        ["open", "Replies open", "Replies appear publicly right away"],
+        ["read-only", "Read only", "Just announcements — no replies"],
+        ["private-contact", "Private contact only", "One button: people message you privately"],
+      ]
+    : [
+        ["members", "Members reply", "Only invited members can read and reply"],
+        ["read-only", "Read only", "Members can read; no replies"],
+      ];
+
   const create = async () => {
     if (!title.trim()) return;
     setBusy(true);
@@ -63,11 +82,34 @@ export function NewChannelSheet({ open, onOpenChange, address, onCreated }: Shee
     } finally { setBusy(false); }
   };
   return (
-    <TalkSheet open={open} onOpenChange={onOpenChange} title="New channel" description="A place for updates and discussion.">
+    <TalkSheet open={open} onOpenChange={onOpenChange} title="New channel" description="A place to share. People respond with a Drop.">
       <div className="space-y-4">
         <Labeled label="Channel name"><input className={field} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Field Notes" data-testid="channel-name-input" autoFocus /></Labeled>
-        <Segmented label="Who can see it" value={visibility} onChange={(v) => setVisibility(v as ChannelVisibility)} options={[["public", "Public"], ["private", "Private · invite-only"]]} testid="channel-visibility" />
-        <Segmented label="Replies" value={replyPolicy} onChange={(v) => setReplyPolicy(v as ChannelReplyPolicy)} options={[["open", "Anyone"], ["owner-only", "Owner only"], ["off", "Off"]]} testid="channel-reply" />
+        {title.trim() && (
+          <p className="font-mono text-[0.7rem] text-primary" data-testid="channel-url-preview">talk.kodama.page/{address}/{normalizeSlug(title) || "…"}</p>
+        )}
+        <Segmented label="Who can see it" value={visibility} onChange={(v) => changeVisibility(v as ChannelVisibility)} options={[["public", "Public"], ["private", "Private · invite-only"]]} testid="channel-visibility" />
+        <div>
+          <p className="mb-2 text-xs font-light uppercase tracking-wider text-muted-foreground">How people reply</p>
+          <div className="space-y-2" data-testid="channel-reply">
+            {replyOptions.map(([val, label, hint]) => (
+              <button
+                key={val}
+                type="button"
+                onClick={() => setReplyPolicy(val)}
+                data-active={replyPolicy === val}
+                data-testid={`reply-mode-${val}`}
+                className="flex w-full items-start gap-3 rounded-xl border border-border/60 p-3 text-left transition-colors data-[active=true]:border-primary/50 data-[active=true]:bg-primary/5"
+              >
+                <span className={`mt-0.5 h-4 w-4 shrink-0 rounded-full border ${replyPolicy === val ? "border-primary bg-primary" : "border-border"}`} />
+                <span className="min-w-0">
+                  <span className="block text-sm text-foreground">{label}</span>
+                  <span className="block text-xs font-light text-muted-foreground">{hint}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
         <button type="button" className="btn-moss w-full justify-center disabled:opacity-50" onClick={create} disabled={busy || !title.trim()} data-testid="channel-create-btn">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hash className="h-4 w-4" />} Create channel
         </button>

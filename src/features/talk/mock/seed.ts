@@ -1,4 +1,4 @@
-import type { Conversation, Drop, Member, Message, Place } from "@/features/talk/types";
+import type { ChannelReply, Conversation, Drop, Member, Message, Place } from "@/features/talk/types";
 import { TALK_PROTOCOL_VERSION } from "@/features/talk/types";
 import { markFor } from "@/features/talk/lib/mark";
 import { PLANNED_PRIVATE } from "@/features/talk/security/talk-security-adapter";
@@ -184,6 +184,7 @@ export const SEED_CONVERSATIONS: Conversation[] = [
     state: "active",
     visibility: "public",
     replyPolicy: "open",
+    channelSlug: "field-notes",
     protocolVersion: P,
   },
   {
@@ -201,7 +202,65 @@ export const SEED_CONVERSATIONS: Conversation[] = [
     muted: false,
     state: "active",
     visibility: "public",
-    replyPolicy: "off",
+    replyPolicy: "read-only",
+    channelSlug: "announcements",
+    protocolVersion: P,
+  },
+  {
+    id: "conv-updates",
+    kind: "channel",
+    placeAddress: "alex",
+    title: "Updates",
+    subtitle: "Public · replies reviewed",
+    mark: markFor("Updates", "updates"),
+    members: [member("Alex Rivera", "owner", "alex")],
+    lastMessagePreview: "Release notes are live.",
+    lastMessageAt: ago(65),
+    unreadCount: 0,
+    pinned: false,
+    muted: false,
+    state: "active",
+    visibility: "public",
+    replyPolicy: "reviewed",
+    channelSlug: "updates",
+    protocolVersion: P,
+  },
+  {
+    id: "conv-inner",
+    kind: "channel",
+    placeAddress: "alex",
+    title: "Inner Ring",
+    subtitle: "Private · members reply",
+    mark: markFor("Inner Ring", "inner-ring"),
+    members: [member("Alex Rivera", "owner", "alex")],
+    lastMessagePreview: "A quiet space for close folks.",
+    lastMessageAt: ago(60 * 8),
+    unreadCount: 0,
+    pinned: false,
+    muted: false,
+    state: "active",
+    visibility: "private",
+    replyPolicy: "members",
+    channelSlug: "inner-ring",
+    protocolVersion: P,
+  },
+  {
+    id: "conv-ask",
+    kind: "channel",
+    placeAddress: "alex",
+    title: "Ask Alex",
+    subtitle: "Public · private contact",
+    mark: markFor("Ask Alex", "ask"),
+    members: [member("Alex Rivera", "owner", "alex")],
+    lastMessagePreview: "Questions welcome — I read every one.",
+    lastMessageAt: ago(60 * 30),
+    unreadCount: 0,
+    pinned: false,
+    muted: false,
+    state: "active",
+    visibility: "public",
+    replyPolicy: "private-contact",
+    channelSlug: "ask",
     protocolVersion: P,
   },
 ];
@@ -260,4 +319,42 @@ export const SEED_MESSAGES: Record<string, Message[]> = {
   "conv-announcements": [
     msg("an1", "conv-announcements", "Alex Rivera", true, "New: **Sealed Key Cards** for recovery. Save yours from Settings.", 60 * 5),
   ],
+  "conv-updates": [
+    msg("up1", "conv-updates", "Alex Rivera", true, "Release notes are live. Thanks for all the thoughtful notes this month.", 65),
+    msg("up2", "conv-updates", "Devon", false, "Love the calmer palette — it reads so much better on mobile.", 40),
+  ],
+  "conv-inner": [
+    msg("in1", "conv-inner", "Alex Rivera", true, "A quiet space for close folks. Invite-only — reply freely here.", 60 * 8),
+  ],
+  "conv-ask": [
+    msg("ask1", "conv-ask", "Alex Rivera", true, "Questions welcome — press below and I'll read every one privately.", 60 * 30),
+  ],
 };
+
+export const SEED_CHANNEL_REPLIES: ChannelReply[] = [
+  {
+    id: "creply-1",
+    channelId: "conv-updates",
+    origin: "anonymous",
+    fromLabel: "someone",
+    body: "Could you add a mobile version of the changelog?",
+    attachments: [],
+    status: "pending",
+    createdAt: ago(30),
+    privacy: PLANNED_PRIVATE,
+    protocolVersion: P,
+  },
+  {
+    id: "creply-2",
+    channelId: "conv-updates",
+    origin: "place",
+    fromLabel: "Mina",
+    fromAddress: "mina",
+    body: "This is lovely. Would you be open to a short call about the roadmap?",
+    attachments: [],
+    status: "pending",
+    createdAt: ago(18),
+    privacy: PLANNED_PRIVATE,
+    protocolVersion: P,
+  },
+];

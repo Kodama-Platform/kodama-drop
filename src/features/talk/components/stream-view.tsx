@@ -65,7 +65,6 @@ export function StreamView({
 
   const canSend = useMemo(() => {
     if (conversation.state === "locked" || conversation.state === "archived") return false;
-    if (conversation.kind === "channel" && conversation.replyPolicy === "off") return false;
     return true;
   }, [conversation]);
 

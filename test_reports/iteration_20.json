@@ -1,0 +1,25 @@
+{
+  "summary": "Frontend-only testing of Kodama Talk Channel model. Verified all 14 flows in the review: visitor reviewed/open/read-only/private-contact/private-members-gate channels, send-as options (anonymous + with-a-name, no place option when no Talk unlocked), reply hint text, reviewed→'Awaiting review' receipt, open→'Your reply is live' receipt + posts list increment, follow toggle + persistence across reload, owner unlock via this-is-me + unlock-password 'secret', ChannelOwnerView with review-queue (2 seeded pending — anonymous + Mina from talk.kodama.page/mina), review-publish removes item and adds to posts, review-reply-private on Mina opens Direct Talk (drop-composer becomes visible), review-decline removes item, owner post via drop-composer-send appears in ChannelOwnerView and on public /alex/updates, Inner Ring (private) shows channel-invite button for owner and channel-access-gate for visitors without invite. Zero console errors during all flows.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_20.json"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "channel-screen.tsx correctly gates composer by policy (read-only/private-contact/members-not-member/closed) and emits proper testids (channel-view, channel-title, channel-address, channel-reply, channel-reply-input, channel-reply-send, channel-reply-receipt, channel-reply-hint, send-as-anonymous/named/place, follow-channel, contact-owner, channel-access-gate, channel-private-contact, channel-drop-owner, channel-replies-closed).",
+    "channel-owner-view.tsx cleanly separates review queue vs. posts, exposes review-queue/review-item/review-publish/review-reply-private/review-decline/review-private-input/review-private-send, and owner composer via DropComposer (drop-composer + drop-composer-send). channel-share, channel-invite (private only), channel-open-public present in header.",
+    "MockTalkService flow works end-to-end via localStorage: reviewed→pending, publish→posts list, replyPrivatelyToReply→new Direct Talk conversation, follow persists after reload, joinChannelByInvite handled via ?invite= param.",
+    "Minor UX note (not a bug): 'this-is-me' talk-pill sits below a long Door composer; on 1440x900 you must scroll into view. Not a defect — only worth noting for future automated harnesses."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped)", "frontend": "100% (14/14 scenarios)"},
+  "test_credentials": "Owner /alex unlock password: 'secret'",
+  "seed_data_creation": "Used existing SEED_CHANNEL_REPLIES (2 pending on conv-updates: anonymous + Mina/mina). Test-created channel replies and one owner post ('OwnerPost-XYZ') are stored in localStorage only.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Preview URL: https://door-shelf.preview.emergentagent.com. Visitor pages: /alex/updates (reviewed), /alex/field-notes (open), /alex/announcements (read-only), /alex/ask (private-contact), /alex/inner-ring (private/members). Owner: type alex → this-is-me (scroll_into_view_if_needed on 1440x900) → unlock-password 'secret' → unlock-submit → shelf-stream → click 'Updates' row → channel-owner-view. Owner composer send uses data-testid='drop-composer-send' scoped inside [data-testid='channel-owner-view']. Zero console errors observed.",
+  "rca of the issue": "No issues found."
+}

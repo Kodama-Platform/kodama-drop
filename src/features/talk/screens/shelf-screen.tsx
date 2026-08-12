@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { TalkShell } from "@/features/talk/components/talk-shell";
 import { PlaceMark } from "@/features/talk/components/place-mark";
 import { StreamView } from "@/features/talk/components/stream-view";
+import { ChannelOwnerView } from "@/features/talk/components/channel-owner-view";
 import { DropCard, SentDropCard } from "@/features/talk/components/drop-cards";
 import { StreamItemRow, type StreamItem } from "@/features/talk/components/stream-item-row";
 import { TalkLoading, TalkEmpty } from "@/features/talk/components/states";
@@ -130,7 +131,11 @@ function ShelfInner({ addressBar }: { addressBar?: ReactNode }) {
         {/* Main panel */}
         <section className={cn("min-h-0 flex-1", !selected && "hidden sm:block")} data-testid="shelf-main">
           {selected?.type === "conversation" ? (
-            <StreamView conversation={selected.conv} onBack={() => setSelected(null)} onChanged={afterChange} onInvite={(c) => setInviteConv(c)} />
+            selected.conv.kind === "channel" ? (
+              <ChannelOwnerView conversation={selected.conv} onBack={() => setSelected(null)} onChanged={afterChange} onInvite={(c) => setInviteConv(c)} onOpenConversation={(c) => { void afterChange(); openConv(c); }} />
+            ) : (
+              <StreamView conversation={selected.conv} onBack={() => setSelected(null)} onChanged={afterChange} onInvite={(c) => setInviteConv(c)} />
+            )
           ) : selected?.type === "drop" ? (
             <DropDetail
               drop={selected.drop}

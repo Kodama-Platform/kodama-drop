@@ -89,7 +89,13 @@ export interface Drop {
 
 export type ConversationKind = "direct" | "group" | "channel";
 export type ChannelVisibility = "public" | "private";
-export type ChannelReplyPolicy = "open" | "owner-only" | "off";
+/** Channel reply modes — user-facing wording lives in the UI. */
+export type ChannelReplyPolicy =
+  | "read-only"
+  | "reviewed"
+  | "open"
+  | "members"
+  | "private-contact";
 export type ConversationState = "active" | "archived" | "locked" | "expired";
 
 export interface Member {
@@ -116,6 +122,26 @@ export interface Conversation {
   /** Channel-only settings. */
   visibility?: ChannelVisibility;
   replyPolicy?: ChannelReplyPolicy;
+  /** Channel URL segment — address is `${placeAddress}/${channelSlug}`. */
+  channelSlug?: string;
+  protocolVersion: TalkProtocolVersion;
+}
+
+/* ── Channel replies (public "Drop a reply") ── */
+
+export type ChannelReplyStatus = "pending" | "published" | "declined";
+
+export interface ChannelReply {
+  id: string;
+  channelId: string;
+  origin: DropOrigin;
+  fromLabel: string;
+  fromAddress?: TalkAddress;
+  body: string;
+  attachments: Attachment[];
+  status: ChannelReplyStatus;
+  createdAt: string;
+  privacy: PrivacyStatus;
   protocolVersion: TalkProtocolVersion;
 }
 
@@ -218,6 +244,15 @@ export interface CreateChannelInput {
   title: string;
   visibility: ChannelVisibility;
   replyPolicy: ChannelReplyPolicy;
+}
+
+export interface SubmitChannelReplyInput {
+  channelId: string;
+  origin: DropOrigin;
+  fromLabel: string;
+  fromAddress?: TalkAddress;
+  body: string;
+  attachments?: Attachment[];
 }
 
 export interface SearchResult {

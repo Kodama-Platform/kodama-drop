@@ -135,6 +135,15 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - New component: `stream-item-row.tsx`. `DropCard` gained `onResolved`.
 - Verified: clean build + 12/12 talk tests + testing agent iteration_19 (all 12 flows pass, correct newest-first sort, cues, reply→direct-talk conversion, decline removal, mobile; no console errors).
 
+## Update (2026-06, iteration 20) — Full Channel communication model
+- **Nested channel URLs**: Channels now have their own public address `talk.kodama.page/{owner}/{slug}` (route `$address_.$channel.tsx`, opted out of the Door layout), distinct from the owner's personal `/{owner}`. Direct link resolves the channel; owner manages inside the Shelf.
+- **Visitor public channel page** (`channel-screen.tsx`): read posts, Follow (device-local), "Drop {owner} a private message" link, and a **Drop a reply** composer with send-as **Anonymous / a name / From my Talk address** (place option only when a Talk is unlocked on device; Anonymous shows a one-way hint).
+- **Five reply modes** (`ChannelReplyPolicy` redefined): `read-only` (no composer), `reviewed` (DEFAULT public — reply → owner review queue, visitor sees "Awaiting review"), `open` (published instantly, appears in posts), `members` (invite-only can reply; others hit an "Invite required" gate), `private-contact` (no public composer → button to Drop the owner privately). NewChannelSheet exposes all five with the recommended default.
+- **Owner Channel view** (`channel-owner-view.tsx`): post updates, Share/Invite/open-public, and a **"Replies waiting for review"** area — Publish (→ public post), Reply privately (Talk-address senders only → becomes a Direct Talk), Decline.
+- **Follow & Membership** (device-local, no account): follow/unfollow persist; private channels join via one-time invite link `…?invite=CODE` → local membership so the visitor can read/reply.
+- Service additions: `resolveChannel, submitChannelReply, listPendingReplies, publishReply, declineReply, replyPrivatelyToReply, isFollowing/followChannel/unfollowChannel/listFollowedChannels, isMember/joinChannelByInvite`. Seed adds 5 alex channels covering all modes + 2 pending replies. `STORAGE_KEY` bumped to v2 (schema change → fresh seed).
+- Verified: clean build (nested route generated) + 12/12 talk tests + testing agent iteration_20 (14/14 channel flows, 100%, no console errors, no bugs).
+
 ## Backlog / Next (P1)
 - Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.

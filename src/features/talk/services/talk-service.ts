@@ -7,6 +7,7 @@
 
 import type {
   ClaimAddressInput,
+  ChannelReply,
   Conversation,
   CreateChannelInput,
   CreateGroupInput,
@@ -21,6 +22,7 @@ import type {
   SendDropInput,
   SendMessageInput,
   Shelf,
+  SubmitChannelReplyInput,
   TalkAddress,
 } from "@/features/talk/types";
 
@@ -71,6 +73,22 @@ export interface TalkService {
   listMembers(conversationId: string): Promise<Member[]>;
   removeMember(conversationId: string, memberLabel: string): Promise<void>;
   createInvite(conversationId: string): Promise<Invite>;
+
+  /* Channels — public reachability */
+  resolveChannel(placeAddress: TalkAddress, slug: string): Promise<Conversation | null>;
+  submitChannelReply(input: SubmitChannelReplyInput): Promise<{ status: "published" | "pending" }>;
+  listPendingReplies(channelId: string): Promise<ChannelReply[]>;
+  publishReply(replyId: string): Promise<void>;
+  declineReply(replyId: string): Promise<void>;
+  replyPrivatelyToReply(replyId: string, body: string): Promise<Conversation>;
+  /* Follow (device-local, no account) */
+  isFollowing(channelAddress: string): boolean;
+  followChannel(channelAddress: string): void;
+  unfollowChannel(channelAddress: string): void;
+  listFollowedChannels(): Promise<Conversation[]>;
+  /* Membership (invite-based, device-local) */
+  isMember(channelId: string): boolean;
+  joinChannelByInvite(channelId: string, code: string): boolean;
 
   /* Drafts */
   getDraft(conversationId: string): string;

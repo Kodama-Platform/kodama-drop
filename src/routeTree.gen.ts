@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AddressRouteImport } from './routes/$address'
+import { Route as AddressChannelRouteImport } from './routes/$address_.$channel'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +23,40 @@ const AddressRoute = AddressRouteImport.update({
   path: '/$address',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AddressChannelRoute = AddressChannelRouteImport.update({
+  id: '/$address_/$channel',
+  path: '/$address/$channel',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$address': typeof AddressRoute
+  '/$address/$channel': typeof AddressChannelRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$address': typeof AddressRoute
+  '/$address/$channel': typeof AddressChannelRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$address': typeof AddressRoute
+  '/$address_/$channel': typeof AddressChannelRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$address'
+  fullPaths: '/' | '/$address' | '/$address/$channel'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$address'
-  id: '__root__' | '/' | '/$address'
+  to: '/' | '/$address' | '/$address/$channel'
+  id: '__root__' | '/' | '/$address' | '/$address_/$channel'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AddressRoute: typeof AddressRoute
+  AddressChannelRoute: typeof AddressChannelRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AddressRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$address_/$channel': {
+      id: '/$address_/$channel'
+      path: '/$address/$channel'
+      fullPath: '/$address/$channel'
+      preLoaderRoute: typeof AddressChannelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AddressRoute: AddressRoute,
+  AddressChannelRoute: AddressChannelRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

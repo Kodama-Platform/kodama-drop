@@ -6,6 +6,7 @@
 
 import type { TalkService } from "@/features/talk/services/talk-service";
 import type {
+  ChannelReply,
   ClaimAddressInput,
   Conversation,
   CreateChannelInput,
@@ -21,12 +22,15 @@ import type {
   SendDropInput,
   SendMessageInput,
   Shelf,
+  SubmitChannelReplyInput,
   TalkAddress,
 } from "@/features/talk/types";
 import { TALK_PROTOCOL_VERSION } from "@/features/talk/types";
 import { markFor } from "@/features/talk/lib/mark";
+import { normalizeSlug } from "@/lib/slug";
 import { PLANNED_PRIVATE, getTalkSecurity } from "@/features/talk/security/talk-security-adapter";
 import {
+  SEED_CHANNEL_REPLIES,
   SEED_CONVERSATIONS,
   SEED_INCOMING,
   SEED_MESSAGES,
@@ -34,12 +38,14 @@ import {
   SEED_SENT,
 } from "@/features/talk/mock/seed";
 
-const STORAGE_KEY = "kodama-talk/v1/state";
+const STORAGE_KEY = "kodama-talk/v2/state";
 const CRED_KEY = "kodama-talk/v1/owner-cred";
 const SESSION_KEY = "kodama-talk/v1/session";
 const PERSIST_KEY = "kodama-talk/v1/stay";
 const LAST_KEY = "kodama-talk/v1/last-talk";
 const DRAFT_KEY = "kodama-talk/v1/drafts";
+const FOLLOW_KEY = "kodama-talk/v1/follows";
+const MEMBER_KEY = "kodama-talk/v1/members";
 const LATENCY = 220;
 const P = TALK_PROTOCOL_VERSION;
 
@@ -51,6 +57,7 @@ interface TalkState {
   messages: Record<string, Message[]>;
   invites: Invite[];
   prefs: Record<string, NotificationPrefs>;
+  channelReplies: ChannelReply[];
 }
 
 const DEFAULT_PREFS: NotificationPrefs = {
@@ -73,6 +80,7 @@ function seedState(): TalkState {
     messages: structuredClone(SEED_MESSAGES),
     invites: [],
     prefs: {},
+    channelReplies: structuredClone(SEED_CHANNEL_REPLIES),
   };
 }
 
@@ -441,6 +449,7 @@ export class MockTalkService implements TalkService {
   }
 
   async createChannel(input: CreateChannelInput): Promise<Conversation> {
+    const slug = normalizeSlug(input.title) || uid("chan");
     const conv: Conversation = {
       id: uid("conv"),
       kind: "channel",
@@ -457,12 +466,155 @@ export class MockTalkService implements TalkService {
       state: "active",
       visibility: input.visibility,
       replyPolicy: input.replyPolicy,
+      channelSlug: slug,
       protocolVersion: P,
     };
     this.state.conversations = [conv, ...this.state.conversations];
     this.state.messages[conv.id] = [];
     this.persist();
     return delay(conv);
+  }
+
+  /* ── Channels: public reachability ── */
+
+  private channelAddress(c: Conversation): string {
+    return `${c.placeAddress}/${c.channelSlug ?? normalizeSlug(c.title)}`;
+  }
+
+  async resolveChannel(placeAddress: TalkAddress, slug: string): Promise<Conversation | null> {
+    const c = this.state.conversations.find(
+      (x) => x.kind === "channel" && x.placeAddress === placeAddress && (x.channelSlug ?? normalizeSlug(x.title)) === slug,
+    );
+    return delay(c ?? null);
+  }
+
+  private appendReplyAsMessage(c: Conversation, reply: ChannelReply): void {
+    const author = reply.origin === "anonymous" ? "Anonymous" : reply.fromLabel;
+    const m = seedMsg(uid("m"), c.id, author, false, reply.body, new Date().toISOString());
+    m.attachments = reply.attachments;
+    this.state.messages[c.id] = [...(this.state.messages[c.id] ?? []), m];
+    c.lastMessagePreview = reply.body;
+    c.lastMessageAt = m.createdAt;
+  }
+
+  async submitChannelReply(input: SubmitChannelReplyInput): Promise<{ status: "published" | "pending" }> {
+    const c = this.conv(input.channelId);
+    if (!c || c.kind !== "channel") throw new Error("not_found");
+    if (c.state === "locked" || c.state === "archived") throw new Error("replies_closed");
+    const policy = c.replyPolicy ?? "reviewed";
+    if (policy === "read-only" || policy === "private-contact") throw new Error("replies_closed");
+    if (policy === "members" && !this.isMember(input.channelId)) throw new Error("members_only");
+    await getTalkSecurity().sealForConversation(input.channelId, input.body);
+    const reply: ChannelReply = {
+      id: uid("creply"),
+      channelId: input.channelId,
+      origin: input.origin,
+      fromLabel: input.fromLabel || (input.origin === "anonymous" ? "someone" : "guest"),
+      fromAddress: input.origin === "place" ? input.fromAddress : undefined,
+      body: input.body,
+      attachments: input.attachments ?? [],
+      status: policy === "reviewed" ? "pending" : "published",
+      createdAt: new Date().toISOString(),
+      privacy: PLANNED_PRIVATE,
+      protocolVersion: P,
+    };
+    this.state.channelReplies = [reply, ...this.state.channelReplies];
+    if (reply.status === "published") this.appendReplyAsMessage(c, reply);
+    this.persist();
+    return delay({ status: reply.status });
+  }
+
+  async listPendingReplies(channelId: string): Promise<ChannelReply[]> {
+    return delay(this.state.channelReplies.filter((r) => r.channelId === channelId && r.status === "pending"));
+  }
+
+  async publishReply(replyId: string): Promise<void> {
+    const reply = this.state.channelReplies.find((r) => r.id === replyId);
+    if (reply && reply.status === "pending") {
+      reply.status = "published";
+      const c = this.conv(reply.channelId);
+      if (c) this.appendReplyAsMessage(c, reply);
+    }
+    this.persist();
+    return delay(undefined);
+  }
+
+  async declineReply(replyId: string): Promise<void> {
+    const reply = this.state.channelReplies.find((r) => r.id === replyId);
+    if (reply) reply.status = "declined";
+    this.persist();
+    return delay(undefined);
+  }
+
+  async replyPrivatelyToReply(replyId: string, body: string): Promise<Conversation> {
+    const reply = this.state.channelReplies.find((r) => r.id === replyId);
+    if (!reply || reply.origin !== "place" || !reply.fromAddress) throw new Error("no_reply_path");
+    const channel = this.conv(reply.channelId);
+    const owner = channel?.placeAddress ?? reply.fromAddress;
+    const conv: Conversation = {
+      id: uid("conv"),
+      kind: "direct",
+      placeAddress: owner,
+      title: reply.fromLabel,
+      subtitle: `talk.kodama.page/${reply.fromAddress}`,
+      mark: markFor(reply.fromLabel, reply.fromAddress),
+      members: [member(owner), member(reply.fromLabel, "member", reply.fromAddress)],
+      lastMessagePreview: body,
+      lastMessageAt: new Date().toISOString(),
+      unreadCount: 0,
+      pinned: false,
+      muted: false,
+      state: "active",
+      protocolVersion: P,
+    };
+    this.state.conversations = [conv, ...this.state.conversations];
+    this.state.messages[conv.id] = [
+      seedMsg(uid("m"), conv.id, reply.fromLabel, false, reply.body, reply.createdAt),
+      seedMsg(uid("m"), conv.id, "You", true, body, new Date().toISOString()),
+    ];
+    reply.status = "published"; // resolved out of the review queue
+    this.persist();
+    return delay(conv);
+  }
+
+  /* ── Follow (device-local) ── */
+
+  private readList(key: string): string[] {
+    if (typeof window === "undefined") return [];
+    try { return JSON.parse(window.localStorage.getItem(key) ?? "[]") as string[]; } catch { return []; }
+  }
+  private writeList(key: string, list: string[]): void {
+    if (typeof window !== "undefined") window.localStorage.setItem(key, JSON.stringify(Array.from(new Set(list))));
+  }
+
+  isFollowing(channelAddress: string): boolean {
+    return this.readList(FOLLOW_KEY).includes(channelAddress);
+  }
+  followChannel(channelAddress: string): void {
+    this.writeList(FOLLOW_KEY, [...this.readList(FOLLOW_KEY), channelAddress]);
+  }
+  unfollowChannel(channelAddress: string): void {
+    this.writeList(FOLLOW_KEY, this.readList(FOLLOW_KEY).filter((a) => a !== channelAddress));
+  }
+  async listFollowedChannels(): Promise<Conversation[]> {
+    const follows = this.readList(FOLLOW_KEY);
+    return delay(this.state.conversations.filter((c) => c.kind === "channel" && follows.includes(this.channelAddress(c))));
+  }
+
+  /* ── Membership (invite-based, device-local) ── */
+
+  isMember(channelId: string): boolean {
+    const c = this.conv(channelId);
+    if (!c) return false;
+    return this.readList(MEMBER_KEY).includes(this.channelAddress(c));
+  }
+  joinChannelByInvite(channelId: string, code: string): boolean {
+    const c = this.conv(channelId);
+    if (!c) return false;
+    const ok = this.state.invites.some((i) => i.conversationId === channelId && i.code === code);
+    if (!ok) return false;
+    this.writeList(MEMBER_KEY, [...this.readList(MEMBER_KEY), this.channelAddress(c)]);
+    return true;
   }
 
   async listMembers(id: string): Promise<Member[]> {
