@@ -144,6 +144,11 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Service additions: `resolveChannel, submitChannelReply, listPendingReplies, publishReply, declineReply, replyPrivatelyToReply, isFollowing/followChannel/unfollowChannel/listFollowedChannels, isMember/joinChannelByInvite`. Seed adds 5 alex channels covering all modes + 2 pending replies. `STORAGE_KEY` bumped to v2 (schema change → fresh seed).
 - Verified: clean build (nested route generated) + 12/12 talk tests + testing agent iteration_20 (14/14 channel flows, 100%, no console errors, no bugs).
 
+## Update (2026-06, iteration 21) — Reach/Claim from conversation pages
+- Added a quiet "Kodama Talk" footer (`reach-cta.tsx` → `ReachFooter`) to both conversation surfaces: the **Conversation Trail** (`stream-view.tsx`) and the **public Channel page** (`channel-screen.tsx`).
+- Two actions: **Leave a Drop** and **Claim a Talk address**, opening a shared `ReachSheet` with a single address field that resolves availability live (reserved / available → claim, claimed → leave a Drop) and navigates to `/{address}` (which shows the Door to drop, or the Claim view if free).
+- Verified via build (clean) + 12/12 unit tests + browser screenshots: footer present on both surfaces; drop sheet ("mina" → navigates to /mina), claim sheet ("my-new-place" → "free — claim it"); no errors.
+
 ## Backlog / Next (P1)
 - Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.

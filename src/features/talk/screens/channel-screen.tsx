@@ -9,6 +9,7 @@ import type { Conversation, DropOrigin, Message, Place } from "@/features/talk/t
 import { TalkShell } from "@/features/talk/components/talk-shell";
 import { PlaceMark } from "@/features/talk/components/place-mark";
 import { MessageFragment } from "@/features/talk/components/message-fragment";
+import { ReachFooter } from "@/features/talk/components/reach-cta";
 import { TalkLoading, TalkError, TalkEmpty } from "@/features/talk/components/states";
 
 const MODE_NOTE: Record<string, string> = {
@@ -131,6 +132,7 @@ export function ChannelPublicScreen({ placeAddress, slug, invite }: { placeAddre
             </div>
           </>
         )}
+        <ReachFooter />
       </div>
     </TalkShell>
   );
