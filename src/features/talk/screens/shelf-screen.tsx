@@ -1,11 +1,13 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Lock, Plus, Search, Send, Settings, Share2 } from "lucide-react";
+import { toast } from "sonner";
 
-import type { Conversation, Drop, OwnerSession } from "@/features/talk/types";
+import type { Attachment, Conversation, Drop, OwnerSession, Place } from "@/features/talk/types";
 import { TALK } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { normalizeSlug } from "@/lib/slug";
+import { talkService } from "@/features/talk/services";
+import { DropComposer } from "@/features/talk/components/drop-composer";
 import { TalkShell } from "@/features/talk/components/talk-shell";
 import { PlaceMark } from "@/features/talk/components/place-mark";
 import { StreamView } from "@/features/talk/components/stream-view";
@@ -37,8 +39,9 @@ export function ShelfScreen({ session, onLock }: { session: OwnerSession; onLock
 
 function ShelfInner() {
   const { session, shelf, loading, refresh, lock } = useOwner();
-  const navigate = useNavigate();
   const [selected, setSelected] = useState<StreamItem | null>(null);
+  const [composeTo, setComposeTo] = useState<string | null>(null);
+  const [composePlace, setComposePlace] = useState<Place | null | undefined>(undefined);
   const [sheet, setSheet] = useState<null | "group" | "channel" | "settings" | "search" | "share">(null);
   const [inviteConv, setInviteConv] = useState<Conversation | null>(null);
   const [query, setQuery] = useState("");
@@ -74,13 +77,25 @@ function ShelfInner() {
   }, [items, q]);
 
   const dropSlug = normalizeSlug(query.trim());
+  // "Drop" opens a compose-ready pane in the main panel — no page change, no form.
   const drop = () => {
     if (!dropSlug) return;
-    void navigate({ to: "/$address", params: { address: dropSlug } });
+    setSelected(null);
+    setComposeTo(dropSlug);
   };
 
+  // Resolve the recipient's place for the compose pane (name + mark).
+  useEffect(() => {
+    if (!composeTo) { setComposePlace(undefined); return; }
+    let alive = true;
+    setComposePlace(undefined);
+    void talkService.resolvePlace(composeTo).then((p) => alive && setComposePlace(p ?? null));
+    return () => { alive = false; };
+  }, [composeTo]);
+
   const afterChange = async () => { await refresh(); };
-  const openConv = (c: Conversation) => setSelected({ type: "conversation", at: c.lastMessageAt, conv: c });
+  const openConv = (c: Conversation) => { setComposeTo(null); setSelected({ type: "conversation", at: c.lastMessageAt, conv: c }); };
+  const openItem = (it: StreamItem) => { setComposeTo(null); setSelected(it); };
 
   const isActive = (it: StreamItem) => {
     if (!selected || selected.type !== it.type) return false;
@@ -102,7 +117,7 @@ function ShelfInner() {
     >
       <div className="talk-enter mx-auto flex min-h-0 w-full max-w-6xl flex-1 gap-0 px-0 sm:px-4">
         {/* Left shelf rail — the living stream */}
-        <aside className={cn("relative z-10 flex w-full max-w-full shrink-0 flex-col border-r border-border/50 sm:w-[19rem] lg:w-[21rem]", selected && "hidden sm:flex")} data-testid="shelf-rail">
+        <aside className={cn("relative z-10 flex w-full max-w-full shrink-0 flex-col border-r border-border/50 sm:w-[19rem] lg:w-[21rem]", (selected || composeTo) && "hidden sm:flex")} data-testid="shelf-rail">
           <div className="flex items-center gap-3 px-4 pb-3 pt-4">
             <PlaceMark mark={markFor(session.displayName, session.address)} size={44} />
             <div className="min-w-0">
@@ -174,7 +189,7 @@ function ShelfInner() {
                     key={it.type === "conversation" ? `c-${it.conv.id}` : `${it.type}-${it.drop.id}`}
                     item={it}
                     active={isActive(it)}
-                    onOpen={() => setSelected(it)}
+                    onOpen={() => openItem(it)}
                   />
                 ))}
               </div>
@@ -183,8 +198,16 @@ function ShelfInner() {
         </aside>
 
         {/* Main panel */}
-        <section className={cn("min-h-0 flex-1", !selected && "hidden sm:block")} data-testid="shelf-main">
-          {selected?.type === "conversation" ? (
+        <section className={cn("min-h-0 flex-1", !selected && !composeTo && "hidden sm:block")} data-testid="shelf-main">
+          {composeTo ? (
+            <ComposeDrop
+              toAddress={composeTo}
+              place={composePlace}
+              fromAddress={session.address}
+              onBack={() => setComposeTo(null)}
+              onSent={async () => { await afterChange(); setComposeTo(null); setQuery(""); }}
+            />
+          ) : selected?.type === "conversation" ? (
             selected.conv.kind === "channel" ? (
               <ChannelOwnerView conversation={selected.conv} onBack={() => setSelected(null)} onChanged={afterChange} onInvite={(c) => setInviteConv(c)} onOpenConversation={(c) => { void afterChange(); openConv(c); }} />
             ) : (
@@ -277,6 +300,83 @@ function DetailHeader({ onBack, label, title }: { onBack: () => void; label: str
       <div className="min-w-0">
         <p className="font-mono text-[0.6rem] uppercase tracking-[0.2em] text-clay">{label}</p>
         <p className="talk-display truncate text-lg leading-tight text-foreground">{title}</p>
+      </div>
+    </div>
+  );
+}
+
+const firstName = (name: string) => name.trim().split(/\s+/)[0] || name;
+
+/** Compose a Drop to any address, inline in the main panel — no form, no page change. */
+function ComposeDrop({ toAddress, place, fromAddress, onBack, onSent }: {
+  toAddress: string;
+  place: Place | null | undefined;
+  fromAddress: string;
+  onBack: () => void;
+  onSent: () => Promise<void> | void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const name = place ? place.displayName : toAddress;
+  const fn = firstName(name);
+
+  const send = async (body: string, keepsakes?: Attachment[]) => {
+    if (!body.trim() && !(keepsakes && keepsakes.length)) return;
+    setBusy(true);
+    try {
+      await talkService.sendDrop({
+        toAddress,
+        origin: "place",
+        fromLabel: fromAddress,
+        fromAddress,
+        body: body.trim(),
+        attachments: keepsakes,
+      });
+      toast.success(`Left at ${TALK.domain}/${toAddress}`);
+      await onSent();
+    } catch {
+      toast.error("Could not leave your Drop");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex h-full flex-col" data-testid="compose-drop">
+      <div className="flex items-center gap-2.5 border-b border-border/50 px-4 py-3">
+        <button type="button" className="talk-pill !px-2.5 !py-2 sm:hidden" onClick={onBack} aria-label="Back" data-testid="compose-back">
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <PlaceMark mark={place ? place.mark : markFor(toAddress, toAddress)} size={40} />
+        <div className="min-w-0">
+          <p className="font-mono text-[0.6rem] uppercase tracking-[0.2em] text-clay">Leaving a Drop</p>
+          <p className="talk-display truncate text-lg leading-tight text-foreground" data-testid="compose-recipient">{name}</p>
+          <p className="truncate font-mono text-[0.7rem] text-primary">{TALK.domain}/{toAddress}</p>
+        </div>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="mx-auto max-w-xl">
+          {place === undefined ? (
+            <TalkLoading label="Finding their door…" />
+          ) : (
+            <>
+              <p className="mb-3 text-sm font-light leading-relaxed text-muted-foreground">
+                {place === null ? (
+                  <>This address isn&apos;t claimed yet — your note waits at the door.</>
+                ) : (
+                  <>Leave <span className="text-foreground">{fn}</span> a note — they&apos;ll find it at their door.</>
+                )}{" "}
+                Signed from <span className="text-foreground">{TALK.domain}/{fromAddress}</span>.
+              </p>
+              <DropComposer
+                placeholder={`Write to ${fn}…`}
+                cta="Drop"
+                busy={busy}
+                allowImages
+                onSend={(body, _label, keepsakes) => void send(body, keepsakes)}
+              />
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

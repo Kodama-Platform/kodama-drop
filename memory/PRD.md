@@ -166,6 +166,11 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Also verified earlier (iteration 23, 100%): owner Shelf URL always reflects the place (`/alex`) across unlock/auto-resume/manual-nav/claim.
 - Verified: build + 12/12 unit tests + testing agent iteration_24 (7/7 flows, 100%, no console errors).
 
+## Update (2026-06) — Inline Drop compose (no form / no page change)
+- "Drop" (rail input + button) no longer routes to the public Door form. It now opens a compose-ready pane in the Shelf's **main panel** (`ComposeDrop` in `shelf-screen.tsx`): recipient place mark + name + the same conversation composer (`DropComposer`, CTA "Drop", images allowed).
+- Sending posts `talkService.sendDrop({ origin: "place", fromAddress = you })`, toasts "Left at talk.kodama.page/{addr}", closes the pane, clears the filter, and the new sent Drop lands at the top of the stream. No navigation (URL stays `/{you}`), no modal.
+- Mobile: rail hides while composing; a back button returns to the stream. Verified via browser (unlock alex → type "mara" → Drop → write → send).
+
 ## Update (2026-06) — Logo → Landing
 - Clicking the Kodama logo (header, `talk-shell.tsx`) now reaches the landing address-entry surface even when a Talk is remembered (previously bounced straight back to the Shelf via auto-resume).
 - Mechanism: home `Link` carries router `state={{ fresh: true }}`; `talk-surface.tsx` reads it via `useLocation` and skips the last-opened auto-resume for that one visit. A plain page refresh still auto-resumes. Session stays remembered (option a — non-destructive).
