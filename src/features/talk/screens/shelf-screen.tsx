@@ -133,7 +133,7 @@ function ShelfInner() {
               <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground/55" strokeWidth={1.75} aria-hidden="true" />
               <input
                 className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/50"
-                placeholder="Filter, or drop a message to…"
+                placeholder="Filter, or drop to…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && drop()}
@@ -143,12 +143,14 @@ function ShelfInner() {
               />
               <button
                 type="button"
-                className="btn-moss shrink-0 !px-3 !py-1.5 text-xs disabled:opacity-40"
+                className="btn-moss shrink-0 !px-2.5 !py-1.5 disabled:opacity-40"
                 onClick={drop}
                 disabled={!dropSlug}
+                aria-label="Drop a message"
+                title="Drop a message"
                 data-testid="shelf-drop-btn"
               >
-                <Send className="h-3.5 w-3.5" /> Drop
+                <Send className="h-3.5 w-3.5" strokeWidth={1.75} />
               </button>
             </div>
             {q && filtered.length === 0 && (
