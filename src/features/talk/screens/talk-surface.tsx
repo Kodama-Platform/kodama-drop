@@ -8,6 +8,7 @@ import { normalizeSlug } from "@/lib/slug";
 import { talkService } from "@/features/talk/services";
 import type { OwnerSession, Place } from "@/features/talk/types";
 import { markFor } from "@/features/talk/lib/mark";
+import { KodamaMark } from "@/components/kodama-mark";
 import { TalkShell } from "@/features/talk/components/talk-shell";
 import { PlaceMark } from "@/features/talk/components/place-mark";
 import { TalkAddressPlaque } from "@/features/talk/components/talk-address-plaque";
@@ -150,11 +151,17 @@ export function TalkSurface({ initialAddress }: { initialAddress?: string }) {
       <TalkShell centered>
         <section className="w-full max-w-md px-5 pb-16">
           <div className="talk-enter flex flex-col items-center text-center">
-            <PlaceMark
-              mark={preview && (status === "taken" || status === "yours") ? preview.mark : markFor(slug || "?", slug)}
-              size={72}
-              className={cn("transition-all duration-500", !slug && "opacity-35 grayscale")}
-            />
+            {slug ? (
+              <PlaceMark
+                mark={preview && (status === "taken" || status === "yours") ? preview.mark : markFor(slug, slug)}
+                size={72}
+                className="transition-all duration-500"
+              />
+            ) : (
+              <span className="talk-logo-mark" style={{ width: 72, height: 72 }} data-testid="landing-logo-mark">
+                <KodamaMark size={38} className="text-[rgb(var(--primary-foreground))]" holeClassName="fill-[rgb(var(--primary))]" />
+              </span>
+            )}
             <h1 className="mt-3.5 talk-display text-3xl text-foreground sm:text-4xl" data-testid="landing-title">
               {preview && (status === "taken" || status === "yours") ? preview.displayName : slug ? slug : "Kodama Talk"}
             </h1>

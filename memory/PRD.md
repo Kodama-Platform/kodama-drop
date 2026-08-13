@@ -155,6 +155,11 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Also fixed earlier (iteration 21): removed the messy combined claim/drop footer that overlapped the conversation pane; replaced with a single clean "Drop" button in the Shelf header (`LeaveDropSheet`, drop-only) → navigates to the recipient's Door.
 - Verified: build + 12/12 unit tests + testing agent iteration_22 (5/5 URL flows, 100%, no console errors/redirect loops).
 
+## Update (2026-06, iteration 23) — Landing polish (three states)
+- Empty state no longer looks all-grey: the placeholder mark is now a calm Kodama-green blob (primary gradient, organic blob shape, gentle breathing) holding the **Kodama leaf logo** (`KodamaMark`) instead of a grey "?". New `.talk-logo-mark` style; reduced-motion disables the breathe.
+- Available and Claimed reveals (Claim form / Drop-message form) keep the existing `SceneFade` fade-in/out + height transition beneath the stable address field.
+- Verified: build clean, 12/12 unit tests, browser screenshots of all three states.
+
 ## Backlog / Next (P1)
 - Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.
