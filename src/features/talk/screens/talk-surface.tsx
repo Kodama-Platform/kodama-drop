@@ -57,13 +57,14 @@ export function TalkSurface({ initialAddress }: { initialAddress?: string }) {
     initialAddress ? talkService.activeSession(initialAddress) : resumed,
   );
 
-  // Your Talk lives at its own URL — resume straight to talk.kodama.page/{you}.
+  // Your Talk lives at its own URL — whenever an owner session is active on the
+  // root route, reflect it as talk.kodama.page/{you}.
   useEffect(() => {
-    if (!initialAddress && resumed) {
-      void navigate({ to: "/$address", params: { address: resumed.address }, replace: true });
+    if (!initialAddress && session && address) {
+      void navigate({ to: "/$address", params: { address }, replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialAddress, session, address]);
   const [remembered, setRemembered] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [unlockOpen, setUnlockOpen] = useState(false);
@@ -122,8 +123,7 @@ export function TalkSurface({ initialAddress }: { initialAddress?: string }) {
     setUnlockOpen(false);
     setInput(s.address);
     setAddress(s.address);
-    // Reflect the owner's place in the URL: talk.kodama.page/{address}
-    void navigate({ to: "/$address", params: { address: s.address } });
+    // URL sync to /{address} is handled by the effect above (root route → place URL).
   };
   const openMyTalk = (slug: string) => {
     const s = talkService.activeSession(slug);
@@ -140,7 +140,7 @@ export function TalkSurface({ initialAddress }: { initialAddress?: string }) {
 
   // ── Owner Shelf (private) ──
   if (session && address) {
-    return <ShelfScreen session={session} onLock={lock} addressBar={bar} />;
+    return <ShelfScreen session={session} onLock={lock} />;
   }
 
   // ── No committed address: the dynamic address-field landing ──

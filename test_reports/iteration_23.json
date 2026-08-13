@@ -1,0 +1,18 @@
+{
+  "summary": "Verified owner-Shelf URL fix on preview. All 5 scenarios pass: (1) opt-in from landing → /alex, (2) auto-resume after sessionStorage.clear() → root redirects to /alex, (3) manual navigation back to '/' with active persisted session → redirects to /alex, (4) direct link /alex shows Shelf at /alex, (5) claiming brand-new 'my-cabin' (with Key Card acknowledgement) lands Shelf at /my-cabin. No console errors, no redirect loops observed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "TalkSurface effect useEffect deps intentionally omit navigate (eslint-disabled). Acceptable since navigate is stable from tanstack-router; leaving as-is." 
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "100% (5/5)"},
+  "test_credentials": "Owner unlock password 'secret' (any 4+ chars). New-claim password 'secret'/'secret'.",
+  "seed_data_creation": "None (mock service via localStorage; 'alex' seeded).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "URL-sync fix in src/features/talk/screens/talk-surface.tsx (useEffect at lines 62-67) works across unlock-from-landing, auto-resume (sessionStorage cleared, localStorage persisted), manual re-navigation to '/', direct-link, and claim flows. Key Card acknowledgement uses data-testid=key-card-sheet/key-card-ack/key-card-continue.",
+  "rca of the issue": "Previously the owner Shelf could remain on '/'. Fix: an effect in TalkSurface calls navigate({ to: '/$address', params: { address }, replace: true }) whenever !initialAddress && session && address. This runs on unlock, on mount when resumed session seeds address, and on any manual return to '/'. Verified end-to-end."
+}

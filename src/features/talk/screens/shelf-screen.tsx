@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
-import type { ReactNode } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Lock, Plus, Search, Send, Settings, Share2 } from "lucide-react";
 
 import type { Conversation, Drop, OwnerSession } from "@/features/talk/types";
 import { TALK } from "@/lib/brand";
 import { cn } from "@/lib/utils";
+import { normalizeSlug } from "@/lib/slug";
 import { TalkShell } from "@/features/talk/components/talk-shell";
 import { PlaceMark } from "@/features/talk/components/place-mark";
 import { StreamView } from "@/features/talk/components/stream-view";
@@ -22,24 +23,25 @@ import {
   SearchSheet,
 } from "@/features/talk/components/sheets";
 import { ShareDoorSheet } from "@/features/talk/components/share-door";
-import { LeaveDropSheet } from "@/features/talk/components/reach-cta";
 import { OwnerProvider, useOwner } from "@/features/talk/store/owner-context";
 import { markFor } from "@/features/talk/lib/mark";
 import { relativeTime } from "@/features/talk/lib/time";
 
-export function ShelfScreen({ session, onLock, addressBar }: { session: OwnerSession; onLock: () => void; addressBar?: ReactNode }) {
+export function ShelfScreen({ session, onLock }: { session: OwnerSession; onLock: () => void }) {
   return (
     <OwnerProvider session={session} onLock={onLock}>
-      <ShelfInner addressBar={addressBar} />
+      <ShelfInner />
     </OwnerProvider>
   );
 }
 
-function ShelfInner({ addressBar }: { addressBar?: ReactNode }) {
+function ShelfInner() {
   const { session, shelf, loading, refresh, lock } = useOwner();
+  const navigate = useNavigate();
   const [selected, setSelected] = useState<StreamItem | null>(null);
-  const [sheet, setSheet] = useState<null | "group" | "channel" | "settings" | "search" | "share" | "drop">(null);
+  const [sheet, setSheet] = useState<null | "group" | "channel" | "settings" | "search" | "share">(null);
   const [inviteConv, setInviteConv] = useState<Conversation | null>(null);
+  const [query, setQuery] = useState("");
 
   // One living stream — every kind of activity, newest first.
   const items = useMemo<StreamItem[]>(() => {
@@ -56,6 +58,27 @@ function ShelfInner({ addressBar }: { addressBar?: ReactNode }) {
     return [...convs, ...drops, ...sent].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
   }, [shelf]);
 
+  // The rail input doubles as a filter: narrow the stream as you type.
+  const q = query.trim().toLowerCase();
+  const filtered = useMemo<StreamItem[]>(() => {
+    if (!q) return items;
+    return items.filter((it) => {
+      if (it.type === "conversation") {
+        return it.conv.title.toLowerCase().includes(q)
+          || (it.conv.members ?? []).some((m) => (m.label ?? "").toLowerCase().includes(q) || (m.address ?? "").toLowerCase().includes(q));
+      }
+      if (it.type === "sent") return it.drop.toAddress.toLowerCase().includes(q);
+      const name = it.drop.origin === "anonymous" ? "anonymous" : it.drop.fromLabel.toLowerCase();
+      return name.includes(q) || (it.drop.fromAddress ?? "").toLowerCase().includes(q);
+    });
+  }, [items, q]);
+
+  const dropSlug = normalizeSlug(query.trim());
+  const drop = () => {
+    if (!dropSlug) return;
+    void navigate({ to: "/$address", params: { address: dropSlug } });
+  };
+
   const afterChange = async () => { await refresh(); };
   const openConv = (c: Conversation) => setSelected({ type: "conversation", at: c.lastMessageAt, conv: c });
 
@@ -70,7 +93,6 @@ function ShelfInner({ addressBar }: { addressBar?: ReactNode }) {
       fillViewport
       headerAction={
         <div className="flex items-center gap-2">
-          <button type="button" className="talk-pill !py-2 text-sm" onClick={() => setSheet("drop")} data-testid="open-leave-drop"><Send className="h-4 w-4" /> Drop</button>
           <button type="button" className="talk-pill !py-2 text-sm" onClick={() => setSheet("share")} data-testid="open-share"><Share2 className="h-4 w-4" /> Share</button>
           <button type="button" className="talk-pill !px-2.5 !py-2" onClick={() => setSheet("search")} aria-label="Search" data-testid="open-search"><Search className="h-4 w-4" /></button>
           <button type="button" className="talk-pill !px-2.5 !py-2" onClick={() => setSheet("settings")} aria-label="Settings" data-testid="open-settings"><Settings className="h-4 w-4" /></button>
@@ -81,7 +103,6 @@ function ShelfInner({ addressBar }: { addressBar?: ReactNode }) {
       <div className="talk-enter mx-auto flex min-h-0 w-full max-w-6xl flex-1 gap-0 px-0 sm:px-4">
         {/* Left shelf rail — the living stream */}
         <aside className={cn("relative z-10 flex w-full max-w-full shrink-0 flex-col border-r border-border/50 sm:w-[19rem] lg:w-[21rem]", selected && "hidden sm:flex")} data-testid="shelf-rail">
-          {addressBar && <div className="px-4 pt-4">{addressBar}</div>}
           <div className="flex items-center gap-3 px-4 pb-3 pt-4">
             <PlaceMark mark={markFor(session.displayName, session.address)} size={44} />
             <div className="min-w-0">
@@ -89,6 +110,37 @@ function ShelfInner({ addressBar }: { addressBar?: ReactNode }) {
               <p className="talk-display truncate text-lg leading-tight text-foreground">{session.displayName}</p>
               <p className="truncate font-mono text-[0.7rem] text-primary">{TALK.domain}/{session.address}</p>
             </div>
+          </div>
+
+          {/* Filter the stream, or drop a message to any address */}
+          <div className="px-4 pb-2">
+            <div className="talk-plaque flex items-center gap-2 !py-2">
+              <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground/55" strokeWidth={1.75} aria-hidden="true" />
+              <input
+                className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/50"
+                placeholder="Filter, or drop a message to…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && drop()}
+                spellCheck={false}
+                autoComplete="off"
+                data-testid="shelf-filter-input"
+              />
+              <button
+                type="button"
+                className="btn-moss shrink-0 !px-3 !py-1.5 text-xs disabled:opacity-40"
+                onClick={drop}
+                disabled={!dropSlug}
+                data-testid="shelf-drop-btn"
+              >
+                <Send className="h-3.5 w-3.5" /> Drop
+              </button>
+            </div>
+            {q && filtered.length === 0 && (
+              <p className="mt-1.5 px-1 text-[0.7rem] font-light text-muted-foreground" data-testid="shelf-filter-empty">
+                No matches — press Drop to reach {TALK.domain}/{dropSlug}
+              </p>
+            )}
           </div>
 
           {/* Quiet secondary actions — start something new */}
@@ -105,7 +157,7 @@ function ShelfInner({ addressBar }: { addressBar?: ReactNode }) {
           <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-6" data-testid="shelf-stream">
             {loading ? (
               <TalkLoading label="Opening your shelf…" />
-            ) : items.length === 0 ? (
+            ) : filtered.length === 0 && !q ? (
               <TalkEmpty
                 title="Your place is quiet"
                 body="When someone leaves you a Drop — or you start a group or channel — it appears here, newest first."
@@ -117,7 +169,7 @@ function ShelfInner({ addressBar }: { addressBar?: ReactNode }) {
               />
             ) : (
               <div className="space-y-0.5 py-1">
-                {items.map((it) => (
+                {filtered.map((it) => (
                   <StreamItemRow
                     key={it.type === "conversation" ? `c-${it.conv.id}` : `${it.type}-${it.drop.id}`}
                     item={it}
@@ -164,7 +216,6 @@ function ShelfInner({ addressBar }: { addressBar?: ReactNode }) {
       <SearchSheet open={sheet === "search"} onOpenChange={(o) => !o && setSheet(null)} address={session.address} onOpen={openConv} />
       <InviteSheet open={!!inviteConv} onOpenChange={(o) => !o && setInviteConv(null)} conversation={inviteConv} />
       <ShareDoorSheet open={sheet === "share"} onOpenChange={(o) => !o && setSheet(null)} address={session.address} />
-      <LeaveDropSheet open={sheet === "drop"} onOpenChange={(o) => !o && setSheet(null)} />
     </TalkShell>
   );
 }

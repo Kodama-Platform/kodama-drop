@@ -160,6 +160,12 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Available and Claimed reveals (Claim form / Drop-message form) keep the existing `SceneFade` fade-in/out + height transition beneath the stable address field.
 - Verified: build clean, 12/12 unit tests, browser screenshots of all three states.
 
+## Update (2026-06, iteration 24) — Shelf filter + Drop input
+- Added a combined input box at the top of the Shelf rail: it **filters the stream live** (matches conversation titles, group/channel member names/addresses, incoming-drop senders, and sent-to addresses) — e.g. typing "mara" narrows to Mara's Direct Talk, the sent-to-mara drop, the incoming Mara drop, and the Design Team group (member match).
+- The input's CTA is captioned **"Drop"** (not "Open"); clicking it or pressing Enter navigates to `talk.kodama.page/{typed}` to leave a Drop. Removed the now-redundant header Drop sheet button.
+- Also verified earlier (iteration 23, 100%): owner Shelf URL always reflects the place (`/alex`) across unlock/auto-resume/manual-nav/claim.
+- Verified: build + 12/12 unit tests + testing agent iteration_24 (7/7 flows, 100%, no console errors).
+
 ## Backlog / Next (P1)
 - Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.

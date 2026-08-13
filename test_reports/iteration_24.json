@@ -1,0 +1,19 @@
+{
+  "summary": "Verified the new combined filter+Drop input on the Shelf rail. Owner login via /alex + password 'secret' succeeds. shelf-filter-input and shelf-drop-btn are present; old header 'open-leave-drop' is gone. Full stream shows 13 items; typing 'mara' narrows to 4 correct items including the Mara Direct conv, sent-to-mara drop, incoming Mara drop, and 'Design Team' group (member match). Clearing restores 13. Selecting a filtered item opens shelf-main. Drop button label reads 'Drop'; clicking it with 'mara' typed navigates to /mara; pressing Enter in the input does the same. No page errors observed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a", "frontend": "100%"},
+  "test_credentials": "Owner /alex, unlock password 'secret'",
+  "seed_data_creation": "None (mock localStorage)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All 7 acceptance criteria verified via Playwright against preview URL. Filter matching includes group members. Drop CTA uses normalizeSlug(query) and both click and Enter navigate to /{slug}."
+}
