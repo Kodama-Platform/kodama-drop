@@ -166,6 +166,11 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Also verified earlier (iteration 23, 100%): owner Shelf URL always reflects the place (`/alex`) across unlock/auto-resume/manual-nav/claim.
 - Verified: build + 12/12 unit tests + testing agent iteration_24 (7/7 flows, 100%, no console errors).
 
+## Update (2026-06) — Logo → Landing
+- Clicking the Kodama logo (header, `talk-shell.tsx`) now reaches the landing address-entry surface even when a Talk is remembered (previously bounced straight back to the Shelf via auto-resume).
+- Mechanism: home `Link` carries router `state={{ fresh: true }}`; `talk-surface.tsx` reads it via `useLocation` and skips the last-opened auto-resume for that one visit. A plain page refresh still auto-resumes. Session stays remembered (option a — non-destructive).
+- Verified: 158/158 unit tests + browser flow (unlock alex → Shelf `/alex` → logo → `/` landing, shelf-rail gone).
+
 ## Backlog / Next (P1)
 - Wire real zero-knowledge via `talk-security-adapter` + a `RemoteTalkService` (replace the one boundary).
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.

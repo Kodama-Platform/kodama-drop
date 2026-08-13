@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import { KeyRound, Loader2, Sparkles } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -48,8 +48,11 @@ function extractAddress(raw: string): string {
  */
 export function TalkSurface({ initialAddress }: { initialAddress?: string }) {
   const navigate = useNavigate();
+  // An explicit logo/home click asks for the landing — skip auto-resume this
+  // visit (a plain refresh still resumes the kept Talk).
+  const fresh = useLocation({ select: (l) => Boolean((l.state as { fresh?: boolean } | undefined)?.fresh) });
   // At the root (no direct link), resume the last opted-in Talk if one is kept.
-  const resumed = initialAddress ? null : talkService.lastOpenedTalk();
+  const resumed = initialAddress || fresh ? null : talkService.lastOpenedTalk();
   const [input, setInput] = useState(initialAddress ?? resumed?.address ?? "");
   const [address, setAddress] = useState<string | null>(initialAddress ?? resumed?.address ?? null);
   const [place, setPlace] = useState<Place | null | undefined>(undefined);

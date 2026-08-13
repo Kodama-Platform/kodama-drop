@@ -44,7 +44,7 @@ export function TalkShell({
       <div className={`relative z-10 flex flex-col ${fillViewport ? "h-full min-h-0" : "min-h-screen"}`}>
         {showHeader && (
           <header className="flex items-center justify-between px-5 py-4 sm:px-8">
-            <Link to="/" className="group inline-flex items-center gap-2.5" data-testid="talk-home-link">
+            <Link to="/" state={{ fresh: true } as never} className="group inline-flex items-center gap-2.5" data-testid="talk-home-link">
               <KodamaMark size={26} />
               <span className="flex items-baseline gap-1.5">
                 <span className="font-display text-lg font-medium tracking-tight text-foreground">
