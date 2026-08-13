@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Lock, Plus, Search, Send, Settings, Share2 } from "lucide-react";
+import { ArrowLeft, Loader2, Lock, MessageSquare, Plus, Search, Send, Settings, Share2 } from "lucide-react";
 import { toast } from "sonner";
 
 import type { Attachment, Conversation, Drop, OwnerSession, Place } from "@/features/talk/types";
@@ -223,7 +223,11 @@ function ShelfInner() {
               onResolved={() => { void afterChange(); setSelected(null); }}
             />
           ) : selected?.type === "sent" ? (
-            <SentDetail drop={selected.drop} onBack={() => setSelected(null)} />
+            <SentDetail
+              drop={selected.drop}
+              onBack={() => setSelected(null)}
+              onOpenConversation={(c) => { void afterChange(); openConv(c); }}
+            />
           ) : (
             <div className="pointer-events-none flex h-full items-center justify-center p-6">
               <TalkEmpty
@@ -264,8 +268,29 @@ function DropDetail({ drop, onBack, onOpenConversation, onResolved }: {
   );
 }
 
-/** A Drop you sent to someone else's door — read-only. */
-function SentDetail({ drop, onBack }: { drop: Drop; onBack: () => void }) {
+/** A Drop you sent to someone else's door. Once they reply it rolls into a Direct Talk. */
+function SentDetail({ drop, onBack, onOpenConversation }: {
+  drop: Drop;
+  onBack: () => void;
+  onOpenConversation: (c: Conversation) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const fn = firstName(drop.toAddress);
+
+  const openTalk = async () => {
+    setBusy(true);
+    try {
+      const conv = await talkService.continueSentDrop(drop.id);
+      onOpenConversation(conv);
+    } catch {
+      toast.error("Couldn't open the Talk");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const linked = !!drop.conversationId || drop.status === "accepted";
+
   return (
     <div className="flex h-full flex-col" data-testid="sent-detail">
       <DetailHeader onBack={onBack} label="You left this" title={`${TALK.domain}/${drop.toAddress}`} />
@@ -286,6 +311,25 @@ function SentDetail({ drop, onBack }: { drop: Drop; onBack: () => void }) {
             </div>
             {drop.subject && <p className="mt-4 talk-display text-lg text-foreground">{drop.subject}</p>}
             <Markdown text={drop.body} className="md mt-2 break-words text-sm font-light leading-relaxed text-foreground/90" />
+          </div>
+
+          {/* The note keeps going — a reply rolls this Drop into a Direct Talk. */}
+          <div className="mt-4 flex flex-col items-center gap-2 text-center" data-testid="sent-continue">
+            <p className="max-w-sm text-sm font-light leading-relaxed text-muted-foreground">
+              {linked
+                ? `${fn} replied — your note is now a Direct Talk.`
+                : `When ${fn} replies, your note keeps going here as a Direct Talk.`}
+            </p>
+            <button
+              type="button"
+              className="btn-moss justify-center disabled:opacity-50"
+              onClick={openTalk}
+              disabled={busy}
+              data-testid="sent-open-talk"
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
+              {linked ? "Open the Talk" : "See it continue"}
+            </button>
           </div>
         </div>
       </div>

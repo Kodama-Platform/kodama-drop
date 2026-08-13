@@ -166,6 +166,11 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Also verified earlier (iteration 23, 100%): owner Shelf URL always reflects the place (`/alex`) across unlock/auto-resume/manual-nav/claim.
 - Verified: build + 12/12 unit tests + testing agent iteration_24 (7/7 flows, 100%, no console errors).
 
+## Update (2026-06) — Reply Continues (sent Drop → Direct Talk)
+- A Drop you sent is no longer a read-only dead-end. Opening it shows a "See it continue" action that rolls it into a **Direct Talk**: your original note becomes the first fragment and their reply continues it, seeded in one thread the "Leave a message…" composer can keep going.
+- New `TalkService.continueSentDrop(dropId)` (mock: `mock-talk-service.ts`) creates the `direct` conversation on your place, links `drop.conversationId`, marks the Drop `accepted`, and returns it. Once linked, the sent Drop shows "Open the Talk".
+- UI: `SentDetail` in `shelf-screen.tsx` (testids `sent-continue`, `sent-open-talk`). Verified live (open sent drop → continue → thread with note + reply + composer).
+
 ## Update (2026-06) — Inline Drop compose (no form / no page change)
 - "Drop" (rail input + button) no longer routes to the public Door form. It now opens a compose-ready pane in the Shelf's **main panel** (`ComposeDrop` in `shelf-screen.tsx`): recipient place mark + name + the same conversation composer (`DropComposer`, CTA "Drop", images allowed).
 - Sending posts `talkService.sendDrop({ origin: "place", fromAddress = you })`, toasts "Left at talk.kodama.page/{addr}", closes the pane, clears the filter, and the new sent Drop lands at the top of the stream. No navigation (URL stays `/{you}`), no modal.

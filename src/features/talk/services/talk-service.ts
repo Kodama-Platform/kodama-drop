@@ -51,6 +51,8 @@ export interface TalkService {
 
   /* Drops */
   replyToDrop(dropId: string, body: string): Promise<Conversation>;
+  /** A Drop you sent rolls into a Direct Talk once they reply — the note keeps going. */
+  continueSentDrop(dropId: string): Promise<Conversation>;
   declineDrop(dropId: string): Promise<void>;
   blockDrop(dropId: string): Promise<void>;
 

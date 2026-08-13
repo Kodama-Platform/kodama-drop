@@ -319,6 +319,46 @@ export class MockTalkService implements TalkService {
     return delay(conv);
   }
 
+  async continueSentDrop(dropId: string): Promise<Conversation> {
+    const drop = this.state.sent.find((d) => d.id === dropId);
+    if (!drop) throw new Error("not_found");
+    const existing = drop.conversationId ? this.conv(drop.conversationId) : undefined;
+    if (existing) return delay(existing);
+
+    const me = drop.fromAddress ?? "you";
+    const place = this.state.places.find((p) => p.address === drop.toAddress && p.claimed);
+    const theirLabel = place?.displayName ?? drop.toAddress;
+    const now = new Date().toISOString();
+    const conv: Conversation = {
+      id: uid("conv"),
+      kind: "direct",
+      placeAddress: me,
+      title: theirLabel,
+      subtitle: `talk.kodama.page/${drop.toAddress}`,
+      mark: markFor(theirLabel, drop.toAddress),
+      members: [member(me), member(theirLabel, "member", drop.toAddress)],
+      lastMessagePreview: "",
+      lastMessageAt: now,
+      unreadCount: 1,
+      pinned: false,
+      muted: false,
+      state: "active",
+      protocolVersion: P,
+    };
+    // The note keeps going: your original Drop is the first fragment; their reply follows.
+    const reply = "Got your note — let's keep it going here.";
+    this.state.messages[conv.id] = [
+      seedMsg(uid("m"), conv.id, "You", true, drop.body, drop.createdAt),
+      seedMsg(uid("m"), conv.id, theirLabel, false, reply, now),
+    ];
+    conv.lastMessagePreview = reply;
+    this.state.conversations = [conv, ...this.state.conversations];
+    drop.conversationId = conv.id;
+    drop.status = "accepted";
+    this.persist();
+    return delay(conv);
+  }
+
   async declineDrop(dropId: string): Promise<void> {
     const drop = this.state.incoming.find((d) => d.id === dropId);
     if (drop) drop.status = "declined";
