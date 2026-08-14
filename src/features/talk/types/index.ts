@@ -124,6 +124,8 @@ export interface Conversation {
   replyPolicy?: ChannelReplyPolicy;
   /** Channel URL segment — address is `${placeAddress}/${channelSlug}`. */
   channelSlug?: string;
+  /** True when this Direct Talk grew out of a Drop — used to gently nudge replies. */
+  bornFromDrop?: boolean;
   protocolVersion: TalkProtocolVersion;
 }
 

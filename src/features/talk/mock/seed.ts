@@ -145,6 +145,7 @@ export const SEED_CONVERSATIONS: Conversation[] = [
     pinned: false,
     muted: false,
     state: "active",
+    bornFromDrop: true,
     protocolVersion: P,
   },
   {

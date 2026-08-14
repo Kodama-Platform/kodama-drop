@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Loader2, Lock, MessageSquare, Plus, Search, Send, Settings, Share2 } from "lucide-react";
+import { ArrowLeft, CornerDownLeft, Loader2, Lock, MessageSquare, Plus, Search, Send, Settings, Share2 } from "lucide-react";
 import { toast } from "sonner";
 
 import type { Attachment, Conversation, Drop, OwnerSession, Place } from "@/features/talk/types";
@@ -42,6 +42,7 @@ function ShelfInner() {
   const [selected, setSelected] = useState<StreamItem | null>(null);
   const [composeTo, setComposeTo] = useState<string | null>(null);
   const [composePlace, setComposePlace] = useState<Place | null | undefined>(undefined);
+  const [seenReplies, setSeenReplies] = useState<Set<string>>(() => new Set());
   const [sheet, setSheet] = useState<null | "group" | "channel" | "settings" | "search" | "share">(null);
   const [inviteConv, setInviteConv] = useState<Conversation | null>(null);
   const [query, setQuery] = useState("");
@@ -94,8 +95,21 @@ function ShelfInner() {
   }, [composeTo]);
 
   const afterChange = async () => { await refresh(); };
-  const openConv = (c: Conversation) => { setComposeTo(null); setSelected({ type: "conversation", at: c.lastMessageAt, conv: c }); };
-  const openItem = (it: StreamItem) => { setComposeTo(null); setSelected(it); };
+  const markReplySeen = (c: Conversation) => {
+    if (c.bornFromDrop) setSeenReplies((s) => (s.has(c.id) ? s : new Set(s).add(c.id)));
+  };
+  const openConv = (c: Conversation) => { markReplySeen(c); setComposeTo(null); setSelected({ type: "conversation", at: c.lastMessageAt, conv: c }); };
+  const openItem = (it: StreamItem) => { if (it.type === "conversation") markReplySeen(it.conv); setComposeTo(null); setSelected(it); };
+
+  // Gentle nudge: replies that came back from your Drops, newest first — so none slip past.
+  const replies = useMemo(
+    () =>
+      items
+        .filter((it): it is Extract<StreamItem, { type: "conversation" }> =>
+          it.type === "conversation" && !!it.conv.bornFromDrop && it.conv.unreadCount > 0 && !seenReplies.has(it.conv.id))
+        .map((it) => it.conv),
+    [items, seenReplies],
+  );
 
   const isActive = (it: StreamItem) => {
     if (!selected || selected.type !== it.type) return false;
@@ -170,6 +184,24 @@ function ShelfInner() {
             </button>
           </div>
           <div className="mx-4 mb-1 h-px bg-border/50" />
+
+          {/* Unread nudge — a reply came back from a Drop you left; don't let it slip past. */}
+          {!q && replies.length > 0 && (
+            <button
+              type="button"
+              className="mx-3 mb-1.5 flex items-center gap-2 rounded-xl border border-primary/25 bg-primary/8 px-3 py-2 text-left transition-colors hover:border-primary/45 hover:bg-primary/12"
+              onClick={() => openConv(replies[0])}
+              data-testid="reply-nudge"
+            >
+              <span className="talk-firefly-dot shrink-0" aria-hidden="true" />
+              <CornerDownLeft className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={1.75} aria-hidden="true" />
+              <span className="min-w-0 flex-1 truncate text-[0.8rem] font-light text-foreground">
+                {replies.length === 1
+                  ? <><span className="text-primary">{replies[0].title}</span> replied to your Drop</>
+                  : <><span className="text-primary">{replies.length} replies</span> came back from your Drops</>}
+              </span>
+            </button>
+          )}
 
           <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-6" data-testid="shelf-stream">
             {loading ? (

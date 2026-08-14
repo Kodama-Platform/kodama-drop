@@ -166,6 +166,11 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Also verified earlier (iteration 23, 100%): owner Shelf URL always reflects the place (`/alex`) across unlock/auto-resume/manual-nav/claim.
 - Verified: build + 12/12 unit tests + testing agent iteration_24 (7/7 flows, 100%, no console errors).
 
+## Update (2026-06) — Unread Nudge (reply that came back)
+- Direct Talks that grew out of a Drop now carry a `bornFromDrop` flag (`Conversation` type; set in `continueSentDrop` and `replyToDrop`; seeded on `conv-devon`).
+- Shelf shows a gentle jade nudge pill above the stream when such a Talk has unread replies: "{name} replied to your Drop" (or "{n} replies came back from your Drops"). Tapping opens the newest one; it clears immediately via a session `seenReplies` set so it never lingers after you've looked. Hidden while filtering. Testid `reply-nudge`.
+- Verified live (nudge shows on load → opens Devon's Talk → clears) + 158/158 unit tests.
+
 ## Update (2026-06) — Reply Continues (sent Drop → Direct Talk)
 - A Drop you sent is no longer a read-only dead-end. Opening it shows a "See it continue" action that rolls it into a **Direct Talk**: your original note becomes the first fragment and their reply continues it, seeded in one thread the "Leave a message…" composer can keep going.
 - New `TalkService.continueSentDrop(dropId)` (mock: `mock-talk-service.ts`) creates the `direct` conversation on your place, links `drop.conversationId`, marks the Drop `accepted`, and returns it. Once linked, the sent Drop shows "Open the Talk".

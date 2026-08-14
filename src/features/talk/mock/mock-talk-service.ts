@@ -299,6 +299,7 @@ export class MockTalkService implements TalkService {
         pinned: false,
         muted: false,
         state: "active",
+        bornFromDrop: true,
         protocolVersion: P,
       };
       this.state.conversations = [conv, ...this.state.conversations];
@@ -345,6 +346,7 @@ export class MockTalkService implements TalkService {
       pinned: false,
       muted: false,
       state: "active",
+      bornFromDrop: true,
       protocolVersion: P,
     };
     // The note keeps going: your original Drop is the first fragment; their reply follows.
