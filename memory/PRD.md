@@ -166,6 +166,9 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Also verified earlier (iteration 23, 100%): owner Shelf URL always reflects the place (`/alex`) across unlock/auto-resume/manual-nav/claim.
 - Verified: build + 12/12 unit tests + testing agent iteration_24 (7/7 flows, 100%, no console errors).
 
+## Update (2026-06) — Trail message contrast (dark mode)
+- Own vs others' fragments were near-identical on the dark background. Strengthened `.trail-fragment--out` (green tint + solid `--primary` left bar) and `.trail-fragment--in` (neutral `--muted` raised card), with `.dark` overrides bumping opacity. Clear distinction now in both themes (CSS only, `talk.css`).
+
 ## Update (2026-06) — Send identity, Drop→conversation, address in header
 - **Send identity options**: the conversation composer's Send is now a split button. Primary = Send from your place (talk.kodama.page/you); a chevron menu adds "Send as {display name}" and "Send anonymously". `DropComposer` gained `identityOptions`/`senderAddress`/`senderName`; `onSend` passes a `DropOrigin`. `sendMessage`/`Message` carry `origin` + `fromLabel`; a fragment shows "You · anonymously" / "You · as {name}". Enabled in `StreamView` (uses `useOwner()` for identity).
 - **Drop opens a conversation, not a Drop pane**: the search-bar Drop now opens the person's Direct Talk via new `talkService.getOrCreateDirect(owner, toAddress)` — existing one if present, else a fresh empty Direct Talk that persists in the stream. Removed the old `ComposeDrop` pane.

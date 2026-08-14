@@ -744,14 +744,22 @@
   color: rgb(var(--foreground));
 }
 .trail-fragment--in {
-  background: rgb(var(--card) / 0.72);
-  border: 1px solid rgb(var(--border) / 0.6);
+  background: rgb(var(--muted) / 0.55);
+  border: 1px solid rgb(var(--border) / 0.85);
   border-left: 2px solid rgb(var(--border));
 }
 .trail-fragment--out {
-  background: rgb(var(--primary) / 0.06);
-  border: 1px solid rgb(var(--primary) / 0.18);
-  border-left: 2px solid rgb(var(--primary) / 0.5);
+  background: rgb(var(--primary) / 0.16);
+  border: 1px solid rgb(var(--primary) / 0.4);
+  border-left: 3px solid rgb(var(--primary));
+}
+.dark .trail-fragment--in {
+  background: rgb(var(--muted) / 0.7);
+  border-color: rgb(var(--border));
+}
+.dark .trail-fragment--out {
+  background: rgb(var(--primary) / 0.22);
+  border-color: rgb(var(--primary) / 0.55);
 }
 
 .trail-echo {
