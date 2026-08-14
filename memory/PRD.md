@@ -166,6 +166,12 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Also verified earlier (iteration 23, 100%): owner Shelf URL always reflects the place (`/alex`) across unlock/auto-resume/manual-nav/claim.
 - Verified: build + 12/12 unit tests + testing agent iteration_24 (7/7 flows, 100%, no console errors).
 
+## Update (2026-06) — One thread per person (merge Drops + Direct Talk)
+- Everything with the same person now collapses into a single stream row and one combined trail. `MockTalkService.mergeThreads(a)` (run idempotently at the top of `getShelf`) folds non-anonymous incoming Drops and place-origin sent Drops into that person's Direct Talk — deduped by body — ordered by time, then removes the redundant standalone Drop rows.
+- Matching: by Talk address when known, else by name (so a named "Devon" Drop merges with the "Devon" Talk). Creates a Direct Talk on the fly for a person who doesn't have one yet (`bornFromDrop`).
+- Left separate by design: Groups, Channels, and truly Anonymous Drops (incoming and sent) — no identity to merge on.
+- Verified live (Mara's 4 items → 1 row whose trail holds the Drop + sent + Talk messages, no dupes) + 158/158 unit tests.
+
 ## Update (2026-06) — Unread Nudge (reply that came back)
 - Direct Talks that grew out of a Drop now carry a `bornFromDrop` flag (`Conversation` type; set in `continueSentDrop` and `replyToDrop`; seeded on `conv-devon`).
 - Shelf shows a gentle jade nudge pill above the stream when such a Talk has unread replies: "{name} replied to your Drop" (or "{n} replies came back from your Drops"). Tapping opens the newest one; it clears immediately via a session `seenReplies` set so it never lingers after you've looked. Hidden while filtering. Testid `reply-nudge`.

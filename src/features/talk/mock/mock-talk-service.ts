@@ -246,8 +246,104 @@ export class MockTalkService implements TalkService {
     this.endSession(address);
   }
 
+  /**
+   * Everything with one person lives in one thread. Fold non-anonymous incoming
+   * Drops and place-origin sent Drops into that person's Direct Talk (deduped by
+   * body), then drop the redundant standalone Drop entries. Idempotent.
+   */
+  private mergeThreads(a: TalkAddress): void {
+    const norm = (s?: string) => (s ?? "").trim().toLowerCase();
+
+    const foldIncoming = this.state.incoming.filter((d) => d.toAddress === a && d.origin !== "anonymous");
+    const foldSent = this.state.sent.filter((d) => d.fromAddress === a && d.origin === "place");
+    if (!foldIncoming.length && !foldSent.length) return;
+
+    // Index existing Direct Talks by their counterpart (address, else name).
+    const byKey = new Map<string, Conversation>();
+    for (const c of this.state.conversations) {
+      if (c.placeAddress !== a || c.kind !== "direct") continue;
+      const other = c.members.find((m) => m.role !== "owner");
+      const k = norm(other?.address ?? other?.label ?? c.title);
+      if (k && !byKey.has(k)) byKey.set(k, c);
+    }
+
+    const touched = new Set<string>();
+    const ensureConv = (key: string, address: string | undefined, label: string): Conversation => {
+      const existing = byKey.get(key);
+      if (existing) return existing;
+      const conv: Conversation = {
+        id: uid("conv"),
+        kind: "direct",
+        placeAddress: a,
+        title: label,
+        subtitle: address ? `talk.kodama.page/${address}` : "from a Drop",
+        mark: markFor(label, address ?? key),
+        members: [member(a), member(label, "member", address)],
+        lastMessagePreview: "",
+        lastMessageAt: new Date(0).toISOString(),
+        unreadCount: 0,
+        pinned: false,
+        muted: false,
+        state: "active",
+        bornFromDrop: true,
+        protocolVersion: P,
+      };
+      this.state.conversations = [conv, ...this.state.conversations];
+      byKey.set(key, conv);
+      return conv;
+    };
+
+    const foldDrop = (drop: Drop, key: string, address: string | undefined, label: string, fromOwner: boolean) => {
+      const conv = ensureConv(key, address, label);
+      const msgs = this.state.messages[conv.id] ?? (this.state.messages[conv.id] = []);
+      if (!msgs.some((m) => m.body === drop.body && !!m.fromOwner === fromOwner)) {
+        msgs.push({
+          id: `dm-${drop.id}`,
+          conversationId: conv.id,
+          authorLabel: fromOwner ? "You" : label,
+          fromOwner,
+          body: drop.body,
+          attachments: drop.attachments ?? [],
+          reactions: [],
+          createdAt: drop.createdAt,
+          privacy: PLANNED_PRIVATE,
+          protocolVersion: P,
+        });
+      }
+      drop.conversationId = conv.id;
+      touched.add(conv.id);
+    };
+
+    for (const d of foldIncoming) {
+      const address = d.fromAddress;
+      foldDrop(d, norm(address ?? d.fromLabel), address, d.fromLabel || address || "Someone", false);
+    }
+    for (const d of foldSent) {
+      const place = this.state.places.find((p) => p.address === d.toAddress && p.claimed);
+      foldDrop(d, norm(d.toAddress), d.toAddress, place?.displayName ?? d.toAddress, true);
+    }
+
+    // Keep each touched thread in time order and refresh its last-message summary.
+    for (const id of touched) {
+      const msgs = (this.state.messages[id] ?? []).slice().sort((x, y) => Date.parse(x.createdAt) - Date.parse(y.createdAt));
+      this.state.messages[id] = msgs;
+      const conv = this.conv(id);
+      const last = msgs[msgs.length - 1];
+      if (conv && last) {
+        conv.lastMessagePreview = last.body;
+        conv.lastMessageAt = last.createdAt;
+      }
+    }
+
+    // The Drops now live inside their threads — remove the redundant standalone rows.
+    this.state.incoming = this.state.incoming.filter((d) => !(d.toAddress === a && d.origin !== "anonymous"));
+    this.state.sent = this.state.sent.filter((d) => !(d.fromAddress === a && d.origin === "place"));
+    this.persist();
+  }
+
   async getShelf(session: OwnerSession): Promise<Shelf> {
     const a = session.address;
+    this.mergeThreads(a);
     const mine = this.state.conversations.filter((c) => c.placeAddress === a && c.state !== "archived");
     return delay({
       address: a,
