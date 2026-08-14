@@ -164,6 +164,8 @@ export interface Message {
   replyTo?: ThreadReference;
   createdAt: string;
   privacy: PrivacyStatus;
+  /** How the owner signed this message: place (default), anonymous, or named. */
+  origin?: DropOrigin;
   protocolVersion: TalkProtocolVersion;
 }
 
@@ -226,6 +228,10 @@ export interface SendMessageInput {
   body: string;
   replyTo?: ThreadReference;
   attachments?: Attachment[];
+  /** How you signed this message — from your place (default), anonymously, or by name. */
+  origin?: DropOrigin;
+  /** Display name to show when origin is "named". */
+  fromLabel?: string;
 }
 
 export interface ClaimAddressInput {

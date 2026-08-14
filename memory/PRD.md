@@ -166,6 +166,12 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Also verified earlier (iteration 23, 100%): owner Shelf URL always reflects the place (`/alex`) across unlock/auto-resume/manual-nav/claim.
 - Verified: build + 12/12 unit tests + testing agent iteration_24 (7/7 flows, 100%, no console errors).
 
+## Update (2026-06) — Send identity, Drop→conversation, address in header
+- **Send identity options**: the conversation composer's Send is now a split button. Primary = Send from your place (talk.kodama.page/you); a chevron menu adds "Send as {display name}" and "Send anonymously". `DropComposer` gained `identityOptions`/`senderAddress`/`senderName`; `onSend` passes a `DropOrigin`. `sendMessage`/`Message` carry `origin` + `fromLabel`; a fragment shows "You · anonymously" / "You · as {name}". Enabled in `StreamView` (uses `useOwner()` for identity).
+- **Drop opens a conversation, not a Drop pane**: the search-bar Drop now opens the person's Direct Talk via new `talkService.getOrCreateDirect(owner, toAddress)` — existing one if present, else a fresh empty Direct Talk that persists in the stream. Removed the old `ComposeDrop` pane.
+- **Counterparty address in header**: Direct Talk header shows `talk.kodama.page/{address}` under the name (via `directAddress()`), matching groups/channels. (Header only, per choice.)
+- Verified live (identity menu + anonymous fragment, drop→existing Mara, drop→new nadia, header addresses) + 158/158 unit tests.
+
 ## Update (2026-06) — One thread per person (merge Drops + Direct Talk)
 - Everything with the same person now collapses into a single stream row and one combined trail. `MockTalkService.mergeThreads(a)` (run idempotently at the top of `getShelf`) folds non-anonymous incoming Drops and place-origin sent Drops into that person's Direct Talk — deduped by body — ordered by time, then removes the redundant standalone Drop rows.
 - Matching: by Talk address when known, else by name (so a named "Devon" Drop merges with the "Devon" Talk). Creates a Direct Talk on the fly for a person who doesn't have one yet (`bornFromDrop`).

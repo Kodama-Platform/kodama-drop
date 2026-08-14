@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { ImagePlus, Loader2, Send, X } from "lucide-react";
+import { ChevronDown, EyeOff, ImagePlus, Loader2, MapPin, Send, UserRound, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import type { Attachment } from "@/features/talk/types";
+import type { Attachment, DropOrigin } from "@/features/talk/types";
 import { Markdown } from "@/features/talk/lib/markdown";
 import { fileToKeepsake } from "@/features/talk/lib/image";
 import { talkService } from "@/features/talk/services";
@@ -18,6 +18,9 @@ export function DropComposer({
   cta = "Send",
   attachments = [],
   allowImages = false,
+  identityOptions = false,
+  senderAddress,
+  senderName,
   onSend,
   className,
   draftKey,
@@ -29,7 +32,10 @@ export function DropComposer({
   cta?: string;
   attachments?: Attachment[];
   allowImages?: boolean;
-  onSend: (body: string, fromLabel?: string, keepsakes?: Attachment[]) => void;
+  identityOptions?: boolean;
+  senderAddress?: string;
+  senderName?: string;
+  onSend: (body: string, fromLabel?: string, keepsakes?: Attachment[], origin?: DropOrigin) => void;
   className?: string;
   draftKey?: string;
 }) {
@@ -37,6 +43,7 @@ export function DropComposer({
   const [label, setLabel] = useState("");
   const [preview, setPreview] = useState(false);
   const [picked, setPicked] = useState<Attachment[]>([]);
+  const [menu, setMenu] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Switching conversations: load that conversation's saved draft.
@@ -71,13 +78,17 @@ export function DropComposer({
     }
   };
 
-  const submit = () => {
+  const submit = (origin: DropOrigin = "place") => {
     if (!canSubmit || busy) return;
-    onSend(body.trim(), showLabel ? label.trim() || undefined : undefined, picked.length ? picked : undefined);
+    const fromLabel = origin === "named"
+      ? (senderName?.trim() || undefined)
+      : showLabel ? (label.trim() || undefined) : undefined;
+    onSend(body.trim(), fromLabel, picked.length ? picked : undefined, origin);
     if (draftKey) talkService.saveDraft(draftKey, "");
     setBody("");
     setPreview(false);
     setPicked([]);
+    setMenu(false);
   };
 
   return (
@@ -105,7 +116,7 @@ export function DropComposer({
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              submit();
+              submit("place");
             }
           }}
           data-testid="drop-composer-field"
@@ -175,21 +186,80 @@ export function DropComposer({
             </span>
           )}
         </div>
-        <button
-          type="button"
-          className="btn-moss !px-4 !py-2 text-sm disabled:opacity-50"
-          onClick={submit}
-          disabled={busy || !canSubmit}
-          data-testid="drop-composer-send"
-        >
-          {busy ? (
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-          ) : (
-            <Send className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-          )}
-          {cta}
-        </button>
+        {identityOptions ? (
+          <div className="relative flex items-center">
+            <button
+              type="button"
+              className="btn-moss !rounded-r-none !px-4 !py-2 text-sm disabled:opacity-50"
+              onClick={() => submit("place")}
+              disabled={busy || !canSubmit}
+              data-testid="drop-composer-send"
+              title={senderAddress ? `Send from talk.kodama.page/${senderAddress}` : "Send from your place"}
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Send className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />}
+              {cta}
+            </button>
+            <button
+              type="button"
+              className="btn-moss !rounded-l-none !border-l !border-l-[rgb(var(--primary-foreground))]/25 !px-2 !py-2 disabled:opacity-50"
+              onClick={() => setMenu((v) => !v)}
+              disabled={busy || !canSubmit}
+              aria-label="Choose how to send"
+              data-testid="send-identity-toggle"
+            >
+              <ChevronDown className="h-4 w-4" strokeWidth={1.75} />
+            </button>
+            {menu && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setMenu(false)} aria-hidden="true" />
+                <div className="absolute bottom-11 right-0 z-20 w-56 overflow-hidden rounded-xl border border-border/70 bg-card py-1 shadow-card" data-testid="send-identity-menu">
+                  <IdentityItem icon={MapPin} title="Send from your place" sub={senderAddress ? `talk.kodama.page/${senderAddress}` : undefined} onClick={() => submit("place")} testid="send-as-place" />
+                  <IdentityItem icon={UserRound} title={senderName ? `Send as ${senderName}` : "Send with my name"} sub="a name, no address" onClick={() => submit("named")} testid="send-as-named" />
+                  <IdentityItem icon={EyeOff} title="Send anonymously" sub="no name, no address" onClick={() => submit("anonymous")} testid="send-as-anonymous" />
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="btn-moss !px-4 !py-2 text-sm disabled:opacity-50"
+            onClick={() => submit("place")}
+            disabled={busy || !canSubmit}
+            data-testid="drop-composer-send"
+          >
+            {busy ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Send className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+            )}
+            {cta}
+          </button>
+        )}
       </div>
     </div>
+  );
+}
+
+function IdentityItem({ icon: Icon, title, sub, onClick, testid }: {
+  icon: typeof MapPin;
+  title: string;
+  sub?: string;
+  onClick: () => void;
+  testid: string;
+}) {
+  return (
+    <button
+      type="button"
+      className="flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors hover:bg-primary/8"
+      onClick={onClick}
+      data-testid={testid}
+    >
+      <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={1.75} aria-hidden="true" />
+      <span className="min-w-0">
+        <span className="block truncate text-sm text-foreground">{title}</span>
+        {sub && <span className="block truncate font-mono text-[0.62rem] text-muted-foreground/70">{sub}</span>}
+      </span>
+    </button>
   );
 }

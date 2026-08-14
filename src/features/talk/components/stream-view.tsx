@@ -13,8 +13,9 @@ import {
 import { toast } from "sonner";
 
 import { talkService } from "@/features/talk/services";
-import type { Attachment, Conversation, Message, ThreadReference } from "@/features/talk/types";
+import type { Attachment, Conversation, DropOrigin, Message, ThreadReference } from "@/features/talk/types";
 import { getTalkSecurity } from "@/features/talk/security/talk-security-adapter";
+import { useOwner } from "@/features/talk/store/owner-context";
 import { PlaceMark } from "@/features/talk/components/place-mark";
 import { PrivacyStatus } from "@/features/talk/components/privacy-status";
 import { DropComposer } from "@/features/talk/components/drop-composer";
@@ -35,6 +36,7 @@ export function StreamView({
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [reply, setReply] = useState<ThreadReference | null>(null);
   const [busy, setBusy] = useState(false);
+  const { session } = useOwner();
   const endRef = useRef<HTMLDivElement>(null);
   const seenUnread = useRef<Record<string, number>>({});
 
@@ -68,10 +70,10 @@ export function StreamView({
     return true;
   }, [conversation]);
 
-  const send = async (body: string, keepsakes?: Attachment[]) => {
+  const send = async (body: string, keepsakes?: Attachment[], origin?: DropOrigin, fromLabel?: string) => {
     setBusy(true);
     try {
-      const m = await talkService.sendMessage({ conversationId: conversation.id, body, replyTo: reply ?? undefined, attachments: keepsakes });
+      const m = await talkService.sendMessage({ conversationId: conversation.id, body, replyTo: reply ?? undefined, attachments: keepsakes, origin, fromLabel });
       setMessages((prev) => [...(prev ?? []), m]);
       setReply(null);
       onChanged?.();
@@ -117,7 +119,7 @@ export function StreamView({
           </h1>
           <p className="truncate font-mono text-[0.7rem] text-muted-foreground/75" data-testid="stream-purpose">
             {conversation.kind === "direct"
-              ? streamPurpose(conversation.kind)
+              ? directAddress(conversation) ?? streamPurpose("direct")
               : conversation.subtitle ?? streamPurpose(conversation.kind)}
           </p>
         </div>
@@ -197,7 +199,7 @@ export function StreamView({
           </div>
         )}
         {canSend ? (
-          <DropComposer placeholder="Leave a message…" cta="Send" busy={busy} allowImages draftKey={conversation.id} onSend={(b, _l, atts) => void send(b, atts)} />
+          <DropComposer placeholder="Leave a message…" cta="Send" busy={busy} allowImages identityOptions senderAddress={session.address} senderName={session.displayName} draftKey={conversation.id} onSend={(b, fromLabel, atts, origin) => void send(b, atts, origin, fromLabel)} />
         ) : (
           <div className="flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-card/40 py-3 text-sm text-muted-foreground" data-testid="stream-locked">
             <Lock className="h-4 w-4" strokeWidth={1.5} />
@@ -238,6 +240,14 @@ function streamPurpose(kind: Conversation["kind"]): string {
     case "channel": return "A channel for updates";
     default: return "A private conversation that began with a Drop";
   }
+}
+
+/** The counterparty address for a Direct Talk, as talk.kodama.page/{address}. */
+function directAddress(conversation: Conversation): string | undefined {
+  const other = conversation.members.find((m) => m.role !== "owner");
+  if (other?.address) return `talk.kodama.page/${other.address}`;
+  if (conversation.subtitle?.startsWith("talk.kodama.page/")) return conversation.subtitle;
+  return undefined;
 }
 
 function IconBtn({

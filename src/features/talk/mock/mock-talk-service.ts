@@ -487,14 +487,50 @@ export class MockTalkService implements TalkService {
     return delay(this.conv(id) ?? null);
   }
 
+  async getOrCreateDirect(ownerAddress: TalkAddress, toAddress: TalkAddress): Promise<Conversation> {
+    const key = toAddress.trim().toLowerCase();
+    const existing = this.state.conversations.find((c) => {
+      if (c.placeAddress !== ownerAddress || c.kind !== "direct") return false;
+      const other = c.members.find((m) => m.role !== "owner");
+      return (other?.address ?? other?.label ?? c.title).trim().toLowerCase() === key;
+    });
+    if (existing) return delay(existing);
+
+    const place = this.state.places.find((p) => p.address === key && p.claimed);
+    const label = place?.displayName ?? toAddress;
+    const conv: Conversation = {
+      id: uid("conv"),
+      kind: "direct",
+      placeAddress: ownerAddress,
+      title: label,
+      subtitle: `talk.kodama.page/${toAddress}`,
+      mark: markFor(label, toAddress),
+      members: [member(ownerAddress), member(label, "member", toAddress)],
+      lastMessagePreview: "",
+      lastMessageAt: new Date().toISOString(),
+      unreadCount: 0,
+      pinned: false,
+      muted: false,
+      state: "active",
+      protocolVersion: P,
+    };
+    this.state.conversations = [conv, ...this.state.conversations];
+    this.state.messages[conv.id] = [];
+    this.persist();
+    return delay(conv);
+  }
+
   async listMessages(id: string): Promise<Message[]> {
     return delay(this.state.messages[id] ?? []);
   }
 
   async sendMessage(input: SendMessageInput): Promise<Message> {
     await getTalkSecurity().sealForConversation(input.conversationId, input.body);
-    const m = seedMsg(uid("m"), input.conversationId, "You", true, input.body, new Date().toISOString(), input.replyTo);
+    const origin = input.origin ?? "place";
+    const author = origin === "named" ? (input.fromLabel?.trim() || "You") : "You";
+    const m = seedMsg(uid("m"), input.conversationId, author, true, input.body, new Date().toISOString(), input.replyTo);
     m.attachments = input.attachments ?? [];
+    m.origin = origin;
     this.state.messages[input.conversationId] = [...(this.state.messages[input.conversationId] ?? []), m];
     const c = this.conv(input.conversationId);
     if (c) {

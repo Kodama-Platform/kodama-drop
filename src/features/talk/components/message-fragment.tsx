@@ -53,7 +53,13 @@ export function MessageFragment({
       <div className="trail-content">
         {showAuthor && (
           <p className={cn("trail-author", owner && "trail-author--out")} data-testid="fragment-author">
-            {owner ? "You" : message.authorLabel}
+            {owner
+              ? message.origin === "anonymous"
+                ? "You · anonymously"
+                : message.origin === "named"
+                  ? `You · as ${message.authorLabel}`
+                  : "You"
+              : message.authorLabel}
           </p>
         )}
 

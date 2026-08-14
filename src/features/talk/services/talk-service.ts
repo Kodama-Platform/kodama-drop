@@ -58,6 +58,8 @@ export interface TalkService {
 
   /* Conversations */
   listConversations(address: TalkAddress): Promise<Conversation[]>;
+  /** Open the Direct Talk with a person, creating an empty one if none exists. */
+  getOrCreateDirect(ownerAddress: TalkAddress, toAddress: TalkAddress): Promise<Conversation>;
   getConversation(conversationId: string): Promise<Conversation | null>;
   listMessages(conversationId: string): Promise<Message[]>;
   sendMessage(input: SendMessageInput): Promise<Message>;
