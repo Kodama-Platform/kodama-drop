@@ -322,6 +322,8 @@ export class MockTalkService implements TalkService {
   async continueSentDrop(dropId: string): Promise<Conversation> {
     const drop = this.state.sent.find((d) => d.id === dropId);
     if (!drop) throw new Error("not_found");
+    // Only Drops sent from your place carry an identity to build a two-way Talk on.
+    if (drop.origin !== "place" || !drop.fromAddress) throw new Error("not_continuable");
     const existing = drop.conversationId ? this.conv(drop.conversationId) : undefined;
     if (existing) return delay(existing);
 

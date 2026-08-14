@@ -290,6 +290,8 @@ function SentDetail({ drop, onBack, onOpenConversation }: {
   };
 
   const linked = !!drop.conversationId || drop.status === "accepted";
+  // Only Drops sent from your place carry an identity — those alone can roll into a Talk.
+  const canContinue = drop.origin === "place" && !!drop.fromAddress;
 
   return (
     <div className="flex h-full flex-col" data-testid="sent-detail">
@@ -303,7 +305,7 @@ function SentDetail({ drop, onBack, onOpenConversation }: {
                 <div>
                   <p className="text-sm text-foreground">to {TALK.domain}/{drop.toAddress}</p>
                   <p className="font-mono text-[0.62rem] uppercase tracking-wider text-muted-foreground/70">
-                    {drop.origin === "place" ? `from ${TALK.domain}/${drop.fromAddress}` : drop.origin === "anonymous" ? "sent anonymously" : "sent as guest"} · {relativeTime(drop.createdAt)}
+                    from {TALK.domain}/{drop.fromAddress} · {relativeTime(drop.createdAt)}
                   </p>
                 </div>
               </div>
@@ -314,23 +316,25 @@ function SentDetail({ drop, onBack, onOpenConversation }: {
           </div>
 
           {/* The note keeps going — a reply rolls this Drop into a Direct Talk. */}
-          <div className="mt-4 flex flex-col items-center gap-2 text-center" data-testid="sent-continue">
-            <p className="max-w-sm text-sm font-light leading-relaxed text-muted-foreground">
-              {linked
-                ? `${fn} replied — your note is now a Direct Talk.`
-                : `When ${fn} replies, your note keeps going here as a Direct Talk.`}
-            </p>
-            <button
-              type="button"
-              className="btn-moss justify-center disabled:opacity-50"
-              onClick={openTalk}
-              disabled={busy}
-              data-testid="sent-open-talk"
-            >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
-              {linked ? "Open the Talk" : "See it continue"}
-            </button>
-          </div>
+          {canContinue && (
+            <div className="mt-4 flex flex-col items-center gap-2 text-center" data-testid="sent-continue">
+              <p className="max-w-sm text-sm font-light leading-relaxed text-muted-foreground">
+                {linked
+                  ? `${fn} replied — your note is now a Direct Talk.`
+                  : `When ${fn} replies, your note keeps going here as a Direct Talk.`}
+              </p>
+              <button
+                type="button"
+                className="btn-moss justify-center disabled:opacity-50"
+                onClick={openTalk}
+                disabled={busy}
+                data-testid="sent-open-talk"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
+                {linked ? "Open the Talk" : "See it continue"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
