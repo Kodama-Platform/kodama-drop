@@ -77,6 +77,9 @@ export function StreamView({
       setMessages((prev) => [...(prev ?? []), m]);
       setReply(null);
       onChanged?.();
+    } catch (err) {
+      console.error("sendMessage failed", err);
+      toast.error("Couldn't send that message — please try again.");
     } finally {
       setBusy(false);
     }

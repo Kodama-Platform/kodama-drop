@@ -78,10 +78,15 @@ function ShelfInner() {
   // "Drop" opens the person's Direct Talk — the existing one, or a fresh one.
   const drop = async () => {
     if (!dropSlug) return;
-    const conv = await talkService.getOrCreateDirect(session.address, dropSlug);
-    await refresh();
-    setQuery("");
-    openConv(conv);
+    try {
+      const conv = await talkService.getOrCreateDirect(session.address, dropSlug);
+      await refresh();
+      setQuery("");
+      openConv(conv);
+    } catch (err) {
+      console.error("getOrCreateDirect failed", err);
+      toast.error("Couldn't open that conversation — please try again.");
+    }
   };
 
   const afterChange = async () => { await refresh(); };

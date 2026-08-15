@@ -187,10 +187,10 @@ export function DropComposer({
           )}
         </div>
         {identityOptions ? (
-          <div className="relative flex items-center">
+          <div className="relative z-20 flex items-center">
             <button
               type="button"
-              className="btn-moss !rounded-r-none !px-4 !py-2 text-sm disabled:opacity-50"
+              className="btn-moss relative z-30 !rounded-r-none !px-4 !py-2 text-sm disabled:opacity-50"
               onClick={() => submit("place")}
               disabled={busy || !canSubmit}
               data-testid="drop-composer-send"
@@ -201,7 +201,7 @@ export function DropComposer({
             </button>
             <button
               type="button"
-              className="btn-moss !rounded-l-none !border-l !border-l-[rgb(var(--primary-foreground))]/25 !px-2 !py-2 disabled:opacity-50"
+              className="btn-moss relative z-30 !rounded-l-none !border-l !border-l-[rgb(var(--primary-foreground))]/25 !px-2 !py-2 disabled:opacity-50"
               onClick={() => setMenu((v) => !v)}
               disabled={busy || !canSubmit}
               aria-label="Choose how to send"

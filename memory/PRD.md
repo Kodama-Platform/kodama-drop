@@ -166,6 +166,11 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Also verified earlier (iteration 23, 100%): owner Shelf URL always reflects the place (`/alex`) across unlock/auto-resume/manual-nav/claim.
 - Verified: build + 12/12 unit tests + testing agent iteration_24 (7/7 flows, 100%, no console errors).
 
+## Update (2026-06) — Fix: Send did nothing with identity menu open
+- Root cause: the send identity dropdown's full-screen click-away overlay (`fixed inset-0 z-10`) sat above the Send buttons in the same stacking context, so clicking Send (or the composer) just closed the menu and sent nothing — the "dropping a new message not working" report.
+- Fix: raised the Send + chevron buttons to `z-30` above the overlay (`drop-composer.tsx`). Also added error toasts in `StreamView.send` and shelf `drop()` so any real failure surfaces instead of failing silently.
+- Verified: primary Send with menu open, normal Send, and "Send anonymously" all post in a brand-new conversation; 158/158 unit tests.
+
 ## Update (2026-06) — Trail message contrast (dark mode)
 - Own vs others' fragments were near-identical on the dark background. Strengthened `.trail-fragment--out` (green tint + solid `--primary` left bar) and `.trail-fragment--in` (neutral `--muted` raised card), with `.dark` overrides bumping opacity. Clear distinction now in both themes (CSS only, `talk.css`).
 
