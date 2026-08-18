@@ -5,6 +5,7 @@ import { ForestAtmosphere } from "@/components/site/forest-atmosphere";
 import { SpiritCursor } from "@/components/site/spirit-cursor";
 import { TALK, KODAMA_PLACES } from "@/lib/brand";
 import { TalkThemeToggle } from "@/features/talk/components/talk-theme-toggle";
+import { OwnerReturnBadge } from "@/features/talk/components/owner-return-badge";
 
 type TalkShellProps = {
   children: ReactNode;
@@ -56,6 +57,7 @@ export function TalkShell({
               </span>
             </Link>
             <div className="flex items-center gap-2.5">
+              <OwnerReturnBadge />
               {headerAction}
               <TalkThemeToggle />
             </div>
