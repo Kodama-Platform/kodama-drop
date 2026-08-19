@@ -166,6 +166,11 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Also verified earlier (iteration 23, 100%): owner Shelf URL always reflects the place (`/alex`) across unlock/auto-resume/manual-nav/claim.
 - Verified: build + 12/12 unit tests + testing agent iteration_24 (7/7 flows, 100%, no console errors).
 
+## Update (2026-06) — Discover public channels from a Door
+- Bug: opted-in owners had no way to see other places' public channels. Fix: the visitor Door now lists a place's public channels (new `talkService.listPublicChannels(placeAddress)` → kind channel + placeAddress + visibility public). `DoorChannels` in `door-screen.tsx` renders them as links (testids `door-channels`, `door-channel-{slug}`) to the public channel route `/$address/$channel`.
+- Seed: added a public "Studio Notes" channel (slug `notes`, place `studio`) so the flow is demonstrable across places. Private channels (Inner Ring) are excluded from the list.
+- Verified by testing_agent iteration_25.json: 7/7 flows pass, no issues (discovery from /studio, from landing search as opted-in owner, private excluded, plus regressions).
+
 ## Update (2026-06) — Full-width conversation trail
 - The trail was capped at `max-w-2xl` centered. Removed the container cap (`trail w-full`) and lifted `.trail-fragment` max-width from 42rem → 100%, so the conversation fills the panel width. Header + composer were already full width.
 

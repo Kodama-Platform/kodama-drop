@@ -80,6 +80,8 @@ export interface TalkService {
 
   /* Channels — public reachability */
   resolveChannel(placeAddress: TalkAddress, slug: string): Promise<Conversation | null>;
+  /** A place's publicly visible channels — for discovery from the Door. */
+  listPublicChannels(placeAddress: TalkAddress): Promise<Conversation[]>;
   submitChannelReply(input: SubmitChannelReplyInput): Promise<{ status: "published" | "pending" }>;
   listPendingReplies(channelId: string): Promise<ChannelReply[]>;
   publishReply(replyId: string): Promise<void>;

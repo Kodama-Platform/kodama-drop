@@ -1,0 +1,34 @@
+{
+  "summary": "Frontend-only E2E for Kodama Talk 'discover public channels from a Door' bug fix + regressions. All 7 requested flows PASS on the preview URL after clearing kodama-talk localStorage. Studio Notes public channel is listed on the /studio Door and reachable from a logged-in owner via the landing search. /alex Door lists only public channels (Inner Ring excluded). Regressions on badge return, message send (including anonymous identity), and Shelf filter+Drop all work.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/studio_notes_page.png",
+    "/app/test_reports/landing_studio_search.png"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "OwnerReturnBadge behaviour depends on beginSession(persist=true). UnlockSheet defaults `stay=true`, so pressing Enter after typing the password persists. If a future change flips the default to false, the badge will silently stop appearing on the landing page after logo click — worth a light regression guard.",
+    "Address 'open' UX: on the root landing, once you type into TalkAddressPlaque the reveal happens live (debounced). There is no visible `address-open` button on the landing — the `address-open` testid exists only on the committed /:address bar. Spec/testing docs mention pressing an Open button on landing which does not exist; either add one or update the spec. Not blocking."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend-only mock app)", "frontend": "100% (7/7 flows)"},
+  "test_credentials": "Owner unlock for address 'alex' with any 4+ char password (used 'secret'). Default 'Keep me signed in' checkbox is pre-checked, which sets LAST_KEY and is required for the Opted-in badge to appear.",
+  "seed_data_creation": "None — used existing seed after clearing localStorage keys starting with 'kodama-talk'.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "IMPORTANT: (1) Clear localStorage keys starting with 'kodama-talk' before testing to see the latest seed (including the new 'Studio Notes' channel). (2) Owner unlock modal has 'Keep me signed in' checked by default — needed for the Opted-in badge to persist across navigations. (3) On the LANDING page, do NOT expect a data-testid='address-open' button — the address input is a live-resolving TalkAddressPlaque; typing 'studio' auto-resolves and inline-renders the Door (DoorView with showHero=false) including the door-channels list. The address-open button exists only on committed /:address routes (address-bar). (4) Also note: navigating to '/' via page.goto (not the logo) triggers auto-resume to the last opted-in Talk, which redirects to /alex — you must click the logo (data-testid='talk-home-link') to stay on the landing. (5) Door channel link testid pattern is `door-channel-{channel.slug}` (e.g., door-channel-notes, door-channel-field-notes) — the spec's 'door-channel-door-shelf' is not the actual pattern; use the slug.",
+  "flows_verified": [
+    "T1 /studio Door shows door-channels with Studio Notes → click navigates to /studio/notes with title + content.",
+    "T2 As opted-in owner of alex, landing search 'studio' shows DoorView with door-channels; door-channel-notes navigates to /studio/notes.",
+    "T3 Unlock alex (this-is-me → password → Enter) lands on shelf-rail; talk-home-link → landing shows owner-return badge 'OPTED IN talk.kodama.page/alex'.",
+    "T4 /alex Door lists Field Notes, Announcements, Updates, Ask Alex; excludes private Inner Ring.",
+    "T5 Clicking owner-return badge navigates to /alex and shows shelf-rail.",
+    "T6 Mara direct-talk: drop-composer-field + drop-composer-send posts a visible message; send-identity-toggle → send-as-anonymous posts an anonymous message with 'You · anonymously' fragment.",
+    "T7 shelf-filter-input 'mara' + shelf-drop-btn opens existing Mara stream (stream-title 'Mara'); 'nadia' + drop opens a new Direct Talk (stream-title 'nadia') with an empty trail and a working composer."
+  ]
+}

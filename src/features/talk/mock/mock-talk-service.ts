@@ -664,6 +664,14 @@ export class MockTalkService implements TalkService {
     return delay(c ?? null);
   }
 
+  async listPublicChannels(placeAddress: TalkAddress): Promise<Conversation[]> {
+    return delay(
+      this.state.conversations.filter(
+        (x) => x.kind === "channel" && x.placeAddress === placeAddress && x.visibility === "public" && x.state !== "archived",
+      ),
+    );
+  }
+
   private appendReplyAsMessage(c: Conversation, reply: ChannelReply): void {
     const author = reply.origin === "anonymous" ? "Anonymous" : reply.fromLabel;
     const m = seedMsg(uid("m"), c.id, author, false, reply.body, new Date().toISOString());

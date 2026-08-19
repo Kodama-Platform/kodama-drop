@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { Check, EyeOff, KeyRound, Loader2, MapPin, Send, Sparkles, UserRound } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, EyeOff, KeyRound, Loader2, MapPin, Radio, Send, Sparkles, UserRound } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 import { TALK } from "@/lib/brand";
 import { talkService } from "@/features/talk/services";
-import type { DropOrigin, OwnerSession, Place } from "@/features/talk/types";
+import type { Conversation, DropOrigin, OwnerSession, Place } from "@/features/talk/types";
 import { PlaceMark } from "@/features/talk/components/place-mark";
 import { DoorHero } from "@/features/talk/components/door-hero";
 import { PrivacyStatus } from "@/features/talk/components/privacy-status";
@@ -105,6 +106,9 @@ export function DoorView({ place, onOwner, showHero = true }: { place: Place; on
         </>
       )}
 
+      {/* Public channels anyone can read — discover and open them */}
+      <DoorChannels address={place.address} />
+
       {/* Leave your note — the single focus of this screen */}
       <p className="mb-2.5 text-center text-sm font-light text-muted-foreground">
         Leave <span className="text-foreground">{fn}</span> a note
@@ -204,6 +208,47 @@ export function DoorView({ place, onOwner, showHero = true }: { place: Place; on
 
 function firstName(name: string): string {
   return name.trim().split(/\s+/)[0] || name;
+}
+
+/** Public channels for a place — visitors (and opted-in owners) can browse them. */
+function DoorChannels({ address }: { address: string }) {
+  const [channels, setChannels] = useState<Conversation[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void talkService.listPublicChannels(address).then((cs) => { if (alive) setChannels(cs); });
+    return () => { alive = false; };
+  }, [address]);
+
+  if (!channels || channels.length === 0) return null;
+
+  return (
+    <div className="mb-5" data-testid="door-channels">
+      <p className="talk-section-label mb-2">Public channels</p>
+      <div className="flex flex-col gap-1.5">
+        {channels.map((c) => (
+          <Link
+            key={c.id}
+            to="/$address/$channel"
+            params={{ address, channel: c.channelSlug ?? c.title }}
+            search={{ invite: undefined }}
+            className="group flex items-center gap-3 rounded-xl border border-border/60 bg-card/40 px-3 py-2.5 transition-colors hover:border-primary/40 hover:bg-primary/8"
+            data-testid={`door-channel-${c.channelSlug ?? c.title}`}
+          >
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
+              <Radio className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm text-foreground">{c.title}</span>
+              <span className="block truncate font-mono text-[0.66rem] text-muted-foreground/70">
+                {TALK.domain}/{address}/{c.channelSlug ?? c.title}
+              </span>
+            </span>
+          </Link>
+        ))}
+      </div>
+      <div className="talk-divider mb-5 mt-5" />
+    </div>
+  );
 }
 
 /** Claim an unclaimed address (in-place). */

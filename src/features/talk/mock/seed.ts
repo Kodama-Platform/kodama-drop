@@ -264,6 +264,25 @@ export const SEED_CONVERSATIONS: Conversation[] = [
     channelSlug: "ask",
     protocolVersion: P,
   },
+  {
+    id: "conv-studio-notes",
+    kind: "channel",
+    placeAddress: "studio",
+    title: "Studio Notes",
+    subtitle: "Public channel",
+    mark: markFor("Studio Notes", "notes"),
+    members: [member("North Studio", "owner", "studio")],
+    lastMessagePreview: "New print series drops this Friday.",
+    lastMessageAt: ago(60 * 3),
+    unreadCount: 0,
+    pinned: false,
+    muted: false,
+    state: "active",
+    visibility: "public",
+    replyPolicy: "open",
+    channelSlug: "notes",
+    protocolVersion: P,
+  },
 ];
 
 const msg = (
@@ -329,6 +348,9 @@ export const SEED_MESSAGES: Record<string, Message[]> = {
   ],
   "conv-ask": [
     msg("ask1", "conv-ask", "Alex Rivera", true, "Questions welcome — press below and I'll read every one privately.", 60 * 30),
+  ],
+  "conv-studio-notes": [
+    msg("sn1", "conv-studio-notes", "North Studio", true, "New print series drops this Friday. A calm set of five, made slow.", 60 * 3),
   ],
 };
 
