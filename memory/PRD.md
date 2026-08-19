@@ -166,6 +166,13 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Also verified earlier (iteration 23, 100%): owner Shelf URL always reflects the place (`/alex`) across unlock/auto-resume/manual-nav/claim.
 - Verified: build + 12/12 unit tests + testing agent iteration_24 (7/7 flows, 100%, no console errors).
 
+## Update (2026-06) — Typing hint, Followed cue, Quick sign out
+- **Typing hint**: after you send in a Direct Talk, an animated "…" trace (`typing-hint`, `.trail-typing`) appears ~2.4s and fades (simulated). Direct Talks only.
+- **Followed cue**: followed external channels show a `following` marker (`following-cue`, `.talk-following-cue`) in the Shelf via a new `external` prop on `StreamItemRow`.
+- **Quick sign out**: the header 'Opted in' badge (`owner-return-wrap`) now has a `lock-device` button that `forgetDevice()`s and hard-resets to `/` — a shared-computer sign out.
+- Fix (found by testing): the sent-identity marker ("You · anonymously" / "You · as {name}") now always renders on the fragment even when clustered (was hidden by author-clustering).
+- Verified by testing_agent iteration_27.json (3 features + regressions) and a follow-up screenshot for the anonymous-label fix; 158/158 unit tests.
+
 ## Update (2026-06) — Followed channels, Read receipts, Suggest-as-you-type
 - **Followed channels in Shelf**: public channels you follow on other places now appear in your stream (`listFollowedChannels()` merged into `items`, filtered to non-owned; deduped by id). Tapping a followed external channel navigates to its public page `/{place}/{slug}` (you're a visitor there).
 - **Read receipts**: a soft "Seen" trace (`read-receipt`, `.trail-seen`) appears ~1.3s after your latest message in Direct Talks only (simulated locally in `stream-view.tsx`).

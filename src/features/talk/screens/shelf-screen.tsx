@@ -286,6 +286,7 @@ function ShelfInner() {
                     key={it.type === "conversation" ? `c-${it.conv.id}` : `${it.type}-${it.drop.id}`}
                     item={it}
                     active={isActive(it)}
+                    external={it.type === "conversation" && it.conv.kind === "channel" && it.conv.placeAddress !== session.address}
                     onOpen={() => openItem(it)}
                   />
                 ))}

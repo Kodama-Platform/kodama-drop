@@ -1,0 +1,27 @@
+{
+  "summary": "Frontend-only Playwright verification of 3 NEW features (Typing Hint, Followed Section Cue, Quick Sign Out) + regressions on Kodama Talk. Cleared kodama-talk/* localStorage, unlocked /alex with password 'secret'. All 3 NEW features PASS. All regressions PASS except one attribution label mismatch on anonymous send.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "stream-view Direct Talk fragment (anonymous send)", "issue": "After choosing send-identity-toggle -> send-as-anonymous and sending, the message fragment shows only the timestamp (e.g. 'now') with NO 'You · anonymously' (or any 'anonymously') label attached to that outgoing bubble. Named/place sends correctly show 'You'. Spec required fragment to read 'You · anonymously'.", "selector": "drop-composer-send + send-as-anonymous", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Fix anonymous outgoing message attribution label: render 'You · anonymously' (or equivalent visible marker) on fragments posted via send-as-anonymous so the sender can see the identity used, matching the spec."
+  ],
+  "critical_code_review_comments": [
+    "Typing hint timing tightly coupled to setTimeout (~2.4s on / ~5.4s off) — consider adding a data attribute/state so tests aren't purely time-based.",
+    "Owner-return-wrap only exposes lock-device on the landing page; consider surfacing it in the Shelf header as well for one-tap sign-out from any screen."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a", "frontend": "~95%"},
+  "test_credentials": "/alex owner password: 'secret' (any 4+ char string works per mock).",
+  "seed_data_creation": "None; used built-in mock data (Mara direct, studio-notes channel).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Verified: (1) typing-hint appears ~3s after send in Direct Talk only, auto-dismisses; read-receipt shows ~1.5s post-send (poll rather than one-shot wait). (2) Following studio/notes then returning shows following-cue on stream-item-conv-conv-studio-notes; own channels (updates/field-notes/announcements/ask-alex) show no cue. (3) On landing (/) header owner-return-wrap contains lock-device; clicking it fully signs out (owner-return count 0, /alex shows this-is-me visitor door, shelf-rail count 0). (4) Channel composer (/studio/notes channel-reply-input + channel-reply-send) correctly shows NEITHER typing-hint NOR read-receipt. (5) Suggestions + drop create/open a Mara direct talk in the inline split-pane WITHOUT changing URL (stays /alex) — do not assert URL change on drop. (6) Anonymous send label bug — see frontend_issues.",
+  "rca of the issue": "Anonymous send: drop-composer-send with send-as-anonymous posts the message content but the fragment header/label omits the 'anonymously' descriptor. Likely the identity label branch in stream-view/stream-item fragment render only labels 'You' for non-anonymous identity and outputs an empty/whitespace author on anonymous, dropping both name and 'anonymously' suffix instead of rendering 'You · anonymously' as the visible attribution for the sender's own view."
+}

@@ -41,15 +41,20 @@ export function StreamView({
   // Read receipt: after your latest message lands, a soft "Seen" appears once
   // the other side opens it (simulated locally in this mock).
   const [seenAt, setSeenAt] = useState(0);
+  const [typing, setTyping] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const seenUnread = useRef<Record<string, number>>({});
 
   const lastOwn = !!messages && messages.length > 0 && messages[messages.length - 1].fromOwner;
   useEffect(() => {
-    if (conversation.kind !== "direct" || !lastOwn) { setSeenAt(0); return; }
+    if (conversation.kind !== "direct" || !lastOwn) { setSeenAt(0); setTyping(false); return; }
     setSeenAt(0);
-    const t = setTimeout(() => setSeenAt(Date.now()), 1300);
-    return () => clearTimeout(t);
+    setTyping(false);
+    const tSeen = setTimeout(() => setSeenAt(Date.now()), 1300);
+    // A gentle "…" trace, as if a reply is on its way.
+    const tOn = setTimeout(() => setTyping(true), 2400);
+    const tOff = setTimeout(() => setTyping(false), 5400);
+    return () => { clearTimeout(tSeen); clearTimeout(tOn); clearTimeout(tOff); };
   }, [conversation.kind, lastOwn, messages?.length]);
 
   useEffect(() => {
@@ -201,6 +206,13 @@ export function StreamView({
               <p className="trail-seen" data-testid="read-receipt">
                 <Check className="h-3 w-3" strokeWidth={2.5} aria-hidden="true" /> Seen
               </p>
+            )}
+            {conversation.kind === "direct" && typing && (
+              <div className="trail-typing" data-testid="typing-hint" aria-label="A reply is on its way">
+                <span className="trail-typing-dot" />
+                <span className="trail-typing-dot" />
+                <span className="trail-typing-dot" />
+              </div>
             )}
           </div>
         )}

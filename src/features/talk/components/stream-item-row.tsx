@@ -16,7 +16,7 @@ function oneLine(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
-export function StreamItemRow({ item, active, onOpen }: { item: StreamItem; active: boolean; onOpen: () => void }) {
+export function StreamItemRow({ item, active, onOpen, external = false }: { item: StreamItem; active: boolean; onOpen: () => void; external?: boolean }) {
   const rowClass = cn("talk-row", active && "talk-row--active");
 
   if (item.type === "drop") {
@@ -68,6 +68,9 @@ export function StreamItemRow({ item, active, onOpen }: { item: StreamItem; acti
           {c.pinned && <Pin className="h-3 w-3 shrink-0 text-primary/70" strokeWidth={2} aria-hidden="true" data-testid="pin-mark" />}
           {Cue && <Cue className="h-3 w-3 shrink-0 text-muted-foreground/55" strokeWidth={1.75} aria-hidden="true" data-testid={`cue-${c.kind}`} />}
           <span className="talk-row-title">{c.title}</span>
+          {external && (
+            <span className="talk-following-cue" data-testid="following-cue">following</span>
+          )}
         </span>
         <span className="talk-row-preview">{c.lastMessagePreview}</span>
       </span>
