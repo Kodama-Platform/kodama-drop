@@ -155,7 +155,7 @@ export function StreamView({
             </p>
           </div>
         ) : (
-          <div className="trail mx-auto w-full max-w-2xl">
+          <div className="trail w-full">
             <FirstDropContext message={messages[0]} kind={conversation.kind} />
             {messages.map((m, i) => {
               const prev = messages[i - 1];

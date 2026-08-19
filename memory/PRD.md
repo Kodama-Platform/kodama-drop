@@ -166,6 +166,9 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Also verified earlier (iteration 23, 100%): owner Shelf URL always reflects the place (`/alex`) across unlock/auto-resume/manual-nav/claim.
 - Verified: build + 12/12 unit tests + testing agent iteration_24 (7/7 flows, 100%, no console errors).
 
+## Update (2026-06) — Full-width conversation trail
+- The trail was capped at `max-w-2xl` centered. Removed the container cap (`trail w-full`) and lifted `.trail-fragment` max-width from 42rem → 100%, so the conversation fills the panel width. Header + composer were already full width.
+
 ## Update (2026-06) — Header shows opted-in state + return-to-Talk
 - New `OwnerReturnBadge` (in `talk-shell.tsx` header) shows a quiet "Opted in · talk.kodama.page/{you}" chip with your mark whenever a Talk is remembered. Clicking it returns to your Shelf. Hidden while you're already on your own Talk (`/you` or `/you/...`).
 - Solves: after clicking the logo to the landing page, you can get back to the conversation/Shelf you already opted in to.
