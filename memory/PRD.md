@@ -237,3 +237,7 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Real attachment upload/preview; message search highlighting; archive/expired invite management screens.
 - URL-native deep links for individual streams (`/$address/c/$id`) and join links (`/join/$code`).
 - Optimistic send + unread realtime once backend lands.
+
+## Update (2026-06) — Draft Kept + Confirm Sign Out
+- **Draft Kept**: a half-written message is saved per conversation and restored silently on return. `MockTalkService.getDraft/saveDraft` (localStorage key group) + `DropComposer` `draftKey={conversation.id}` in `stream-view.tsx`. Draft persists on switch, clears on send. Verified live (type in Mara → switch to Devon empty → back to Mara restored).
+- **Confirm Sign Out**: the opted-in badge lock (`owner-return-badge.tsx`, `forgetDevice`) now needs two taps. First tap morphs the icon into an ember "Sure? Tap to lock" pill (testid `lock-device-confirm`); second tap signs out. Auto-reverts after ~3.2s if not confirmed. Verified live (badge on /studio while opted in as alex). 158/158 unit tests pass.

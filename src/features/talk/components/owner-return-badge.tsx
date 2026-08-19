@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { Lock } from "lucide-react";
 import { talkService } from "@/features/talk/services";
@@ -14,6 +15,16 @@ import { TALK } from "@/lib/brand";
 export function OwnerReturnBadge() {
   const owner = talkService.lastOpenedTalk();
   const pathname = useLocation({ select: (l) => l.pathname });
+  const [confirm, setConfirm] = useState(false);
+  const resetRef = useRef<number | undefined>(undefined);
+
+  // A missed confirm shouldn't linger — quietly step back after a moment.
+  useEffect(() => {
+    if (!confirm) return;
+    resetRef.current = window.setTimeout(() => setConfirm(false), 3200);
+    return () => window.clearTimeout(resetRef.current);
+  }, [confirm]);
+
   if (!owner) return null;
   const base = `/${owner.address}`;
   if (pathname === base || pathname.startsWith(`${base}/`)) return null;
@@ -44,13 +55,22 @@ export function OwnerReturnBadge() {
       </Link>
       <button
         type="button"
-        onClick={lockDevice}
-        className="ml-0.5 flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-primary/12 hover:text-primary"
-        aria-label="Lock this device"
-        title="Lock this device"
+        onClick={() => (confirm ? lockDevice() : setConfirm(true))}
+        className={
+          confirm
+            ? "ml-0.5 inline-flex items-center gap-1.5 rounded-full bg-ember/12 py-1 pl-2.5 pr-3 text-ember transition-colors hover:bg-ember/18"
+            : "ml-0.5 flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-primary/12 hover:text-primary"
+        }
+        aria-label={confirm ? "Tap again to lock this device" : "Lock this device"}
+        title={confirm ? "Tap again to lock" : "Lock this device"}
         data-testid="lock-device"
       >
         <Lock className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
+        {confirm && (
+          <span className="font-mono text-[0.66rem] tracking-[0.02em]" data-testid="lock-device-confirm">
+            Sure? Tap to lock
+          </span>
+        )}
       </button>
     </div>
   );
