@@ -166,6 +166,12 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Also verified earlier (iteration 23, 100%): owner Shelf URL always reflects the place (`/alex`) across unlock/auto-resume/manual-nav/claim.
 - Verified: build + 12/12 unit tests + testing agent iteration_24 (7/7 flows, 100%, no console errors).
 
+## Update (2026-06) — Followed channels, Read receipts, Suggest-as-you-type
+- **Followed channels in Shelf**: public channels you follow on other places now appear in your stream (`listFollowedChannels()` merged into `items`, filtered to non-owned; deduped by id). Tapping a followed external channel navigates to its public page `/{place}/{slug}` (you're a visitor there).
+- **Read receipts**: a soft "Seen" trace (`read-receipt`, `.trail-seen`) appears ~1.3s after your latest message in Direct Talks only (simulated locally in `stream-view.tsx`).
+- **Suggest-as-you-type**: typing in the Shelf filter shows a `drop-suggestions` list of matching people (from your Direct Talks); one tap drops to them (`drop(slug)` now takes an explicit slug).
+- Verified by testing_agent iteration_26.json: 100%, all 3 features + regressions pass, no issues.
+
 ## Update (2026-06) — Discover public channels from a Door
 - Bug: opted-in owners had no way to see other places' public channels. Fix: the visitor Door now lists a place's public channels (new `talkService.listPublicChannels(placeAddress)` → kind channel + placeAddress + visibility public). `DoorChannels` in `door-screen.tsx` renders them as links (testids `door-channels`, `door-channel-{slug}`) to the public channel route `/$address/$channel`.
 - Seed: added a public "Studio Notes" channel (slug `notes`, place `studio`) so the flow is demonstrable across places. Private channels (Inner Ring) are excluded from the list.

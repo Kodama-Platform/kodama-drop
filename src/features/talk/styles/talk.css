@@ -735,6 +735,25 @@
 }
 .trail-author--out { color: rgb(var(--primary) / 0.85); }
 
+.trail-seen {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+  padding-right: 0.1rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(var(--primary) / 0.8);
+  animation: trail-seen-in 0.4s ease both;
+}
+@keyframes trail-seen-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .trail-fragment {
   position: relative;
   max-width: 100%;

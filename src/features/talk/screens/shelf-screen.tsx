@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, CornerDownLeft, Loader2, Lock, MessageSquare, Plus, Search, Send, Settings, Share2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,26 +39,41 @@ export function ShelfScreen({ session, onLock }: { session: OwnerSession; onLock
 
 function ShelfInner() {
   const { session, shelf, loading, refresh, lock } = useOwner();
+  const navigate = useNavigate();
   const [selected, setSelected] = useState<StreamItem | null>(null);
   const [seenReplies, setSeenReplies] = useState<Set<string>>(() => new Set());
+  const [followed, setFollowed] = useState<Conversation[]>([]);
   const [sheet, setSheet] = useState<null | "group" | "channel" | "settings" | "search" | "share">(null);
   const [inviteConv, setInviteConv] = useState<Conversation | null>(null);
   const [query, setQuery] = useState("");
 
+  // Public channels you follow on OTHER places — surfaced here so you can jump
+  // back without retyping the address.
+  useEffect(() => {
+    let alive = true;
+    void talkService.listFollowedChannels().then((cs) => {
+      if (alive) setFollowed(cs.filter((c) => c.placeAddress !== session.address));
+    });
+    return () => { alive = false; };
+  }, [session.address, shelf]);
+
+  const channelSlugOf = (c: Conversation) => c.channelSlug ?? normalizeSlug(c.title);
+  const openPublicChannel = (c: Conversation) =>
+    void navigate({ to: "/$address/$channel", params: { address: c.placeAddress, channel: channelSlugOf(c) }, search: { invite: undefined } });
+
   // One living stream — every kind of activity, newest first.
   const items = useMemo<StreamItem[]>(() => {
     if (!shelf) return [];
-    const convs: StreamItem[] = [...shelf.directTalks, ...shelf.groups, ...shelf.channels].map((c) => ({
-      type: "conversation",
-      at: c.lastMessageAt,
-      conv: c,
-    }));
+    const seen = new Set<string>();
+    const convs: StreamItem[] = [...shelf.directTalks, ...shelf.groups, ...shelf.channels, ...followed]
+      .filter((c) => (seen.has(c.id) ? false : (seen.add(c.id), true)))
+      .map((c) => ({ type: "conversation", at: c.lastMessageAt, conv: c }));
     const drops: StreamItem[] = shelf.incoming
       .filter((d) => d.status === "delivered")
       .map((d) => ({ type: "drop", at: d.createdAt, drop: d }));
     const sent: StreamItem[] = shelf.sent.map((d) => ({ type: "sent", at: d.createdAt, drop: d }));
     return [...convs, ...drops, ...sent].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
-  }, [shelf]);
+  }, [shelf, followed]);
 
   // The rail input doubles as a filter: narrow the stream as you type.
   const q = query.trim().toLowerCase();
@@ -76,10 +92,10 @@ function ShelfInner() {
 
   const dropSlug = normalizeSlug(query.trim());
   // "Drop" opens the person's Direct Talk — the existing one, or a fresh one.
-  const drop = async () => {
-    if (!dropSlug) return;
+  const drop = async (slug: string = dropSlug) => {
+    if (!slug) return;
     try {
-      const conv = await talkService.getOrCreateDirect(session.address, dropSlug);
+      const conv = await talkService.getOrCreateDirect(session.address, slug);
       await refresh();
       setQuery("");
       openConv(conv);
@@ -94,7 +110,39 @@ function ShelfInner() {
     if (c.bornFromDrop) setSeenReplies((s) => (s.has(c.id) ? s : new Set(s).add(c.id)));
   };
   const openConv = (c: Conversation) => { markReplySeen(c); setSelected({ type: "conversation", at: c.lastMessageAt, conv: c }); };
-  const openItem = (it: StreamItem) => { if (it.type === "conversation") markReplySeen(it.conv); setSelected(it); };
+  const openItem = (it: StreamItem) => {
+    // A followed channel on another place opens its public page — you're a visitor there.
+    if (it.type === "conversation" && it.conv.kind === "channel" && it.conv.placeAddress !== session.address) {
+      openPublicChannel(it.conv);
+      return;
+    }
+    if (it.type === "conversation") markReplySeen(it.conv);
+    setSelected(it);
+  };
+
+  // Suggest matching people as you type — one tap to drop to them.
+  const people = useMemo(() => {
+    if (!shelf) return [] as { address?: string; label: string; mark: Conversation["mark"] }[];
+    const seen = new Set<string>();
+    const list: { address?: string; label: string; mark: Conversation["mark"] }[] = [];
+    for (const c of shelf.directTalks) {
+      const other = (c.members ?? []).find((m) => m.role !== "owner");
+      const address = other?.address;
+      const label = other?.label ?? c.title;
+      const key = (address ?? label).toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      list.push({ address, label, mark: c.mark });
+    }
+    return list;
+  }, [shelf]);
+
+  const suggestions = useMemo(() => {
+    if (!q) return [];
+    return people
+      .filter((p) => p.label.toLowerCase().includes(q) || (p.address ?? "").toLowerCase().includes(q))
+      .slice(0, 4);
+  }, [people, q]);
 
   // Gentle nudge: replies that came back from your Drops, newest first — so none slip past.
   const replies = useMemo(
@@ -153,7 +201,7 @@ function ShelfInner() {
               <button
                 type="button"
                 className="btn-moss shrink-0 !px-2.5 !py-1.5 disabled:opacity-40"
-                onClick={drop}
+                onClick={() => void drop()}
                 disabled={!dropSlug}
                 aria-label="Drop a message"
                 title="Drop a message"
@@ -166,6 +214,26 @@ function ShelfInner() {
               <p className="mt-1.5 px-1 text-[0.7rem] font-light text-muted-foreground" data-testid="shelf-filter-empty">
                 No matches — press Drop to reach {TALK.domain}/{dropSlug}
               </p>
+            )}
+            {suggestions.length > 0 && (
+              <div className="mt-1.5 overflow-hidden rounded-xl border border-border/60 bg-card/70 py-1 backdrop-blur" data-testid="drop-suggestions">
+                {suggestions.map((p) => (
+                  <button
+                    key={(p.address ?? p.label).toLowerCase()}
+                    type="button"
+                    className="flex w-full items-center gap-2.5 px-2.5 py-1.5 text-left transition-colors hover:bg-primary/8"
+                    onClick={() => void drop(p.address ?? normalizeSlug(p.label))}
+                    data-testid={`drop-suggestion-${(p.address ?? normalizeSlug(p.label))}`}
+                  >
+                    <PlaceMark mark={p.mark} size={26} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm text-foreground">{p.label}</span>
+                      {p.address && <span className="block truncate font-mono text-[0.62rem] text-muted-foreground/70">{TALK.domain}/{p.address}</span>}
+                    </span>
+                    <Send className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={1.75} aria-hidden="true" />
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 

@@ -7,6 +7,7 @@ import {
   Lock,
   Pin,
   PinOff,
+  Check,
   UserPlus,
   X,
 } from "lucide-react";
@@ -37,8 +38,19 @@ export function StreamView({
   const [reply, setReply] = useState<ThreadReference | null>(null);
   const [busy, setBusy] = useState(false);
   const { session } = useOwner();
+  // Read receipt: after your latest message lands, a soft "Seen" appears once
+  // the other side opens it (simulated locally in this mock).
+  const [seenAt, setSeenAt] = useState(0);
   const endRef = useRef<HTMLDivElement>(null);
   const seenUnread = useRef<Record<string, number>>({});
+
+  const lastOwn = !!messages && messages.length > 0 && messages[messages.length - 1].fromOwner;
+  useEffect(() => {
+    if (conversation.kind !== "direct" || !lastOwn) { setSeenAt(0); return; }
+    setSeenAt(0);
+    const t = setTimeout(() => setSeenAt(Date.now()), 1300);
+    return () => clearTimeout(t);
+  }, [conversation.kind, lastOwn, messages?.length]);
 
   useEffect(() => {
     let alive = true;
@@ -185,6 +197,11 @@ export function StreamView({
                 </div>
               );
             })}
+            {conversation.kind === "direct" && lastOwn && seenAt > 0 && (
+              <p className="trail-seen" data-testid="read-receipt">
+                <Check className="h-3 w-3" strokeWidth={2.5} aria-hidden="true" /> Seen
+              </p>
+            )}
           </div>
         )}
         <div ref={endRef} />

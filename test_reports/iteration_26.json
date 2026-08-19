@@ -1,0 +1,32 @@
+{
+  "summary": "Verified 3 new Kodama Talk features (Suggest-as-you-type, Read receipts, Followed channels in Shelf) + listed regressions on preview URL. All flows PASS. One timing nuance: `talkService.listFollowedChannels()` uses an internal ~220ms delay, so after returning to the Shelf you must wait ~1.5–2.5s (well within spec) before asserting the followed row — a stale locator captured pre-delay will miss the row (initial test hit this). Cleared kodama-talk localStorage before each run.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ShelfInner: `listFollowedChannels()` is async with a 220ms LATENCY delay. If followed convs share the same conv.id as any owned-place channel with the same slug in the future, the merged `items` array would produce duplicate `stream-item-conv-<id>` keys. Not an issue today (studio-notes id differs from field-notes) but worth guarding with an id-dedupe on the merge.",
+    "openItem() correctly routes external channels to /$address/$channel via openPublicChannel(). Consider also updating the row aria-label/testid to communicate the visitor context (e.g. an external-channel cue), so tests and screen readers can distinguish followed vs owned channel rows."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend-only mock)", "frontend": "100% (all requested flows)"},
+  "test_credentials": "Owner unlock for /alex with any 4+ char password (used 'secret'). Keep me signed in stays checked by default so the OPTED IN owner-return badge appears on /studio/notes.",
+  "seed_data_creation": "None — used existing seed after clearing kodama-talk/* localStorage keys.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "IMPORTANT: (1) Clear localStorage keys starting with 'kodama-talk' before testing (includes 'kodama-talk/v1/follows'). (2) On /studio/notes the OPTED IN badge (data-testid='owner-return') is visible and clicking it returns to /alex Shelf. (3) After following a channel and returning to Shelf, wait AT LEAST ~1500-2500ms before asserting the followed row in [data-testid='shelf-stream'] — the mock service adds a 220ms delay AND React effect fires only when session.address/shelf are stable. (4) Followed external channel row testid follows the same pattern: `stream-item-conv-<conv.id>` (e.g. `stream-item-conv-conv-studio-notes`). Clicking it navigates to /studio/notes (does NOT open as your own channel). (5) Read receipt (data-testid='read-receipt') appears ~1.3s after Send under your latest message ONLY in Direct Talks. In Channel pages the composer uses data-testid='channel-reply-input' (not drop-composer-field) and no read-receipt is rendered. (6) Suggestions dropdown `drop-suggestions` and rows `drop-suggestion-<address>` (e.g. drop-suggestion-mara); clicking opens the Direct Talk and clears the filter input.",
+  "flows_verified": [
+    "SUGGEST: shelf-filter-input 'ma' → drop-suggestions visible with drop-suggestion-mara ('MA Mara talk.kodama.page/mara'). Click opens Mara Direct Talk (stream-title 'Mara') and clears filter. 'zzznope' → no drop-suggestions.",
+    "READ RECEIPT direct: Mara Direct Talk, send 'hello mara test' via drop-composer-send → within ~2s data-testid='read-receipt' (' Seen') appears under last own message.",
+    "READ RECEIPT channel: /studio/notes visitor posts via channel-reply-input + 'Drop a reply' → 0 read-receipt elements (correct).",
+    "FOLLOWED CHANNEL add: /studio/notes → click follow-channel (label 'Follow' → 'Following'), localStorage 'kodama-talk/v1/follows' = ['studio/notes']. owner-return badge visible; click returns to /alex; after ~2.5s wait the row 'stream-item-conv-conv-studio-notes' (Studio Notes) appears in shelf-stream. Clicking the row NAVIGATES to /studio/notes and shows the public channel with Following state.",
+    "FOLLOWED CHANNEL unfollow: /studio/notes → follow-channel label 'Following' → 'Follow'. Return to /alex; Studio Notes no longer in shelf-stream.",
+    "REGRESSION send + anonymous: Mara talk, normal Send posts; send-identity-toggle → send-as-anonymous posts a message; body contains 'anonymously' fragment.",
+    "REGRESSION Drop new name: shelf-filter-input 'nadia' + shelf-drop-btn opens a fresh Direct Talk (stream-title='nadia') with a working drop-composer-field.",
+    "REGRESSION Door channels: (from iteration 25, and follow-channel button on /studio/notes confirms channel is reachable) door-channels + door-channel-notes present on /studio."
+  ]
+}
