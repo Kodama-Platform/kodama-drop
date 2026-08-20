@@ -231,9 +231,9 @@ export function TalkSurface({ initialAddress }: { initialAddress?: string }) {
               </SceneFade>
             </div>
 
-            {/* RIGHT — live snapshots of the app, receding the moment you type */}
+            {/* RIGHT — a live, playable snapshot of the Drop → Talk loop */}
             <div className="lg:col-span-7">
-              <LandingSnapshots dim={typing} />
+              <LandingSnapshots recede={typing} />
             </div>
           </div>
 

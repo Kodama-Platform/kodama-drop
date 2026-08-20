@@ -254,3 +254,12 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Landing right column now shows two softly-tilted **phone-frame snapshots of the app itself** (`LandingSnapshots` in `landing-hero.tsx`): (1) "Leave a Drop" — Alex's door with a note, identity chips (anonymously / my name / from my place), "Leave it at Alex's door"; (2) "It becomes a Talk" — Mara's trail with other + own fragments, a "Seen" tick, and a composer bar. Captions label each. Snapshots float gently and recede (blur/opacity, `.landing-explainer--dim`) the instant you type, keeping the live field morph unobstructed.
 - Left column unchanged: leaf mark + "One address. Every conversation." + subline + live field. App-wide ForestAtmosphere fireflies (CSS shapes, not a photo) remain. Deleted `/public/landing/*` images and `LandingBackdrop`.
 - Verified light + dark idle, and typing→Door reveal (snapshots dim) via screenshots; 158/158 unit tests pass; entry-flow testids unchanged. New testids: landing-snapshots, snapshot-drop, snapshot-convo.
+
+## Update (2026-06) — Landing v3: interactive playable snapshots (a+e)
+- Right panel no longer hides on type — it's now a **playable demo of the Drop→Talk loop** (`LandingSnapshots`, `landing-hero.tsx`, now stateful):
+  - Drop phone: editable note textarea + selectable identity chips (anonymously / my name / from my place, default place) + "Leave it at Alex's door".
+  - On leave: the Talk phone pulses, shows your note as an own (moss) fragment labelled by chosen identity, a "…" reply trace (~1.7s), then Alex's reply + "Seen". A "start over" reset returns to the empty state ("Leave a Drop and it opens here — a private Talk, only if Alex replies").
+- (e) While typing a real address in the main field, the panel **gently recedes** (`.landing-explainer--recede`: opacity 0.6 + slight blur/scale) but stays fully interactive (no pointer-events:none), so focus goes to the Door/Claim reveal without killing the demo.
+- Phones drift gently; drift **pauses on hover/focus-within** so nothing is a moving target. Mobile: both phones stack (no longer hides the Drop phone).
+- Testids: landing-snapshots, snapshot-drop, snapshot-convo, snapshot-note, snapshot-chip-{anonymously|named|place}, snapshot-send, snapshot-empty, snapshot-typing, snapshot-reply, snapshot-reset.
+- Verified full loop (edit note → pick identity → send → typing → reply → Seen → reset), recede-on-type, and 158/158 unit tests. Agent-verified, not user-confirmed.
