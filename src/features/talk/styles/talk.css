@@ -874,46 +874,7 @@
   25% { box-shadow: 0 0 0 3px rgb(var(--ember) / 0.35); }
 }
 
-/* ══ Landing hero: a quiet forest doorway ══ */
-
-/* Atmospheric forest-mist backdrop, held behind everything on the landing. */
-.landing-mist {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-.landing-mist img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 62%;
-  transform: scale(1.04);
-  animation: landing-mist-drift 46s ease-in-out infinite alternate;
-}
-.landing-mist-light { opacity: 0.5; }
-.landing-mist-dark { opacity: 0; }
-.dark .landing-mist-light { opacity: 0; }
-.dark .landing-mist-dark { opacity: 0.62; }
-/* Fade the photo into the page tone so text always rests on calm space. */
-.landing-mist::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(120% 78% at 50% 32%, transparent 30%, rgb(var(--background) / 0.55) 72%, rgb(var(--background) / 0.9) 100%),
-    linear-gradient(180deg, rgb(var(--background) / 0.35) 0%, transparent 26%, transparent 60%, rgb(var(--background) / 0.75) 100%);
-}
-@keyframes landing-mist-drift {
-  from { transform: scale(1.04) translate3d(0, 0, 0); }
-  to   { transform: scale(1.09) translate3d(-1.5%, -1.5%, 0); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .landing-mist img { animation: none; }
-}
+/* ══ Landing hero: live snapshots of the app itself ══ */
 
 /* Marketing headline in Fraunces, editorial + restrained. */
 .landing-headline {
@@ -929,7 +890,7 @@
   color: rgb(var(--primary));
 }
 
-/* The explainer column — recedes the instant a name is being typed. */
+/* The snapshot stage — recedes the instant a name is being typed. */
 .landing-explainer {
   transition:
     opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
@@ -940,7 +901,7 @@
 .landing-explainer--dim {
   opacity: 0;
   filter: blur(8px);
-  transform: translateY(14px);
+  transform: translateY(14px) scale(0.985);
   pointer-events: none;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -948,167 +909,214 @@
   .landing-explainer--dim { filter: none; transform: none; }
 }
 
-/* ── Editorial diagram: Drops → your address → a private trail ── */
-.diagram-wrap { position: relative; }
+/* ── Product snapshots: two little phone frames, softly tilted ── */
+.snap-stage {
+  position: relative;
+  min-height: 30rem;
+}
 
-.diagram-drops {
-  position: relative;
-  display: flex;
-  gap: 0.55rem;
+.snap-phone {
+  position: absolute;
+  width: 16.5rem;
+  border-radius: 2.1rem;
+  border: 1px solid rgb(var(--border) / 0.8);
+  background: rgb(var(--card) / 0.85);
+  box-shadow: var(--shadow-soft), inset 0 1px 0 rgb(255 255 255 / 0.06);
+  padding: 0.5rem;
+  backdrop-filter: blur(10px);
 }
-.drop-note {
-  position: relative;
-  flex: 1;
-  border: 1px solid rgb(var(--border) / 0.7);
-  border-radius: 0.55rem 0.55rem 0.55rem 0.14rem;
-  background: rgb(var(--card) / 0.72);
-  backdrop-filter: blur(6px);
-  padding: 0.6rem 0.55rem 0.5rem;
-  box-shadow: var(--shadow-card);
-}
-.drop-note::before {
-  /* folded corner */
+.snap-phone::before {
+  /* speaker slit */
   content: "";
   position: absolute;
-  top: 0; right: 0;
-  border-width: 0 0.62rem 0.62rem 0;
-  border-style: solid;
-  border-color: transparent rgb(var(--background)) transparent transparent;
-  filter: drop-shadow(-1px 1px 0 rgb(var(--border) / 0.6));
+  top: 0.7rem; left: 50%;
+  width: 2.6rem; height: 0.28rem;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgb(var(--muted-foreground) / 0.25);
 }
-.drop-note:nth-child(1) { transform: rotate(-2.2deg); }
-.drop-note:nth-child(2) { transform: rotate(0.6deg) translateY(-3px); }
-.drop-note:nth-child(3) { transform: rotate(2deg); }
-.drop-note .drop-dot {
-  width: 0.5rem; height: 0.5rem; border-radius: 999px; margin-bottom: 0.4rem;
+.snap-screen {
+  border-radius: 1.7rem;
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgb(var(--primary) / 0.08), transparent 60%),
+    rgb(var(--background) / 0.9);
+  padding: 1.35rem 0.9rem 0.9rem;
+  overflow: hidden;
 }
-.drop-note .drop-line {
-  height: 0.28rem; border-radius: 999px; background: rgb(var(--muted-foreground) / 0.28);
+.snap-phone--convo {
+  right: 0; top: 0;
+  z-index: 2;
+  transform: rotate(3deg);
+  animation: snap-float-a 9s ease-in-out infinite;
 }
-.drop-note .drop-line + .drop-line { margin-top: 0.28rem; width: 72%; }
+.snap-phone--drop {
+  left: 0; top: 5.5rem;
+  z-index: 1;
+  transform: rotate(-5deg);
+  animation: snap-float-b 10.5s ease-in-out infinite;
+}
+@keyframes snap-float-a {
+  0%, 100% { transform: rotate(3deg) translateY(0); }
+  50% { transform: rotate(3deg) translateY(-8px); }
+}
+@keyframes snap-float-b {
+  0%, 100% { transform: rotate(-5deg) translateY(0); }
+  50% { transform: rotate(-5deg) translateY(7px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .snap-phone--convo, .snap-phone--drop { animation: none; }
+}
 
-.diagram-flow {
-  display: block;
-  width: 100%;
-  height: 34px;
-  color: rgb(var(--primary) / 0.5);
-}
-.diagram-flow path {
-  stroke: currentColor;
-  stroke-width: 1.4;
-  stroke-dasharray: 3 4;
-  fill: none;
-  stroke-linecap: round;
-}
-
-/* The torn-paper address slab that holds the real live field. */
-.address-slab {
-  position: relative;
-  border-radius: 0.9rem;
-  background: linear-gradient(rgb(var(--card) / 0.9), rgb(var(--card) / 0.72));
+/* A soft caption pinned to each snapshot. */
+.snap-caption {
+  position: absolute;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
   border: 1px solid rgb(var(--border) / 0.7);
-  box-shadow: var(--shadow-soft);
-  padding: 1rem 1.1rem 1.1rem;
-}
-.address-slab-tag {
-  position: absolute;
-  top: -0.7rem; left: 1rem;
-  display: inline-flex; align-items: center;
-  border-radius: 999px;
-  background: rgb(var(--primary));
-  color: rgb(var(--primary-foreground));
-  padding: 0.2rem 0.7rem;
-  font-family: var(--font-mono);
-  font-size: 0.55rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  box-shadow: 0 6px 16px -8px rgb(var(--primary) / 0.7);
-}
-.address-slab-url {
-  font-family: var(--font-mono);
-  font-size: clamp(1.1rem, 2.4vw, 1.6rem);
-  letter-spacing: -0.01em;
-  color: rgb(var(--foreground));
-  word-break: break-word;
-}
-.address-slab-url .host { color: rgb(var(--muted-foreground) / 0.72); }
-.address-slab-url .slash { color: rgb(var(--primary) / 0.7); padding: 0 0.12rem; }
-.address-slab-url .name { color: rgb(var(--primary)); font-weight: 500; }
-.address-slab-moss {
-  position: absolute;
-  right: 0.9rem; bottom: -0.3rem;
-  height: 0.9rem; width: 34%;
-  border-radius: 999px;
-  background: radial-gradient(60% 100% at 50% 0%, rgb(var(--primary) / 0.32), transparent 72%);
-  filter: blur(3px);
-}
-
-/* The private conversation trail — the promise, told as a timeline. */
-.trail-mini {
-  position: relative;
-  margin: 0;
-  padding: 0 0 0 1.1rem;
-  list-style: none;
-  border-left: 1px solid rgb(var(--primary) / 0.28);
-}
-.trail-mini li {
-  position: relative;
-  padding: 0 0 0.85rem;
-}
-.trail-mini li:last-child { padding-bottom: 0; }
-.trail-mini li::before {
-  content: "";
-  position: absolute;
-  left: -1.42rem; top: 0.2rem;
-  width: 0.5rem; height: 0.5rem;
-  border-radius: 999px;
-  background: rgb(var(--primary));
-  box-shadow: 0 0 0 4px rgb(var(--primary) / 0.14);
-}
-.trail-mini li[data-ember="true"]::before {
-  background: rgb(var(--ember));
-  box-shadow: 0 0 0 4px rgb(var(--ember) / 0.16);
-}
-.trail-mini .t-title {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: 0.92rem;
-  color: rgb(var(--foreground));
-  line-height: 1.25;
-}
-.trail-mini .t-when {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.06em;
-  color: rgb(var(--muted-foreground) / 0.7);
-}
-
-/* Three-beat explainer row. */
-.beat-title {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: 0.98rem;
-  color: rgb(var(--foreground));
-}
-.beat-body {
-  font-size: 0.8rem;
-  font-weight: 300;
-  line-height: 1.55;
-  color: rgb(var(--muted-foreground));
-}
-.beat-num {
+  background: rgb(var(--card) / 0.92);
+  padding: 0.3rem 0.75rem;
   font-family: var(--font-mono);
   font-size: 0.6rem;
   letter-spacing: 0.14em;
-  color: rgb(var(--primary) / 0.75);
+  text-transform: uppercase;
+  color: rgb(var(--primary));
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(6px);
+}
+.snap-caption .dot {
+  width: 0.4rem; height: 0.4rem; border-radius: 999px; background: rgb(var(--ember));
+  box-shadow: 0 0 6px 1px rgb(var(--ember) / 0.6);
 }
 
-/* Staggered entrance for the explainer pieces. */
-.landing-stagger > * { animation: talk-scene-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.landing-stagger > *:nth-child(1) { animation-delay: 0.05s; }
-.landing-stagger > *:nth-child(2) { animation-delay: 0.14s; }
-.landing-stagger > *:nth-child(3) { animation-delay: 0.23s; }
-@media (prefers-reduced-motion: reduce) {
-  .landing-stagger > * { animation: none; }
+/* Screen header: who you're reaching. */
+.snap-head { display: flex; align-items: center; gap: 0.55rem; }
+.snap-mark {
+  flex-shrink: 0;
+  width: 2rem; height: 2rem;
+  border-radius: 32% 68% 62% 38% / 42% 38% 62% 58%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background-image: linear-gradient(140deg, rgb(var(--primary)), rgb(var(--primary) / 0.72));
+  color: rgb(var(--primary-foreground));
+  font-family: var(--font-display);
+  font-size: 0.72rem; font-weight: 500;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2);
+}
+.snap-name {
+  font-family: var(--font-display);
+  font-size: 0.92rem; font-weight: 500; line-height: 1.1;
+  color: rgb(var(--foreground));
+}
+.snap-addr {
+  font-family: var(--font-mono);
+  font-size: 0.58rem; letter-spacing: 0.01em;
+  color: rgb(var(--muted-foreground) / 0.8);
+}
+
+/* Conversation trail fragments. */
+.snap-frag {
+  max-width: 88%;
+  border-radius: 0.85rem;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.74rem;
+  font-weight: 300;
+  line-height: 1.45;
+}
+.snap-frag--other {
+  border: 1px solid rgb(var(--border) / 0.75);
+  background: rgb(var(--card));
+  color: rgb(var(--foreground) / 0.9);
+  border-bottom-left-radius: 0.22rem;
+}
+.snap-frag--own {
+  margin-left: auto;
+  border: 1px solid rgb(var(--primary) / 0.4);
+  border-left: 3px solid rgb(var(--primary));
+  background: rgb(var(--primary) / 0.12);
+  color: rgb(var(--foreground));
+  border-bottom-right-radius: 0.22rem;
+}
+.snap-speaker {
+  font-family: var(--font-mono);
+  font-size: 0.5rem; letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgb(var(--muted-foreground) / 0.7);
+}
+.snap-seen {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.55rem; letter-spacing: 0.06em;
+  color: rgb(var(--primary) / 0.85);
+}
+.snap-composerbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 0.35rem;
+  border: 1px solid rgb(var(--border) / 0.7);
+  border-radius: 0.85rem;
+  background: rgb(var(--background) / 0.6);
+  padding: 0.5rem 0.6rem;
+  font-size: 0.68rem; font-weight: 300;
+  color: rgb(var(--muted-foreground) / 0.7);
+}
+.snap-send {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.5rem; height: 1.5rem; border-radius: 999px;
+  background: rgb(var(--primary)); color: rgb(var(--primary-foreground));
+}
+
+/* Drop note surface. */
+.snap-note {
+  margin-top: 0.75rem;
+  border: 1px solid rgb(var(--border) / 0.7);
+  border-radius: 0.85rem;
+  background: rgb(var(--background) / 0.55);
+  padding: 0.7rem 0.7rem 0.6rem;
+}
+.snap-note-text {
+  font-family: var(--font-serif);
+  font-size: 0.78rem; font-weight: 300; line-height: 1.55;
+  color: rgb(var(--foreground) / 0.85);
+}
+.snap-idrow {
+  display: flex; flex-wrap: wrap; gap: 0.3rem;
+  margin-top: 0.7rem;
+}
+.snap-chip {
+  border: 1px solid rgb(var(--border) / 0.7);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.55rem; letter-spacing: 0.04em;
+  color: rgb(var(--muted-foreground));
+}
+.snap-chip[data-active="true"] {
+  border-color: rgb(var(--primary) / 0.5);
+  background: rgb(var(--primary) / 0.1);
+  color: rgb(var(--primary));
+}
+.snap-btn {
+  display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+  width: 100%;
+  margin-top: 0.7rem;
+  border-radius: 999px;
+  background: rgb(var(--primary));
+  color: rgb(var(--primary-foreground));
+  padding: 0.55rem;
+  font-size: 0.72rem; font-weight: 400;
+}
+
+/* Compact single-column snapshots on narrow screens. */
+@media (max-width: 1023px) {
+  .snap-stage {
+    min-height: 0;
+    display: flex;
+    justify-content: center;
+    padding-top: 1rem;
+  }
+  .snap-phone { position: relative; top: auto; left: auto; right: auto; }
+  .snap-phone--drop { display: none; }
+  .snap-phone--convo { transform: rotate(0deg); animation: none; }
 }
 

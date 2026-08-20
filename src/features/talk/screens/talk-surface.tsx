@@ -14,7 +14,7 @@ import { PlaceMark } from "@/features/talk/components/place-mark";
 import { TalkAddressPlaque } from "@/features/talk/components/talk-address-plaque";
 import { TalkLoading } from "@/features/talk/components/states";
 import { SceneFade } from "@/features/talk/components/scene-fade";
-import { LandingBackdrop, LandingExplainer } from "@/features/talk/components/landing-hero";
+import { LandingSnapshots } from "@/features/talk/components/landing-hero";
 import { ShelfScreen } from "@/features/talk/screens/shelf-screen";
 import { DoorView, ClaimView, UnlockSheet } from "@/features/talk/screens/door-screen";
 
@@ -155,7 +155,6 @@ export function TalkSurface({ initialAddress }: { initialAddress?: string }) {
     const showingPlace = !!preview && (status === "taken" || status === "yours");
     return (
       <TalkShell centered>
-        <LandingBackdrop />
         <section className="relative w-full max-w-6xl px-5 py-10" data-testid="landing">
           <div className="grid items-center gap-y-12 lg:grid-cols-12 lg:gap-x-16">
             {/* LEFT — the one field that is the whole entry flow */}
@@ -232,9 +231,9 @@ export function TalkSurface({ initialAddress }: { initialAddress?: string }) {
               </SceneFade>
             </div>
 
-            {/* RIGHT — the editorial explainer, receding the moment you type */}
+            {/* RIGHT — live snapshots of the app, receding the moment you type */}
             <div className="lg:col-span-7">
-              <LandingExplainer slug={slug} dim={typing} />
+              <LandingSnapshots dim={typing} />
             </div>
           </div>
 

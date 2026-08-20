@@ -1,100 +1,80 @@
+import { Check, EyeOff, MapPin, Send, UserRound } from "lucide-react";
 import { TALK } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
-/** Atmospheric forest-mist backdrop for the landing — theme-aware, held behind everything. */
-export function LandingBackdrop() {
-  return (
-    <div className="landing-mist" aria-hidden="true" data-testid="landing-backdrop">
-      <img className="landing-mist-light" src="/landing/mist-light.jpg" alt="" loading="eager" decoding="async" />
-      <img className="landing-mist-dark" src="/landing/mist-dark.jpg" alt="" loading="eager" decoding="async" />
-    </div>
-  );
-}
-
-const BEATS = [
-  { n: "01", title: "A Drop", body: "Anyone opens your address and leaves a note. No app, no account — just words." },
-  { n: "02", title: "You decide", body: "Reply and it quietly becomes a private Talk. Or let it rest. You're never obligated." },
-  { n: "03", title: "It stays yours", body: "Groups and Channels appear only when you want them. Nothing to manage until then." },
-] as const;
-
-const TRAIL = [
-  { title: "Someone leaves a Drop", when: "a moment ago", ember: false },
-  { title: "It arrives at your place", when: "just now", ember: true },
-  { title: "You reply — a Talk begins", when: "", ember: false },
-  { title: "The conversation stays private", when: "always", ember: false },
-] as const;
-
 /**
- * The editorial explainer beside the live field: little Drop notes flowing into
- * your address, and the quiet trail a Drop can become. Recreated in the DOM so
- * it reflects the theme and the address being typed. Fades out via `dim`.
+ * Snapshots of the app itself, standing in for a text explanation: a Drop being
+ * left at someone's door, and the private Talk it can become. Two softly-tilted
+ * phone frames. The whole stage recedes (`dim`) the moment you start typing.
  */
-export function LandingExplainer({ slug, dim }: { slug: string; dim: boolean }) {
-  const name = slug || "your-name";
+export function LandingSnapshots({ dim }: { dim: boolean }) {
   return (
     <div
-      className={cn("landing-explainer landing-stagger", dim && "landing-explainer--dim")}
+      className={cn("landing-explainer snap-stage", dim && "landing-explainer--dim")}
       aria-hidden={dim}
-      data-testid="landing-explainer"
+      data-testid="landing-snapshots"
     >
-      {/* Drops → your address */}
-      <div className="diagram-wrap">
-        <div className="diagram-drops" data-testid="diagram-drops">
-          <Note dot="rgb(var(--primary))" />
-          <Note dot="rgb(var(--ember))" />
-          <Note dot="rgb(var(--stone))" />
-        </div>
-        <svg className="diagram-flow" viewBox="0 0 300 34" preserveAspectRatio="none" aria-hidden="true">
-          <path d="M40 2 C 40 24, 150 20, 150 32" />
-          <path d="M150 2 L150 32" />
-          <path d="M260 2 C 260 24, 150 20, 150 32" />
-        </svg>
-        <div className="address-slab" data-testid="diagram-address">
-          <span className="address-slab-tag">Your Talk address</span>
-          <div className="address-slab-url">
-            <span className="host">{TALK.domain}</span>
-            <span className="slash">/</span>
-            <span className="name">{name}</span>
+      {/* Snapshot 1 — leaving a Drop at a door */}
+      <div className="snap-phone snap-phone--drop" data-testid="snapshot-drop">
+        <span className="snap-caption" style={{ top: "-0.8rem", left: "-0.4rem" }}>
+          <span className="dot" /> Leave a Drop
+        </span>
+        <div className="snap-screen">
+          <div className="snap-head">
+            <span className="snap-mark">AR</span>
+            <span className="min-w-0">
+              <span className="snap-name block">Alex Rivera</span>
+              <span className="snap-addr block">{TALK.domain}/alex</span>
+            </span>
           </div>
-          <span className="address-slab-moss" aria-hidden="true" />
+          <div className="snap-note">
+            <p className="snap-note-text">
+              Hi Alex — loved your field notes on calm software. Could we talk sometime?
+            </p>
+          </div>
+          <div className="snap-idrow">
+            <span className="snap-chip"><EyeOff className="mr-1 inline h-2.5 w-2.5" strokeWidth={2} />anonymously</span>
+            <span className="snap-chip"><UserRound className="mr-1 inline h-2.5 w-2.5" strokeWidth={2} />my name</span>
+            <span className="snap-chip" data-active="true"><MapPin className="mr-1 inline h-2.5 w-2.5" strokeWidth={2} />from my place</span>
+          </div>
+          <div className="snap-btn">
+            <Send className="h-3 w-3" strokeWidth={2} /> Leave it at Alex's door
+          </div>
         </div>
       </div>
 
-      {/* The trail a Drop can grow into */}
-      <div className="mt-8">
-        <p className="mb-3 font-mono text-[0.6rem] uppercase tracking-[0.2em] text-muted-foreground/60">
-          A Drop can become a Talk
-        </p>
-        <ul className="trail-mini" data-testid="diagram-trail">
-          {TRAIL.map((t) => (
-            <li key={t.title} data-ember={t.ember}>
-              <span className="t-title">{t.title}</span>
-              {t.when && <span className="t-when block">{t.when}</span>}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Three beats, in human terms */}
-      <div className="mt-8 grid gap-5 sm:grid-cols-3">
-        {BEATS.map((b) => (
-          <div key={b.title}>
-            <span className="beat-num">{b.n}</span>
-            <h3 className="beat-title mt-1">{b.title}</h3>
-            <p className="beat-body mt-1">{b.body}</p>
+      {/* Snapshot 2 — the private Talk it becomes */}
+      <div className="snap-phone snap-phone--convo" data-testid="snapshot-convo">
+        <span className="snap-caption" style={{ bottom: "-0.8rem", right: "-0.2rem" }}>
+          <span className="dot" /> It becomes a Talk
+        </span>
+        <div className="snap-screen">
+          <div className="snap-head">
+            <span className="snap-mark">MA</span>
+            <span className="min-w-0">
+              <span className="snap-name block">Mara</span>
+              <span className="snap-addr block">{TALK.domain}/mara</span>
+            </span>
           </div>
-        ))}
+          <div className="mt-3 flex flex-col gap-2">
+            <div>
+              <span className="snap-speaker">Mara</span>
+              <div className="snap-frag snap-frag--other mt-0.5">Either afternoon works on my end.</div>
+            </div>
+            <div>
+              <div className="flex items-center gap-1">
+                <span className="snap-speaker ml-auto">You</span>
+              </div>
+              <div className="snap-frag snap-frag--own mt-0.5">Next Tuesday works — I'll send a time.</div>
+              <p className="snap-seen mt-1"><Check className="h-2.5 w-2.5" strokeWidth={3} /> Seen</p>
+            </div>
+          </div>
+          <div className="snap-composerbar">
+            Leave a message…
+            <span className="snap-send"><Send className="h-3 w-3" strokeWidth={2} /></span>
+          </div>
+        </div>
       </div>
-    </div>
-  );
-}
-
-function Note({ dot }: { dot: string }) {
-  return (
-    <div className="drop-note">
-      <span className="drop-dot" style={{ background: dot }} />
-      <span className="drop-line" />
-      <span className="drop-line" />
     </div>
   );
 }
