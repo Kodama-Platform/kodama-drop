@@ -1210,3 +1210,69 @@
   .snap-phone--drop, .snap-phone--convo { transform: rotate(0deg); animation: none; }
 }
 
+/* ── Mode toggle: flip between a one-to-one Drop and Channels & Groups ── */
+.snap-modes {
+  display: inline-flex;
+  gap: 0.15rem;
+  margin: 0 auto 0.4rem;
+  padding: 0.2rem;
+  border-radius: 999px;
+  border: 1px solid rgb(var(--border) / 0.7);
+  background: rgb(var(--card) / 0.7);
+  backdrop-filter: blur(6px);
+}
+.snap-modes-wrap { display: flex; justify-content: center; }
+.snap-mode-btn {
+  border: none;
+  cursor: pointer;
+  border-radius: 999px;
+  background: transparent;
+  padding: 0.35rem 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgb(var(--muted-foreground));
+  transition: color 0.18s ease, background-color 0.18s ease;
+}
+.snap-mode-btn:hover { color: rgb(var(--foreground)); }
+.snap-mode-btn[data-active="true"] {
+  background: rgb(var(--primary));
+  color: rgb(var(--primary-foreground));
+}
+
+/* Channel broadcast post + group meta. */
+.snap-post {
+  border: 1px solid rgb(var(--border) / 0.7);
+  border-left: 3px solid rgb(var(--primary) / 0.55);
+  border-radius: 0.6rem;
+  background: rgb(var(--card));
+  padding: 0.5rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 300;
+  line-height: 1.45;
+  color: rgb(var(--foreground) / 0.9);
+}
+.snap-meta {
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.04em;
+  color: rgb(var(--muted-foreground) / 0.75);
+}
+.snap-follow {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  border: 1px solid rgb(var(--primary) / 0.5);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  padding: 0.2rem 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.56rem; letter-spacing: 0.06em;
+  color: rgb(var(--primary));
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+.snap-follow[data-active="true"] {
+  background: rgb(var(--primary) / 0.12);
+}
+
+

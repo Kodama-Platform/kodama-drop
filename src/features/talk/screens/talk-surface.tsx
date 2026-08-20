@@ -233,7 +233,13 @@ export function TalkSurface({ initialAddress }: { initialAddress?: string }) {
 
             {/* RIGHT — a live, playable snapshot of the Drop → Talk loop */}
             <div className="lg:col-span-7">
-              <LandingSnapshots recede={typing} />
+              <LandingSnapshots
+                recede={typing}
+                target={{
+                  name: showingPlace && preview ? preview.displayName : slug ? slug.charAt(0).toUpperCase() + slug.slice(1) : "Alex Rivera",
+                  address: slug || "alex",
+                }}
+              />
             </div>
           </div>
 

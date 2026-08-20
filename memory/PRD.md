@@ -263,3 +263,10 @@ Built on the Kodama Note repo (kept build/runtime config, dusk theme, brand asse
 - Phones drift gently; drift **pauses on hover/focus-within** so nothing is a moving target. Mobile: both phones stack (no longer hides the Drop phone).
 - Testids: landing-snapshots, snapshot-drop, snapshot-convo, snapshot-note, snapshot-chip-{anonymously|named|place}, snapshot-send, snapshot-empty, snapshot-typing, snapshot-reply, snapshot-reset.
 - Verified full loop (edit note → pick identity → send → typing → reply → Seen → reset), recede-on-type, and 158/158 unit tests. Agent-verified, not user-confirmed.
+
+## Update (2026-06) — Landing v4: identity echo + Channels/Groups flip + autoplay
+- **Live Identity Echo:** `talk-surface.tsx` passes a `target={name,address}` to `LandingSnapshots` derived from the main field (preview.displayName when a real place resolves, else the capitalized typed slug, else Alex). The Drop/Talk phones, button ("Leave it at {first}'s door"), reply speaker, and empty-state copy all reflect whoever you're typing to — updates even while the panel is receded.
+- **Second Loop (Channels & Groups):** a segmented toggle (testids snapshot-mode-direct / snapshot-mode-spaces) flips the stage from the one-to-one Drop→Talk demo to two new snapshots — a public **Channel** ("Field Notes", broadcasts, a working Follow toggle `snapshot-follow`, "replies reviewed") and a private **Group** ("Design Team", Wren/You/Mara, "3 members · only they can read this").
+- **Autoplay Hint:** the direct demo softly self-runs once ~1.6s after load (auto-sends → "…" → reply → Seen), then hands control over (start-over + fully live). Made StrictMode-safe: the scheduling effect only latches `autoplayed` when the timer actually fires, so the dev double-mount no longer eats it. Any user interaction (typing/chip/focus/send/mode-switch) cancels/short-circuits it.
+- New testids: snapshot-mode-direct, snapshot-mode-spaces, snapshot-stage, snapshot-drop-name, snapshot-channel, snapshot-group, snapshot-follow.
+- Verified all three live (echo=Mara, channel+group flip+follow, autoplay reply) in-browser; 158/158 unit tests pass. Agent-verified, not user-confirmed.
