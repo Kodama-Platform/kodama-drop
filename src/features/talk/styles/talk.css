@@ -900,7 +900,6 @@
 }
 .landing-explainer--recede {
   opacity: 0.6;
-  filter: blur(1.5px) saturate(0.9);
   transform: scale(0.975);
 }
 @media (prefers-reduced-motion: reduce) {
