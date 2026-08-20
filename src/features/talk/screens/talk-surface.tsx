@@ -14,6 +14,7 @@ import { PlaceMark } from "@/features/talk/components/place-mark";
 import { TalkAddressPlaque } from "@/features/talk/components/talk-address-plaque";
 import { TalkLoading } from "@/features/talk/components/states";
 import { SceneFade } from "@/features/talk/components/scene-fade";
+import { LandingBackdrop, LandingExplainer } from "@/features/talk/components/landing-hero";
 import { ShelfScreen } from "@/features/talk/screens/shelf-screen";
 import { DoorView, ClaimView, UnlockSheet } from "@/features/talk/screens/door-screen";
 
@@ -150,74 +151,92 @@ export function TalkSurface({ initialAddress }: { initialAddress?: string }) {
   if (address === null) {
     const slug = extractAddress(input);
     const revealing = status === "taken" || status === "available" || status === "yours";
+    const typing = status !== "idle";
+    const showingPlace = !!preview && (status === "taken" || status === "yours");
     return (
       <TalkShell centered>
-        <section className="w-full max-w-md px-5 pb-16">
-          <div className="talk-enter flex flex-col items-center text-center">
-            {slug ? (
-              <PlaceMark
-                mark={preview && (status === "taken" || status === "yours") ? preview.mark : markFor(slug, slug)}
-                size={72}
-                className="transition-all duration-500"
-              />
-            ) : (
-              <span className="talk-logo-mark" style={{ width: 72, height: 72 }} data-testid="landing-logo-mark">
-                <KodamaMark size={38} className="text-[rgb(var(--primary-foreground))]" holeClassName="fill-[rgb(var(--primary))]" />
-              </span>
-            )}
-            <h1 className="mt-3.5 talk-display text-3xl text-foreground sm:text-4xl" data-testid="landing-title">
-              {preview && (status === "taken" || status === "yours") ? preview.displayName : slug ? slug : "Kodama Talk"}
-            </h1>
-            {preview && status === "taken" && preview.tagline && (
-              <p className="mt-2 max-w-xs text-sm font-light italic text-muted-foreground">&ldquo;{preview.tagline}&rdquo;</p>
-            )}
-            {status === "idle" && (
-              <p className="mt-2 text-sm font-light text-muted-foreground/70" data-testid="landing-purpose">
-                Type a Talk address to reach someone.
-              </p>
-            )}
+        <LandingBackdrop />
+        <section className="relative w-full max-w-6xl px-5 py-10" data-testid="landing">
+          <div className="grid items-center gap-y-12 lg:grid-cols-12 lg:gap-x-16">
+            {/* LEFT — the one field that is the whole entry flow */}
+            <div className="talk-enter lg:col-span-5">
+              {slug ? (
+                <PlaceMark
+                  mark={showingPlace && preview ? preview.mark : markFor(slug, slug)}
+                  size={64}
+                  className="transition-all duration-500"
+                />
+              ) : (
+                <span className="talk-logo-mark" style={{ width: 60, height: 60 }} data-testid="landing-logo-mark">
+                  <KodamaMark size={32} className="text-[rgb(var(--primary-foreground))]" holeClassName="fill-[rgb(var(--primary))]" />
+                </span>
+              )}
 
-            {/* The one dynamic field */}
-            <div className="mt-5 w-full">
-              <TalkAddressPlaque
-                editable
-                value={input}
-                onChange={setInput}
-                onSubmit={() => open()}
-                placeholder="your-name"
-                className="!w-full !py-2.5 !text-base"
-              />
+              {slug ? (
+                <>
+                  <h1 className="mt-4 talk-display text-3xl text-foreground sm:text-4xl" data-testid="landing-title">
+                    {showingPlace && preview ? preview.displayName : slug}
+                  </h1>
+                  {showingPlace && preview?.tagline && (
+                    <p className="mt-2 max-w-sm text-sm font-light italic text-muted-foreground">&ldquo;{preview.tagline}&rdquo;</p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <h1 className="mt-5 landing-headline text-5xl sm:text-6xl" data-testid="landing-title">
+                    One address.<br />
+                    <em>Every</em> conversation.
+                  </h1>
+                  <p className="mt-4 max-w-sm text-base font-light leading-relaxed text-muted-foreground" data-testid="landing-purpose">
+                    Let people leave a private Drop — no app, no account. Type a name to reach someone, or claim your own.
+                  </p>
+                </>
+              )}
+
+              {/* The one dynamic field */}
+              <div className="mt-6 max-w-md">
+                <TalkAddressPlaque
+                  editable
+                  value={input}
+                  onChange={setInput}
+                  onSubmit={() => open()}
+                  placeholder="your-name"
+                  className="!w-full !py-3 !text-base"
+                />
+                <div className="mt-3 flex h-5 items-center">
+                  <StatusChip status={status} />
+                </div>
+              </div>
+
+              {status === "reserved" && (
+                <p className="mt-1 text-sm font-light text-muted-foreground" data-testid="reserved-state">
+                  This address cannot be claimed. Try another name.
+                </p>
+              )}
+
+              {/* Live reveal — dissolves the old place, then unfolds the new one */}
+              <SceneFade sceneKey={revealing && preview !== undefined ? `${status}:${slug}` : "quiet"} className="max-w-md">
+                {revealing && preview !== undefined ? (
+                  <div className="mt-5" data-testid="landing-reveal">
+                    {status === "yours" && preview ? (
+                      <button type="button" className="btn-moss w-full justify-center" onClick={() => openMyTalk(slug)} data-testid="open-my-talk">
+                        <KeyRound className="h-4 w-4" /> Open my Talk
+                      </button>
+                    ) : status === "taken" && preview ? (
+                      <DoorView place={preview} showHero={false} onOwner={() => setUnlockOpen(true)} />
+                    ) : (
+                      <ClaimView address={slug} onClaimed={(s, stay) => openShelf(s, stay)} onCancel={() => setInput("")} />
+                    )}
+                  </div>
+                ) : null}
+              </SceneFade>
             </div>
 
-            {/* Status — fixed height so the layout never jumps */}
-            <div className="mt-3 flex h-5 items-center justify-center">
-              <StatusChip status={status} />
+            {/* RIGHT — the editorial explainer, receding the moment you type */}
+            <div className="lg:col-span-7">
+              <LandingExplainer slug={slug} dim={typing} />
             </div>
           </div>
-
-          {/* Reserved / invalid */}
-          {status === "reserved" && (
-            <p className="mt-3 text-center text-sm font-light text-muted-foreground" data-testid="reserved-state">
-              This address cannot be claimed. Try another name.
-            </p>
-          )}
-
-          {/* Live reveal — dissolves the old place, then unfolds the new one */}
-          <SceneFade sceneKey={revealing && preview !== undefined ? `${status}:${slug}` : "quiet"}>
-            {revealing && preview !== undefined ? (
-              <div className="mt-6" data-testid="landing-reveal">
-                {status === "yours" && preview ? (
-                  <button type="button" className="btn-moss w-full justify-center" onClick={() => openMyTalk(slug)} data-testid="open-my-talk">
-                    <KeyRound className="h-4 w-4" /> Open my Talk
-                  </button>
-                ) : status === "taken" && preview ? (
-                  <DoorView place={preview} showHero={false} onOwner={() => setUnlockOpen(true)} />
-                ) : (
-                  <ClaimView address={slug} onClaimed={(s, stay) => openShelf(s, stay)} onCancel={() => setInput("")} />
-                )}
-              </div>
-            ) : null}
-          </SceneFade>
 
           {(status === "taken" || status === "yours") && preview && (
             <UnlockSheet

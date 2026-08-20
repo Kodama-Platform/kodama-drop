@@ -1,0 +1,108 @@
+{
+  "typography": {
+    "headings": "Fraunces",
+    "body": "Inter",
+    "mono": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace",
+    "scale": {
+      "h1": "text-5xl sm:text-6xl tracking-tight leading-[1.1]",
+      "h2": "text-3xl sm:text-4xl tracking-tight leading-[1.2]",
+      "body": "text-lg leading-relaxed",
+      "address": "text-3xl sm:text-4xl font-mono tracking-tight"
+    },
+    "notes": "Fraunces serif must be used for all expressive headings (e.g., 'A simple way to be reached'). Monospace must be used specifically for the live address field (`talk.kodama.page/your-name`). Inter for supporting explainer text. Avoid bolding everything; use Light or Regular weights for elegance."
+  },
+  "colors": {
+    "light": {
+      "--background": "246 241 237",
+      "--foreground": "26 46 37",
+      "--primary": "43 76 62",
+      "--primary-foreground": "246 241 237",
+      "--ember": "217 106 74",
+      "--moss": "107 142 123",
+      "--jade": "138 184 161",
+      "--mist": "255 255 255 0.7",
+      "--card-bg": "255 255 255 0.9",
+      "--border": "26 46 37 0.1",
+      "--ring": "43 76 62",
+      "notes": "Light theme: Warm paper (#F4F1ED) background, deep evergreen foreground. Restrained use of ember/moss for accents."
+    },
+    "dark": {
+      "--background": "10 18 14",
+      "--foreground": "224 231 227",
+      "--primary": "138 184 161",
+      "--primary-foreground": "10 18 14",
+      "--ember": "224 122 95",
+      "--moss": "66 90 77",
+      "--jade": "107 142 123",
+      "--mist": "10 18 14 0.8",
+      "--card-bg": "18 30 24 0.7",
+      "--border": "224 231 227 0.15",
+      "--ring": "138 184 161",
+      "notes": "Dark theme: Deep evergreen/dusk background, pale mist foreground."
+    }
+  },
+  "layouts": {
+    "strategy": "One calm viewport. The container must occupy ~100vh with overflow-hidden or restrained scrolling. Focus heavily on negative space. The left side (or top on mobile) holds the Hero Headings + the Live Address Field. The right side (or bottom) houses the 3-beat explainer intertwined with the editorial DOM diagram.",
+    "viewport": "min-h-[100dvh] w-full relative flex flex-col justify-center items-center py-12 px-6 overflow-hidden",
+    "grid_system": "w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24 items-center z-10"
+  },
+  "motion": {
+    "fade_on_type": {
+      "trigger": "status !== 'idle'",
+      "animation": "explainer and diagram container -> opacity: 0, filter: blur(8px), transform: translateY(16px), pointer-events: none",
+      "transition": "duration: 0.5s, ease: [0.16, 1, 0.3, 1] (custom ease-out)",
+      "stagger": "Fade out elements slightly staggered for organic feel."
+    },
+    "hero_field": {
+      "morphing": "The live address field morphs in place. When status changes from idle, it should remain the primary focal point, slightly shifting up or centering. Do not trigger route changes."
+    }
+  },
+  "visual_enhancers": {
+    "background_treatment": {
+      "base": "Solid background color (--background).",
+      "image_layer": "Use the provided misty pine forest image as an absolute positioned `object-cover` background with very low opacity (e.g., opacity-10 in dark, opacity-5 in light) to add atmospheric depth.",
+      "mist_gradients": "Overlay radial gradients at the bottom and corners using the `--mist` color to soften edges and text areas.",
+      "grain": "SVG noise filter or grain overlay covering the entire viewport with mix-blend-mode: overlay, opacity-20."
+    },
+    "editorial_diagram": {
+      "container": "Relative container acting as the visual anchor for the explainer.",
+      "drop_cards": "Three small div 'cards' (bg-card), rotated slightly (e.g., -6deg, 0deg, 6deg), overlapping each other, absolute positioned. Subtle borders, shadow-sm.",
+      "arrows": "Dotted SVG paths (`stroke-dasharray='4 4'`) connecting the drop cards to the address field or main flow.",
+      "address_card": "A larger card representing the 'YOUR TALK ADDRESS' that encloses the actual live input field.",
+      "timeline": "A minimalist vertical timeline using thin left borders (`border-l border-moss/30`) and small glowing dots to represent: 'Drop left -> Received -> Replied -> Private Talk'."
+    }
+  },
+  "image_urls": {
+    "mist_background": {
+      "url": "https://images.unsplash.com/photo-1601307426703-20d19577e455?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1ODh8MHwxfHNlYXJjaHwzfHxtaXN0eSUyMHBpbmUlMjBmb3Jlc3R8ZW58MHx8fHwxNzg3MjMxNTE5fDA&ixlib=rb-4.1.0&q=85",
+      "description": "Green pine trees covered with fog. MUST be used as an ultra-low opacity atmospheric layer behind everything.",
+      "category": "background"
+    }
+  },
+  "accessibility": {
+    "focus_states": "The live address field MUST have a high-contrast focus ring (`focus:ring-2 focus:ring-ring`).",
+    "contrast": "Keep the misty background extremely subtle so the text maintains APCA minimum contrast ratios.",
+    "reduced_motion": "Wrap Framer Motion animations to disable blur/translation and just use simple opacity crossfades if `prefers-reduced-motion` is true."
+  },
+  "instructions_to_main_agent": [
+    "Implement the landing screen in a single file or a few tightly coupled components within `/app/frontend/src/`. No Shadcn components are strictly required for the custom layout, but standard HTML/Tailwind works best for the editorial feel.",
+    "Set up the `--background`, `--foreground`, and other color variables in your CSS root and dark classes.",
+    "The hero section is essentially a large input. As the user types in the monospace field, simulate the `status` state changing from `idle` to `checking` -> `available`/`yours`. This state change MUST trigger the Framer Motion fade-out of the explainer and diagram.",
+    "Do NOT build generic 'SaaS dashboard' cards. The explainer should look like editorial text (Fraunces + Inter).",
+    "Recreate the editorial diagram entirely with DOM nodes (HTML/Tailwind/Framer). It should consist of little note 'Drop' cards pointing via SVG paths to the address field, and a small conversation timeline trail.",
+    "In the diagram, text should be calm and minimal: 'A Drop (no account needed)' -> 'You decide' -> 'It stays yours'.",
+    "Never use encryption or security jargon. Maintain the 'quiet forest doorway' tone."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Always add `data-testid` attributes to interactive elements (e.g., `data-testid='live-address-input'`, `data-testid='explainer-section'`).",
+    "Do NOT center align everything. Embrace asymmetry and grid spans (e.g., col-span-5 for hero, col-span-6 for diagram).",
+    "Ensure padding is generous. Use `p-12` or `p-24` on desktop, `p-6` on mobile.",
+    "Do not use `transition: all`. Target specific properties like `opacity transform`.",
+    "Avoid default AI-slop gradients (no purples/neons). Strictly adhere to the Kodama color variables.",
+    "Use Framer Motion (`<motion.div>`) for the fade_on_type mechanics."
+  ],
+  "component_path": {
+    "landing": "/app/frontend/src/components/LandingHero.js",
+    "diagram": "/app/frontend/src/components/EditorialDiagram.js"
+  }
+}
